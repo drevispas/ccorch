@@ -1,0 +1,55 @@
+{
+  "name": "@claude/orchestration",
+  "version": "1.0.0",
+  "description": "TypeScript framework for multi-agent orchestration with Claude Code integration",
+  "type": "module",
+  "main": "dist/orchestrator.js",
+  "types": "dist/orchestrator.d.ts",
+  "scripts": {
+    "build": "tsc && npm run copy-schemas",
+    "copy-schemas": "mkdir -p dist/schemas && cp core/schemas/*.json dist/schemas/",
+    "dev": "tsc --watch",
+    "start": "node dist/orchestrator.js",
+    "server": "node server/main.js",
+    "test": "jest",
+    "test:jest": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint core/**/*.ts",
+    "lint:fix": "eslint core/**/*.ts --fix",
+    "cleanup": "scripts/cleanup.sh",
+    "cleanup:dry-run": "scripts/cleanup.sh --dry-run",
+    "cleanup:force": "scripts/cleanup.sh --force",
+    "cleanup:no-confirm": "scripts/cleanup.sh --no-confirm"
+  },
+  "keywords": [
+    "claude",
+    "orchestration",
+    "agents",
+    "workflow",
+    "automation"
+  ],
+  "author": "Claude Code",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.1.2",
+    "@types/jest": "^29.0.0",
+    "@types/js-yaml": "^4.0.5",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.4.4",
+    "tslib": "^2.8.1",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,61 @@
+name: Code Review & Refactoring
+description: Quality improvement and code optimization
+use_case: "Performance optimization, code quality improvement, technical debt"
+
+agents:
+  sequence:
+    - name: code-reviewer
+      description: Analyze existing code for improvements
+      timeout: 30m
+      required: true
+
+    - name: backend-architect
+      description: Design optimization strategy and refactoring approach
+      timeout: 25m
+      required: true
+
+    - name: parallel_refactoring
+      type: parallel
+      description: Implement improvements across stack
+      agents:
+        - name: java-backend-developer
+          description: Refactor backend code and optimize performance
+          timeout: 60m
+
+        - name: nextjs-react-developer
+          description: Optimize frontend code and improve UX
+          timeout: 60m
+
+    - name: e2e-test-architect
+      description: Verify no regressions and validate improvements
+      timeout: 30m
+      required: true
+
+context:
+  template: |
+    # Refactoring: {{task_description}}
+    Type: review-refactor
+    Started: {{timestamp}}
+    Focus: {{focus_area|default('performance')}}
+
+    ## 1. Code Analysis (code-reviewer)
+    Status: ⏳ Pending
+
+    ## 2. Optimization Strategy (backend-architect)
+    Status: ⏳ Pending
+
+    ## 3. Backend Refactoring (java-backend-developer)
+    Status: ⏳ Pending
+
+    ## 4. Frontend Refactoring (nextjs-react-developer)
+    Status: ⏳ Pending
+
+    ## 5. Regression Testing (e2e-test-architect)
+    Status: ⏳ Pending
+
+examples:
+  - "Optimize dashboard performance (currently 5s load time)"
+  - "Refactor user service for better maintainability"
+  - "Improve error handling across the application"
+  - "Reduce bundle size and improve page load speeds"
+  - "Clean up technical debt in authentication module"

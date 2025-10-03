@@ -1,0 +1,26 @@
+{
+  "name": "ccorch-poc",
+  "version": "0.1.0",
+  "description": "Proof of Concept stub server for Claude Code Orchestrator hook validation (TypeScript)",
+  "main": "stub-server.ts",
+  "scripts": {
+    "start": "tsx stub-server.ts",
+    "capture": "tsx capture-hook.ts"
+  },
+  "keywords": [
+    "claude-code",
+    "orchestrator",
+    "poc"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.6.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

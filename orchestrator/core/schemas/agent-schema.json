@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude.ai/schemas/agent.json",
+  "title": "Claude Agent Definition Schema",
+  "description": "Schema for defining specialized agents in Claude Code orchestration",
+  "type": "object",
+  "required": ["frontmatter", "content"],
+  "properties": {
+    "frontmatter": {
+      "type": "object",
+      "required": ["name", "description"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Agent identifier (kebab-case)",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+          "minLength": 3,
+          "maxLength": 50
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of agent capabilities and usage",
+          "minLength": 50,
+          "maxLength": 2000
+        },
+        "model": {
+          "type": "string",
+          "description": "Preferred Claude model for this agent",
+          "enum": ["opus", "sonnet", "haiku"],
+          "default": "opus"
+        },
+        "version": {
+          "type": "string",
+          "description": "Agent version (semver format)",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "default": "1.0.0"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Categorization tags for the agent",
+          "items": {
+            "type": "string",
+            "enum": [
+              "architecture",
+              "backend",
+              "frontend",
+              "testing",
+              "review",
+              "debugging",
+              "security",
+              "performance",
+              "database",
+              "api",
+              "ui",
+              "devops"
+            ]
+          },
+          "uniqueItems": true,
+          "maxItems": 5
+        },
+        "capabilities": {
+          "type": "array",
+          "description": "Specific capabilities this agent provides",
+          "items": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 100
+          },
+          "minItems": 1,
+          "maxItems": 10,
+          "uniqueItems": true
+        },
+        "dependencies": {
+          "type": "array",
+          "description": "Other agents this agent depends on",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          },
+          "uniqueItems": true,
+          "maxItems": 5
+        },
+        "timeout": {
+          "type": "object",
+          "description": "Default timeout settings for this agent",
+          "properties": {
+            "default": {
+              "type": "string",
+              "pattern": "^\\d+[smh]$",
+              "default": "30m"
+            },
+            "max": {
+              "type": "string",
+              "pattern": "^\\d+[smh]$",
+              "default": "2h"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "content": {
+      "type": "string",
+      "description": "Markdown content defining the agent's behavior and expertise",
+      "minLength": 100
+    }
+  },
+  "additionalProperties": false
+}

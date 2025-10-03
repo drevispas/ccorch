@@ -1,0 +1,148 @@
+{
+  "name": "loop-with-retry-workflow",
+  "version": "1.0.0",
+  "description": "Demonstrates loop execution with retry logic and error handling",
+  "metadata": {
+    "author": "orchestrator-v2",
+    "created": "2024-01-01",
+    "tags": ["example", "loop", "retry", "error-handling"]
+  },
+  "pipeline": [
+    {
+      "id": "data-collection",
+      "type": "task",
+      "name": "Collect Data Items",
+      "agentName": "backend-architect",
+      "complexity": "simple",
+      "params": {
+        "source": "database",
+        "limit": 10
+      }
+    },
+    {
+      "id": "process-loop",
+      "type": "loop",
+      "name": "Process Each Item",
+      "items": "${result.items}",
+      "itemVariable": "currentItem",
+      "maxIterations": 100,
+      "parallel": false,
+      "body": {
+        "id": "process-item",
+        "type": "sequential",
+        "name": "Item Processing Pipeline",
+        "stages": [
+          {
+            "id": "validate-item",
+            "type": "task",
+            "name": "Validate Item",
+            "agentName": "code-reviewer",
+            "complexity": "simple",
+            "params": {
+              "item": "${currentItem}",
+              "strict": true
+            },
+            "retry": {
+              "maxAttempts": 3,
+              "delay": 1000,
+              "backoff": "exponential"
+            }
+          },
+          {
+            "id": "transform-item",
+            "type": "task",
+            "name": "Transform Item",
+            "agentName": "backend-architect",
+            "complexity": "moderate",
+            "params": {
+              "item": "${currentItem}",
+              "transformationType": "normalize"
+            },
+            "retry": {
+              "maxAttempts": 2,
+              "delay": 2000,
+              "backoff": "linear"
+            }
+          },
+          {
+            "id": "store-result",
+            "type": "task",
+            "name": "Store Processed Item",
+            "agentName": "backend-architect",
+            "complexity": "simple",
+            "params": {
+              "destination": "cache",
+              "ttl": 3600
+            },
+            "retry": {
+              "maxAttempts": 5,
+              "delay": 500,
+              "backoff": "fibonacci",
+              "retryOn": ["NETWORK_ERROR", "TIMEOUT"]
+            }
+          }
+        ]
+      },
+      "errorHandling": {
+        "continueOnError": true,
+        "maxFailures": 3,
+        "onMaxFailures": "break"
+      }
+    },
+    {
+      "id": "aggregate-loop-results",
+      "type": "task",
+      "name": "Aggregate Loop Results",
+      "agentName": "backend-architect",
+      "complexity": "simple",
+      "params": {
+        "includeErrors": true,
+        "generateSummary": true
+      }
+    },
+    {
+      "id": "retry-failed-items",
+      "type": "conditional",
+      "name": "Retry Failed Items",
+      "condition": "result.failedItems.length > 0",
+      "then": {
+        "id": "retry-loop",
+        "type": "loop",
+        "name": "Retry Failed Items",
+        "items": "${result.failedItems}",
+        "maxIterations": 50,
+        "body": {
+          "id": "retry-item",
+          "type": "task",
+          "name": "Retry Processing",
+          "agentName": "issue-detective",
+          "complexity": "moderate",
+          "params": {
+            "item": "${currentItem}",
+            "strategy": "alternative"
+          },
+          "retry": {
+            "maxAttempts": 1,
+            "delay": 5000
+          }
+        }
+      }
+    }
+  ],
+  "errorHandling": {
+    "strategy": "compensate",
+    "compensationHandler": "rollback-changes",
+    "deadLetterQueue": true
+  },
+  "timeouts": {
+    "global": 1800000,
+    "perTask": 60000,
+    "perIteration": 30000
+  },
+  "circuitBreaker": {
+    "enabled": true,
+    "threshold": 5,
+    "timeout": 60000,
+    "halfOpenRequests": 3
+  }
+}

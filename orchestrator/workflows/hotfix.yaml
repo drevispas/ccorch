@@ -1,0 +1,56 @@
+name: Emergency Hotfix
+description: Critical production bug resolution
+use_case: "Production incidents, security vulnerabilities, critical system failures"
+
+agents:
+  sequence:
+    - name: issue-detective
+      description: Rapid diagnosis of critical issue
+      timeout: 15m
+      required: true
+
+    - name: immediate_fix
+      type: conditional
+      description: Quick fix implementation
+      conditions:
+        backend_critical:
+          agent: java-backend-developer
+          timeout: 30m
+        frontend_critical:
+          agent: nextjs-react-developer
+          timeout: 30m
+        infrastructure:
+          agent: backend-architect
+          timeout: 20m
+
+    - name: e2e-test-architect
+      description: Smoke tests and critical path validation only
+      timeout: 15m
+      required: true
+
+context:
+  template: |
+    # HOTFIX: {{task_description}}
+    Type: hotfix
+    Started: {{timestamp}}
+    Priority: CRITICAL
+    Impact: {{impact|default('production_down')}}
+
+    ## 1. Emergency Diagnosis (issue-detective)
+    Status: ⏳ Pending
+
+    ## 2. Immediate Fix Implementation
+    Status: ⏳ Pending
+
+    ## 3. Smoke Testing (e2e-test-architect)
+    Status: ⏳ Pending
+
+    ## 4. Deployment Status
+    Status: ⏳ Pending
+
+examples:
+  - "Payment processing completely down"
+  - "Database connection pool exhausted"
+  - "Authentication service returning 500 errors"
+  - "Memory leak causing server crashes"
+  - "Security vulnerability discovered in user input"

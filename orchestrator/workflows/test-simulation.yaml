@@ -1,0 +1,49 @@
+name: Test Simulation Workflow
+description: Test workflow to verify agent chaining and file management
+use_case: "Testing subagent chaining functionality"
+
+agents:
+  sequence:
+    - name: backend-architect
+      description: Design a simple API architecture with database schema
+      timeout: 10m
+      required: true
+
+    - name: java-backend-developer
+      description: Implement the backend API endpoints
+      timeout: 15m
+      required: true
+
+    - name: code-reviewer
+      description: Review the implementation for best practices
+      timeout: 10m
+      required: true
+
+context:
+  template: |
+    # Task: {{task_description}}
+    Type: test-simulation
+    Started: {{timestamp}}
+
+    ## 1. Architecture Design (backend-architect)
+    Status: ⏳ Pending
+    - Design REST API endpoints
+    - Create database schema
+    - Define authentication strategy
+
+    ## 2. Backend Implementation (java-backend-developer)
+    Status: ⏳ Pending
+    - Implement API controllers
+    - Create service layer
+    - Set up database repositories
+
+    ## 3. Code Review (code-reviewer)
+    Status: ⏳ Pending
+    - Review code quality
+    - Check security practices
+    - Validate architecture adherence
+
+examples:
+  - "Create a simple user management API"
+  - "Build a basic blog posting system"
+  - "Implement a task tracking service"

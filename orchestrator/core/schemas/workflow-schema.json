@@ -1,0 +1,174 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude.ai/schemas/workflow.json",
+  "title": "Claude Orchestration Workflow Schema",
+  "description": "Schema for defining orchestration workflows in Claude Code",
+  "type": "object",
+  "required": ["name", "description", "use_case", "agents", "context", "examples"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Human-readable name of the workflow",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of what the workflow does",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "use_case": {
+      "type": "string",
+      "description": "When to use this workflow",
+      "minLength": 5,
+      "maxLength": 200
+    },
+    "agents": {
+      "type": "object",
+      "required": ["sequence"],
+      "properties": {
+        "sequence": {
+          "type": "array",
+          "description": "Ordered sequence of agents to execute",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/agentExecution"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "context": {
+      "type": "object",
+      "required": ["template"],
+      "properties": {
+        "template": {
+          "type": "string",
+          "description": "Context template with placeholders for dynamic values",
+          "minLength": 10
+        }
+      },
+      "additionalProperties": false
+    },
+    "examples": {
+      "type": "array",
+      "description": "Example use cases for this workflow",
+      "minItems": 1,
+      "maxItems": 10,
+      "items": {
+        "type": "string",
+        "minLength": 10,
+        "maxLength": 200
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "agentExecution": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/singleAgent"
+        },
+        {
+          "$ref": "#/definitions/parallelAgents"
+        },
+        {
+          "$ref": "#/definitions/conditionalAgents"
+        }
+      ]
+    },
+    "singleAgent": {
+      "type": "object",
+      "required": ["name", "description", "timeout"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the agent (must match agent definition file)",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+          "minLength": 3,
+          "maxLength": 50
+        },
+        "description": {
+          "type": "string",
+          "description": "What this agent will do in this workflow step",
+          "minLength": 10,
+          "maxLength": 200
+        },
+        "timeout": {
+          "type": "string",
+          "description": "Maximum execution time (e.g., '30m', '1h', '45s')",
+          "pattern": "^\\d+[smh]$"
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether this agent step is required for workflow success",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "parallelAgents": {
+      "type": "object",
+      "required": ["type", "agents"],
+      "properties": {
+        "type": {
+          "const": "parallel"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the parallel execution group",
+          "maxLength": 200
+        },
+        "agents": {
+          "type": "array",
+          "description": "Agents to execute in parallel",
+          "minItems": 2,
+          "maxItems": 10,
+          "items": {
+            "$ref": "#/definitions/singleAgent"
+          }
+        },
+        "timeout": {
+          "type": "string",
+          "description": "Maximum execution time for the entire parallel group",
+          "pattern": "^\\d+[smh]$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "conditionalAgents": {
+      "type": "object",
+      "required": ["type", "description", "conditions"],
+      "properties": {
+        "type": {
+          "const": "conditional"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the conditional execution logic",
+          "minLength": 10,
+          "maxLength": 200
+        },
+        "conditions": {
+          "type": "object",
+          "description": "Conditional branches based on context analysis",
+          "minProperties": 1,
+          "maxProperties": 5,
+          "patternProperties": {
+            "^[a-z][a-z0-9_]*[a-z0-9]$": {
+              "$ref": "#/definitions/agentExecution"
+            }
+          },
+          "additionalProperties": false
+        },
+        "timeout": {
+          "type": "string",
+          "description": "Maximum execution time for condition evaluation and execution",
+          "pattern": "^\\d+[smh]$"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
