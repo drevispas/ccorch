@@ -368,7 +368,7 @@
   - Acceptance: Migration created, model tests pass
 
 ### 3.3 Repository Layer with Interface Abstraction (Development Plan: "Abstract persistence layer to ease future Redis migration")
-- [ ] **3.3.1 Define repository interfaces**
+- [x] **3.3.1 Define repository interfaces**
   - **Purpose**: Create TypeScript interfaces for all data access to enable future migration from SQLite to Redis without changing service layer code. Interfaces provide a contract that can be swapped with different implementations.
   - File: `src/types/repositories.ts`
   - Interfaces:
@@ -385,7 +385,7 @@
     ```
   - Acceptance: Interfaces defined for future abstraction
 
-- [ ] **3.3.2 Write WorkflowRepository tests**
+- [x] **3.3.2 Write WorkflowRepository tests**
   - **Purpose**: Write comprehensive TDD tests for the Workflow repository covering CRUD operations and edge cases. Mock the Prisma client to ensure repository logic (not database) is under test.
   - File: `tests/unit/repositories/workflow-repository.test.ts`
   - Tests: All interface methods with mocked Prisma client
@@ -393,7 +393,7 @@
   - Expected: Tests fail (red)
   - Acceptance: 8+ test cases defined
 
-- [ ] **3.3.3 Implement WorkflowRepository**
+- [x] **3.3.3 Implement WorkflowRepository**
   - **Purpose**: Implement the repository that wraps Prisma queries with error handling and domain logic. This isolates database-specific code from business logic and enforces the interface contract.
   - File: `src/models/workflow-repository.ts`
   - Class: Implements `IWorkflowRepository`
@@ -402,28 +402,28 @@
   - Run tests: `pnpm test tests/unit/repositories/workflow-repository.test.ts` (green)
   - Acceptance: All tests pass
 
-- [ ] **3.3.4 Write AgentResultRepository tests**
+- [x] **3.3.4 Write AgentResultRepository tests**
   - **Purpose**: Write TDD tests for agent result storage with focus on idempotency (duplicate submission handling) via the unique (workflowId, stepNumber) constraint.
   - File: `tests/unit/repositories/agent-result-repository.test.ts`
   - Tests: create(), findByWorkflowId(), findByWorkflowAndStep(), idempotency (upsert on duplicate)
   - Expected: Tests fail (red)
   - Acceptance: 5+ test cases
 
-- [ ] **3.3.5 Implement AgentResultRepository**
+- [x] **3.3.5 Implement AgentResultRepository**
   - **Purpose**: Implement the repository for agent results with built-in idempotency using Prisma's upsert. This ensures retried hook calls don't create duplicate entries.
   - File: `src/models/agent-result-repository.ts`
   - Idempotency: Use Prisma `upsert` or catch unique constraint errors
   - Run tests: Should pass (green)
   - Acceptance: Duplicate (workflowId, stepNumber) handled gracefully
 
-- [ ] **3.3.6 Write TransitionRepository tests**
+- [x] **3.3.6 Write TransitionRepository tests**
   - **Purpose**: Write TDD tests for the audit log repository. Validate that all transitions are recorded with proper timestamps and reasons for accountability.
   - File: `tests/unit/repositories/transition-repository.test.ts`
   - Tests: create(), findByWorkflowId(), audit log retrieval
   - Expected: Tests fail (red)
   - Acceptance: 3+ test cases
 
-- [ ] **3.3.7 Implement TransitionRepository**
+- [x] **3.3.7 Implement TransitionRepository**
   - **Purpose**: Implement the audit log repository that records every workflow state change. This provides transparency for debugging and supports compliance requirements.
   - File: `src/models/transition-repository.ts`
   - Audit: Always record reason, timestamps (createdAt)
