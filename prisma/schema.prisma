@@ -9,3 +9,38 @@ datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
+
+model Workflow {
+  id           String               @id
+  userPrompt   String               @map("user_prompt")
+  chainName    String               @map("chain_name")
+  complexity   String
+  currentStep  Int                  @default(0) @map("current_step")
+  status       String               @default("ACTIVE")
+  createdAt    BigInt               @map("created_at")
+  updatedAt    BigInt               @map("updated_at")
+  agentResults AgentResult[]
+  transitions  WorkflowTransition[]
+
+  @@index([status], name: "idx_workflows_status")
+  @@index([createdAt], name: "idx_workflows_created")
+  @@map("workflows")
+}
+
+// Placeholder model - will be fully implemented in task 3.2.4
+model AgentResult {
+  id         Int      @id @default(autoincrement())
+  workflowId String   @map("workflow_id")
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@map("agent_results")
+}
+
+// Placeholder model - will be fully implemented in task 3.2.6
+model WorkflowTransition {
+  id         Int      @id @default(autoincrement())
+  workflowId String   @map("workflow_id")
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@map("workflow_transitions")
+}

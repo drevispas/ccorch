@@ -11,7 +11,7 @@
 - `development-plan.md` - Implementation phases and timeline (WHEN)
 - `WBS.md` - Granular work breakdown (TASKS)
 
-> **Usage**: Check off tasks as completed. Commit frequently (~200 lines or single feature) using Conventional Commits.
+> **Usage**: Check off tasks as completed. 
 > **Phases**: Must be completed sequentially. Each phase has explicit exit criteria.
 
 ---
@@ -318,7 +318,7 @@
   - Acceptance: Schema header configured ✅ PASS
 
 ### 3.2 Schema Modeling (technical-spec.md §2, TDD: Write tests first per technical-spec.md §4.2)
-- [ ] **3.2.1 Write Workflow model tests**
+- [x] **3.2.1 Write Workflow model tests**
   - **Purpose**: Follow TDD by writing failing tests first for the Workflow model. This defines the expected behavior before implementation and ensures comprehensive test coverage.
   - File: `tests/unit/models/workflow.test.ts`
   - Tests: createWorkflow(), findById(), findByStatus('ACTIVE'), updateStatus(), cascade delete
@@ -326,14 +326,14 @@
   - Expected: Tests fail (red) - no implementation yet
   - Acceptance: 5+ test cases defined
 
-- [ ] **3.2.2 Define Workflow model in Prisma schema**
+- [x] **3.2.2 Define Workflow model in Prisma schema**
   - **Purpose**: Create the core Workflow table that stores orchestration state (chain, complexity, current step). This is the primary entity for tracking multi-agent workflows from creation to completion.
   - Model: `Workflow { id String @id, userPrompt String @map("user_prompt"), chainName String @map("chain_name"), complexity String, currentStep Int @default(0) @map("current_step"), status String @default("ACTIVE"), createdAt BigInt @map("created_at"), updatedAt BigInt @map("updated_at"), agentResults AgentResult[], transitions WorkflowTransition[], @@index([status], name: "idx_workflows_status"), @@index([createdAt], name: "idx_workflows_created"), @@map("workflows") }`
   - Note: `@map` directives ensure snake_case column names in database (user_prompt, chain_name, etc.) while using camelCase in TypeScript code
   - Run: `pnpm prisma format`
   - Acceptance: Model matches technical-spec.md §2.3 Prisma schema exactly
 
-- [ ] **3.2.3 Write AgentResult model tests**
+- [x] **3.2.3 Write AgentResult model tests**
   - **Purpose**: Write TDD tests for agent execution results storage. This validates the unique constraint on (workflowId, stepNumber) that prevents duplicate results and enables idempotency.
   - File: `tests/unit/models/agent-result.test.ts`
   - Tests: createResult(), findByWorkflowId(), unique constraint violation on (workflowId, stepNumber), cascade delete when workflow deleted
