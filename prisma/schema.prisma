@@ -27,20 +27,33 @@ model Workflow {
   @@map("workflows")
 }
 
-// Placeholder model - will be fully implemented in task 3.2.4
 model AgentResult {
   id         Int      @id @default(autoincrement())
   workflowId String   @map("workflow_id")
+  agentRole  String   @map("agent_role")
+  complexity String
+  stepNumber Int      @map("step_number")
+  results    String // JSON blob
+  status     String   @default("COMPLETED")
+  createdAt  BigInt   @map("created_at")
   workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
+  @@unique([workflowId, stepNumber])
+  @@index([workflowId], name: "idx_agent_results_workflow")
   @@map("agent_results")
 }
 
-// Placeholder model - will be fully implemented in task 3.2.6
 model WorkflowTransition {
   id         Int      @id @default(autoincrement())
   workflowId String   @map("workflow_id")
+  fromStep   Int      @map("from_step")
+  toStep     Int      @map("to_step")
+  fromAgent  String?  @map("from_agent")
+  toAgent    String?  @map("to_agent")
+  reason     String   @default("Agent completed successfully")
+  createdAt  BigInt   @map("created_at")
   workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
+  @@index([workflowId], name: "idx_transitions_workflow")
   @@map("workflow_transitions")
 }

@@ -340,26 +340,26 @@
   - Expected: Tests fail (red)
   - Acceptance: 4+ test cases defined
 
-- [ ] **3.2.4 Define AgentResult model in Prisma schema**
+- [x] **3.2.4 Define AgentResult model in Prisma schema**
   - **Purpose**: Create the AgentResult table to store each agent's execution output (summary, files modified, issues found). The unique constraint on (workflowId, stepNumber) ensures idempotent result submission.
   - Model: `AgentResult { id Int @id @default(autoincrement()), workflowId String @map("workflow_id"), agentRole String @map("agent_role"), complexity String, stepNumber Int @map("step_number"), results String, status String @default("COMPLETED"), createdAt BigInt @map("created_at"), workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade), @@unique([workflowId, stepNumber]), @@index([workflowId], name: "idx_agent_results_workflow"), @@map("agent_results") }`
   - Note: `@map` directives ensure snake_case column names (workflow_id, agent_role, step_number, created_at)
   - Acceptance: Model matches technical-spec.md §2.3 Prisma schema exactly
 
-- [ ] **3.2.5 Write WorkflowTransition model tests**
+- [x] **3.2.5 Write WorkflowTransition model tests**
   - **Purpose**: Write TDD tests for the audit log that tracks workflow state changes. This ensures we can debug workflows by reviewing transition history (from_step → to_step with reasons).
   - File: `tests/unit/models/workflow-transition.test.ts`
   - Tests: createTransition(), findByWorkflowId(), verify audit fields (reason, timestamps)
   - Expected: Tests fail (red)
   - Acceptance: 3+ test cases defined
 
-- [ ] **3.2.6 Define WorkflowTransition model in Prisma schema**
+- [x] **3.2.6 Define WorkflowTransition model in Prisma schema**
   - **Purpose**: Create the audit log table for workflow state transitions. This provides transparency for debugging and supports admin transitions (advance, fail, retry, skip) with recorded reasons.
   - Model: `WorkflowTransition { id Int @id @default(autoincrement()), workflowId String @map("workflow_id"), fromStep Int @map("from_step"), toStep Int @map("to_step"), fromAgent String? @map("from_agent"), toAgent String? @map("to_agent"), reason String @default("Agent completed successfully"), createdAt BigInt @map("created_at"), workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade), @@index([workflowId], name: "idx_transitions_workflow"), @@map("workflow_transitions") }`
   - Note: `@map` directives ensure snake_case column names (workflow_id, from_step, to_step, from_agent, to_agent, created_at)
   - Acceptance: Model matches technical-spec.md §2.3 Prisma schema exactly
 
-- [ ] **3.2.7 Generate initial migration**
+- [x] **3.2.7 Generate initial migration**
   - **Purpose**: Create the SQL migration that builds all 3 tables with indexes, foreign keys, and constraints in the database. This locks in the schema and makes it version-controlled.
   - Run: `pnpm prisma migrate dev --name init`
   - Verify: `prisma/migrations/XXXXXX_init/migration.sql` created
