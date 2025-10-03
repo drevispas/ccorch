@@ -304,12 +304,14 @@
 
 ### 3.1 Prisma Setup (technical-spec.md §1.3: Use Prisma ORM)
 - [ ] **3.1.1 Initialize Prisma**
+  - **Purpose**: Bootstrap Prisma ORM with SQLite as the datasource provider. This creates the initial schema file and configures the database connection for local development.
   - Run: `pnpm prisma init --datasource-provider sqlite`
   - Verify: `prisma/schema.prisma` created, `DATABASE_URL` added to `.env`
   - Update `.env`: Set `DATABASE_URL="file:./dev.db"`
   - Acceptance: Prisma initialized with SQLite
 
 - [ ] **3.1.2 Configure Prisma schema header**
+  - **Purpose**: Verify and configure the schema header to ensure Prisma Client generation works correctly and the database connection points to the environment variable.
   - File: `prisma/schema.prisma`
   - Datasource: `provider = "sqlite"`, `url = env("DATABASE_URL")`
   - Generator: `provider = "prisma-client-js"`
@@ -317,6 +319,7 @@
 
 ### 3.2 Schema Modeling (technical-spec.md §2, TDD: Write tests first per technical-spec.md §4.2)
 - [ ] **3.2.1 Write Workflow model tests**
+  - **Purpose**: Follow TDD by writing failing tests first for the Workflow model. This defines the expected behavior before implementation and ensures comprehensive test coverage.
   - File: `tests/unit/models/workflow.test.ts`
   - Tests: createWorkflow(), findById(), findByStatus('ACTIVE'), updateStatus(), cascade delete
   - Use: In-memory SQLite (`:memory:`) for test isolation
@@ -324,34 +327,40 @@
   - Acceptance: 5+ test cases defined
 
 - [ ] **3.2.2 Define Workflow model in Prisma schema**
+  - **Purpose**: Create the core Workflow table that stores orchestration state (chain, complexity, current step). This is the primary entity for tracking multi-agent workflows from creation to completion.
   - Model: `Workflow { id String @id, userPrompt String @map("user_prompt"), chainName String @map("chain_name"), complexity String, currentStep Int @default(0) @map("current_step"), status String @default("ACTIVE"), createdAt BigInt @map("created_at"), updatedAt BigInt @map("updated_at"), agentResults AgentResult[], transitions WorkflowTransition[], @@index([status], name: "idx_workflows_status"), @@index([createdAt], name: "idx_workflows_created"), @@map("workflows") }`
   - Note: `@map` directives ensure snake_case column names in database (user_prompt, chain_name, etc.) while using camelCase in TypeScript code
   - Run: `pnpm prisma format`
   - Acceptance: Model matches technical-spec.md §2.3 Prisma schema exactly
 
 - [ ] **3.2.3 Write AgentResult model tests**
+  - **Purpose**: Write TDD tests for agent execution results storage. This validates the unique constraint on (workflowId, stepNumber) that prevents duplicate results and enables idempotency.
   - File: `tests/unit/models/agent-result.test.ts`
   - Tests: createResult(), findByWorkflowId(), unique constraint violation on (workflowId, stepNumber), cascade delete when workflow deleted
   - Expected: Tests fail (red)
   - Acceptance: 4+ test cases defined
 
 - [ ] **3.2.4 Define AgentResult model in Prisma schema**
+  - **Purpose**: Create the AgentResult table to store each agent's execution output (summary, files modified, issues found). The unique constraint on (workflowId, stepNumber) ensures idempotent result submission.
   - Model: `AgentResult { id Int @id @default(autoincrement()), workflowId String @map("workflow_id"), agentRole String @map("agent_role"), complexity String, stepNumber Int @map("step_number"), results String, status String @default("COMPLETED"), createdAt BigInt @map("created_at"), workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade), @@unique([workflowId, stepNumber]), @@index([workflowId], name: "idx_agent_results_workflow"), @@map("agent_results") }`
   - Note: `@map` directives ensure snake_case column names (workflow_id, agent_role, step_number, created_at)
   - Acceptance: Model matches technical-spec.md §2.3 Prisma schema exactly
 
 - [ ] **3.2.5 Write WorkflowTransition model tests**
+  - **Purpose**: Write TDD tests for the audit log that tracks workflow state changes. This ensures we can debug workflows by reviewing transition history (from_step → to_step with reasons).
   - File: `tests/unit/models/workflow-transition.test.ts`
   - Tests: createTransition(), findByWorkflowId(), verify audit fields (reason, timestamps)
   - Expected: Tests fail (red)
   - Acceptance: 3+ test cases defined
 
 - [ ] **3.2.6 Define WorkflowTransition model in Prisma schema**
+  - **Purpose**: Create the audit log table for workflow state transitions. This provides transparency for debugging and supports admin transitions (advance, fail, retry, skip) with recorded reasons.
   - Model: `WorkflowTransition { id Int @id @default(autoincrement()), workflowId String @map("workflow_id"), fromStep Int @map("from_step"), toStep Int @map("to_step"), fromAgent String? @map("from_agent"), toAgent String? @map("to_agent"), reason String @default("Agent completed successfully"), createdAt BigInt @map("created_at"), workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade), @@index([workflowId], name: "idx_transitions_workflow"), @@map("workflow_transitions") }`
   - Note: `@map` directives ensure snake_case column names (workflow_id, from_step, to_step, from_agent, to_agent, created_at)
   - Acceptance: Model matches technical-spec.md §2.3 Prisma schema exactly
 
 - [ ] **3.2.7 Generate initial migration**
+  - **Purpose**: Create the SQL migration that builds all 3 tables with indexes, foreign keys, and constraints in the database. This locks in the schema and makes it version-controlled.
   - Run: `pnpm prisma migrate dev --name init`
   - Verify: `prisma/migrations/XXXXXX_init/migration.sql` created
   - Check: SQL contains CREATE TABLE for all 3 tables with indexes and foreign keys
@@ -360,6 +369,7 @@
 
 ### 3.3 Repository Layer with Interface Abstraction (Development Plan: "Abstract persistence layer to ease future Redis migration")
 - [ ] **3.3.1 Define repository interfaces**
+  - **Purpose**: Create TypeScript interfaces for all data access to enable future migration from SQLite to Redis without changing service layer code. Interfaces provide a contract that can be swapped with different implementations.
   - File: `src/types/repositories.ts`
   - Interfaces:
     ```typescript
@@ -376,6 +386,7 @@
   - Acceptance: Interfaces defined for future abstraction
 
 - [ ] **3.3.2 Write WorkflowRepository tests**
+  - **Purpose**: Write comprehensive TDD tests for the Workflow repository covering CRUD operations and edge cases. Mock the Prisma client to ensure repository logic (not database) is under test.
   - File: `tests/unit/repositories/workflow-repository.test.ts`
   - Tests: All interface methods with mocked Prisma client
   - Edge cases: Not found, duplicate ID, invalid status
@@ -383,6 +394,7 @@
   - Acceptance: 8+ test cases defined
 
 - [ ] **3.3.3 Implement WorkflowRepository**
+  - **Purpose**: Implement the repository that wraps Prisma queries with error handling and domain logic. This isolates database-specific code from business logic and enforces the interface contract.
   - File: `src/models/workflow-repository.ts`
   - Class: Implements `IWorkflowRepository`
   - Dependencies: Inject PrismaClient
@@ -391,24 +403,28 @@
   - Acceptance: All tests pass
 
 - [ ] **3.3.4 Write AgentResultRepository tests**
+  - **Purpose**: Write TDD tests for agent result storage with focus on idempotency (duplicate submission handling) via the unique (workflowId, stepNumber) constraint.
   - File: `tests/unit/repositories/agent-result-repository.test.ts`
   - Tests: create(), findByWorkflowId(), findByWorkflowAndStep(), idempotency (upsert on duplicate)
   - Expected: Tests fail (red)
   - Acceptance: 5+ test cases
 
 - [ ] **3.3.5 Implement AgentResultRepository**
+  - **Purpose**: Implement the repository for agent results with built-in idempotency using Prisma's upsert. This ensures retried hook calls don't create duplicate entries.
   - File: `src/models/agent-result-repository.ts`
   - Idempotency: Use Prisma `upsert` or catch unique constraint errors
   - Run tests: Should pass (green)
   - Acceptance: Duplicate (workflowId, stepNumber) handled gracefully
 
 - [ ] **3.3.6 Write TransitionRepository tests**
+  - **Purpose**: Write TDD tests for the audit log repository. Validate that all transitions are recorded with proper timestamps and reasons for accountability.
   - File: `tests/unit/repositories/transition-repository.test.ts`
   - Tests: create(), findByWorkflowId(), audit log retrieval
   - Expected: Tests fail (red)
   - Acceptance: 3+ test cases
 
 - [ ] **3.3.7 Implement TransitionRepository**
+  - **Purpose**: Implement the audit log repository that records every workflow state change. This provides transparency for debugging and supports compliance requirements.
   - File: `src/models/transition-repository.ts`
   - Audit: Always record reason, timestamps (createdAt)
   - Run tests: Should pass (green)
@@ -416,12 +432,14 @@
 
 ### 3.4 Database Connection Management
 - [ ] **3.4.1 Write database config tests**
+  - **Purpose**: Write TDD tests for database connection lifecycle management. Validate singleton pattern to prevent connection leaks and ensure graceful shutdown on process termination.
   - File: `tests/unit/config/database.test.ts`
   - Tests: getPrismaClient() returns singleton, disconnectDatabase() closes connection, graceful shutdown on SIGINT/SIGTERM
   - Expected: Tests fail (red)
   - Acceptance: 3+ test cases
 
 - [ ] **3.4.2 Implement database connector**
+  - **Purpose**: Create a singleton database connection manager that reuses a single Prisma client instance across the application. This prevents connection exhaustion and ensures proper cleanup on shutdown.
   - File: `src/config/database.ts`
   - Export: `getPrismaClient()` singleton, `disconnectDatabase()` cleanup
   - Lifecycle: Initialize once, reuse connection, close on process signals
@@ -430,6 +448,7 @@
 
 ### 3.5 Seed Data (Development Plan: "Seed script with representative backend-development workflow")
 - [ ] **3.5.1 Create seed script**
+  - **Purpose**: Create sample data for local development and testing. This demonstrates a complete workflow lifecycle (backend-development chain with 3 agents) and enables manual testing without invoking hooks.
   - File: `prisma/seed.ts`
   - Data: Insert 1 workflow (backend-development-moderate)
   - Chain: 3 agent results (architect → backend-developer → reviewer)
@@ -439,6 +458,7 @@
   - Acceptance: Seed inserts sample data successfully
 
 - [ ] **3.5.2 Test seed script with Prisma Studio**
+  - **Purpose**: Verify the seed data is correctly inserted by visually inspecting tables in Prisma Studio's GUI. This validates foreign key relationships and data integrity.
   - Run: `pnpm prisma migrate reset --force` (resets DB + runs seed)
   - Run: `pnpm prisma studio`
   - Verify: 1 workflow visible with 3 agent results and 2 transitions
@@ -446,6 +466,7 @@
 
 ### 3.6 Documentation
 - [ ] **3.6.1 Create database documentation**
+  - **Purpose**: Document all database operations so developers can self-serve for common tasks (migrations, seeding, backup). This reduces onboarding time and prevents operational mistakes.
   - File: `docs/database.md`
   - Sections:
     1. Schema overview (3 tables, relationships)
@@ -459,17 +480,20 @@
 
 ### 3.7 Phase Completion
 - [ ] **3.7.1 Run full test suite for Phase 1**
+  - **Purpose**: Validate that all database layer components (models, repositories, connection management) work together correctly and meet the 80% coverage threshold before proceeding.
   - Run: `pnpm test tests/unit/models/ tests/unit/repositories/ tests/unit/config/database.test.ts`
   - Check: All tests pass
   - Check coverage: `pnpm test:coverage` ≥80% for database layer
   - Acceptance: Database layer fully tested
 
 - [ ] **3.7.2 Commit Phase 1 artifacts**
+  - **Purpose**: Create a clean conventional commit marking Phase 1 completion. This creates a checkpoint in git history and documents all deliverables for future reference.
   - Commit: `feat(db): implement Prisma schema and repository layer with interface abstraction`
   - Body: List models (Workflow, AgentResult, WorkflowTransition), repositories, seed data, interface contracts for future Redis migration
   - Acceptance: Conventional commit
 
 - [ ] **3.7.3 Verify Phase 1 exit criteria**
+  - **Purpose**: Confirm all Phase 1 deliverables are complete before moving to Phase 2 (orchestration core). Missing infrastructure will block later phases.
   - ✓ Migrations run cleanly: `pnpm prisma migrate deploy`
   - ✓ Repositories tested: All tests pass
   - ✓ Interface abstraction: Repository interfaces defined
