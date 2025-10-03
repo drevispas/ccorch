@@ -6,6 +6,9 @@ package-lock.json
 dist/
 build/
 *.js
+!*.config.js
+!*.config.mjs
+!*.config.cjs
 *.d.ts
 *.js.map
 
