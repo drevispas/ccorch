@@ -303,19 +303,19 @@
 **Objective**: Implement database schema, migrations, repository layer with interface abstraction for future Redis migration (Development Plan §5.4, technical-spec.md §2).
 
 ### 3.1 Prisma Setup (technical-spec.md §1.3: Use Prisma ORM)
-- [ ] **3.1.1 Initialize Prisma**
+- [x] **3.1.1 Initialize Prisma** ✅ COMPLETED
   - **Purpose**: Bootstrap Prisma ORM with SQLite as the datasource provider. This creates the initial schema file and configures the database connection for local development.
-  - Run: `pnpm prisma init --datasource-provider sqlite`
-  - Verify: `prisma/schema.prisma` created, `DATABASE_URL` added to `.env`
-  - Update `.env`: Set `DATABASE_URL="file:./dev.db"`
-  - Acceptance: Prisma initialized with SQLite
+  - Run: `pnpm prisma init --datasource-provider sqlite` ✅
+  - Verify: `prisma/schema.prisma` created, `DATABASE_URL` added to `.env` ✅
+  - Update `.env`: Set `DATABASE_URL="file:./dev.db"` ✅ (already set by prisma init)
+  - Acceptance: Prisma initialized with SQLite ✅ PASS
 
-- [ ] **3.1.2 Configure Prisma schema header**
+- [x] **3.1.2 Configure Prisma schema header** ✅ COMPLETED
   - **Purpose**: Verify and configure the schema header to ensure Prisma Client generation works correctly and the database connection points to the environment variable.
-  - File: `prisma/schema.prisma`
-  - Datasource: `provider = "sqlite"`, `url = env("DATABASE_URL")`
-  - Generator: `provider = "prisma-client-js"`
-  - Acceptance: Schema header configured
+  - File: `prisma/schema.prisma` ✅
+  - Datasource: `provider = "sqlite"`, `url = env("DATABASE_URL")` ✅
+  - Generator: `provider = "prisma-client-js"` ✅ (removed custom output path)
+  - Acceptance: Schema header configured ✅ PASS
 
 ### 3.2 Schema Modeling (technical-spec.md §2, TDD: Write tests first per technical-spec.md §4.2)
 - [ ] **3.2.1 Write Workflow model tests**
