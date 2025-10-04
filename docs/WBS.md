@@ -11,8 +11,21 @@
 - `development-plan.md` - Implementation phases and timeline (WHEN)
 - `WBS.md` - Granular work breakdown (TASKS)
 
-> **Usage**: Check off tasks as completed. 
+> **Usage**: Check off tasks as completed.
 > **Phases**: Must be completed sequentially. Each phase has explicit exit criteria.
+
+---
+
+## Table of Contents
+
+1. [PoC Phase – Hook/API Viability (2-3 days)](#1-poc-phase--hookapi-viability-2-3-days)
+2. [Phase 0 – Environment & Governance (3-5 days)](#2-phase-0--environment--governance-3-5-days)
+3. [Phase 1 – Persistence Foundation (5-7 days)](#3-phase-1--persistence-foundation-5-7-days)
+4. [Phase 2 – Orchestration Core (7-10 days)](#4-phase-2--orchestration-core-7-10-days)
+5. [Phase 3 – Hook Handler Integration (7-10 days)](#5-phase-3--hook-handler-integration-7-10-days)
+6. [Phase 4 – API & Administrative Surface (5-7 days)](#6-phase-4--api--administrative-surface-5-7-days)
+7. [Phase 5 – Observability & Operations (5-7 days)](#7-phase-5--observability--operations-5-7-days)
+8. [Phase 6 – Launch Readiness (2-3 days)](#8-phase-6--launch-readiness-2-3-days)
 
 ---
 

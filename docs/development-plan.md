@@ -11,6 +11,31 @@
 - `development-plan.md` - Implementation phases and timeline (WHEN)
 - `WBS.md` - Granular work breakdown (TASKS)
 
+## Table of Contents
+
+1. [Prerequisites](#1-prerequisites)
+   - [Claude Code Requirements](#11-claude-code-requirements)
+   - [Development Environment](#12-development-environment)
+   - [Hook Configuration Access](#13-hook-configuration-access)
+2. [Context & Objectives](#2-context--objectives)
+3. [Guiding Principles](#3-guiding-principles)
+4. [Workstreams & Key Deliverables](#4-workstreams--key-deliverables)
+5. [Phase Breakdown & Detailed Tasks](#5-phase-breakdown--detailed-tasks)
+   - [Estimated Timelines](#51-estimated-timelines)
+   - [PoC Phase – Hook/API Viability](#52-poc-phase--hookapi-viability)
+   - [Phase 0 – Environment & Governance](#53-phase-0--environment--governance)
+   - [Phase 1 – Persistence Foundation](#54-phase-1--persistence-foundation)
+   - [Phase 2 – Orchestration Core](#55-phase-2--orchestration-core)
+   - [Phase 3 – Hook Handler Integration](#56-phase-3--hook-handler-integration)
+   - [Phase 4 – API & Administrative Surface](#57-phase-4--api--administrative-surface)
+   - [Phase 5 – Observability & Operational Polish](#58-phase-5--observability--operational-polish)
+6. [Milestones](#6-milestones)
+7. [Testing & Quality Assurance Strategy](#7-testing--quality-assurance-strategy)
+8. [Operational Considerations](#8-operational-considerations)
+9. [Risk Register](#9-risk-register)
+10. [Open Questions](#10-open-questions)
+11. [Immediate Next Steps](#11-immediate-next-steps)
+
 ## 1. Prerequisites
 
 ### 1.1 Claude Code Requirements

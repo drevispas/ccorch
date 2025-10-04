@@ -11,6 +11,32 @@
 - `development-plan.md` - Implementation phases and timeline (WHEN)
 - `WBS.md` - Granular work breakdown (TASKS)
 
+## Table of Contents
+
+1. [Overview](#1-overview)
+2. [Goals](#2-goals)
+3. [Prerequisites](#3-prerequisites)
+   - [Agent Definitions](#31-agent-definitions)
+   - [Runtime Requirements](#32-runtime-requirements)
+4. [User Workflow](#4-user-workflow)
+   - [User Interaction Flow](#41-user-interaction-flow)
+   - [Workflow Chains](#42-workflow-chains)
+5. [Orchestrator Responsibilities](#5-orchestrator-responsibilities)
+   - [Hook Processing](#51-hook-processing)
+   - [Action Determination Logic](#52-action-determination-logic)
+   - [State Management](#53-state-management)
+   - [API Interface](#54-api-interface)
+6. [Hook Response Format](#6-hook-response-format)
+   - [UserPromptSubmit Hook Response](#61-userpromptsubmit-hook-response)
+   - [PostToolUse Hook Response](#62-posttooluse-hook-response)
+7. [Example Workflow](#7-example-workflow)
+8. [Non-Functional Requirements](#8-non-functional-requirements)
+   - [Performance](#81-performance)
+   - [Reliability](#82-reliability)
+   - [Observability](#83-observability)
+9. [Future Considerations](#9-future-considerations)
+10. [References](#10-references)
+
 ## 1. Overview
 
 The Claude Code Orchestrator (CCOrch) is an intelligent agent coordination system that intercepts Claude Code (CC) interactions via hooks and orchestrates multi-agent workflows based on task complexity and role requirements.
