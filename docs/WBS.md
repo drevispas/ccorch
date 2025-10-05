@@ -21,11 +21,12 @@
 1. [PoC Phase – Hook/API Viability (2-3 days)](#1-poc-phase--hookapi-viability-2-3-days)
 2. [Phase 0 – Environment & Governance (3-5 days)](#2-phase-0--environment--governance-3-5-days)
 3. [Phase 1 – Persistence Foundation (5-7 days)](#3-phase-1--persistence-foundation-5-7-days)
-4. [Phase 2 – Orchestration Core (7-10 days)](#4-phase-2--orchestration-core-7-10-days)
-5. [Phase 3 – Hook Handler Integration (7-10 days)](#5-phase-3--hook-handler-integration-7-10-days)
-6. [Phase 4 – API & Administrative Surface (5-7 days)](#6-phase-4--api--administrative-surface-5-7-days)
-7. [Phase 5 – Observability & Operations (5-7 days)](#7-phase-5--observability--operations-5-7-days)
-8. [Phase 6 – Launch Readiness (2-3 days)](#8-phase-6--launch-readiness-2-3-days)
+4. [Phase 1.5 – Addendum: CC-Assisted Complexity Schema (1 day)](#4-phase-15--addendum-cc-assisted-complexity-schema-1-day)
+5. [Phase 2 – Orchestration Core (7-10 days)](#5-phase-2--orchestration-core-7-10-days)
+6. [Phase 3 – Hook Handler Integration (7-10 days)](#6-phase-3--hook-handler-integration-7-10-days)
+7. [Phase 4 – API & Administrative Surface (5-7 days)](#7-phase-4--api--administrative-surface-5-7-days)
+8. [Phase 5 – Observability & Operations (5-7 days)](#8-phase-5--observability--operations-5-7-days)
+9. [Phase 6 – Launch Readiness (2-3 days)](#9-phase-6--launch-readiness-2-3-days)
 
 ---
 
@@ -513,28 +514,115 @@
   - ✓ Seed loads: `pnpm prisma db seed` succeeds ✅ VERIFIED - 1 workflow, 3 agent results, 2 transitions created
   - ✓ Documentation: `docs/database.md` complete ✅ VERIFIED - 509 lines with all required sections
   - Decision: Proceed to Phase 2 ✅ APPROVED - All exit criteria met
+  - **Note**: Schema extended in Phase 1.5 (addendum) for CC-assisted complexity feature
 
 ---
 
-## 4. Phase 2 – Orchestration Core (7-10 days)
+## 4. Phase 1.5 – Addendum: CC-Assisted Complexity Schema (1 day)
+
+**Context**: Database schema changes added retroactively to support CC-assisted complexity determination feature. This enhancement was identified during Phase 2 planning and requires database layer modifications.
+
+**Objective**: Extend Workflow schema to support draft complexity storage and PENDING_COMPLEXITY workflow status for CC analysis flow.
+
+### 4.1 Schema Extensions
+- [x] **4.1.1 Add draftComplexity field to Workflow model** ✅ COMPLETED
+  - **Purpose**: Store initial keyword-based complexity estimate for CC to refine
+  - File: `prisma/schema.prisma`
+  - Change: Add `draftComplexity String? @map("draft_complexity")` to Workflow model
+  - Type: Optional string (nullable) to support workflows without CC analysis
+  - Acceptance: Schema updated, field properly mapped to snake_case column ✅ VERIFIED
+
+- [x] **4.1.2 Add PENDING_COMPLEXITY to WorkflowStatus enum** ✅ COMPLETED
+  - **Purpose**: Track workflows awaiting CC complexity determination
+  - File: `src/types/repositories.ts`
+  - Change: Add `'PENDING_COMPLEXITY'` to WorkflowStatus type
+  - Usage: Workflow remains in this state until CC calls set-complexity API
+  - Acceptance: Type definition updated, no compilation errors ✅ VERIFIED
+
+- [x] **4.1.3 Create database migration** ✅ COMPLETED
+  - **Purpose**: Apply schema changes to database without data loss
+  - Command: `pnpm prisma migrate dev --name add_draft_complexity`
+  - Migration: `prisma/migrations/20251005041417_add_draft_complexity/migration.sql`
+  - SQL: `ALTER TABLE "workflows" ADD COLUMN "draft_complexity" TEXT;`
+  - Test: Verify migration applies cleanly on fresh database
+  - Acceptance: Migration created and applied successfully ✅ VERIFIED
+
+### 4.2 Repository Updates
+- [x] **4.2.1 Update WorkflowCreateInput interface** ✅ COMPLETED
+  - **Purpose**: Allow draftComplexity to be specified when creating workflows
+  - File: `src/types/repositories.ts`
+  - Change: Add `draftComplexity?: Complexity` to WorkflowCreateInput interface
+  - Optional: Field is optional to maintain backward compatibility
+  - Acceptance: Interface updated, TypeScript compilation clean ✅ VERIFIED
+
+- [x] **4.2.2 Add SetComplexityData interface** ✅ COMPLETED
+  - **Purpose**: Define contract for updating workflow complexity via API
+  - File: `src/types/repositories.ts`
+  - Interface: `SetComplexityData { complexity: Complexity; reasoning?: string; }`
+  - Usage: Used by set-complexity API endpoint to update workflow
+  - Acceptance: Interface defined with proper types ✅ VERIFIED
+
+- [x] **4.2.3 Implement updateComplexity repository method** ✅ COMPLETED
+  - **Purpose**: Provide method to update workflow complexity and transition to ACTIVE
+  - File: `src/models/workflow-repository.ts`
+  - Method: `async updateComplexity(id: string, data: SetComplexityData): Promise<Workflow>`
+  - Logic: Update complexity, set status=ACTIVE, set currentStep=0, update timestamp
+  - Acceptance: Method implemented and properly typed ✅ VERIFIED
+
+- [x] **4.2.4 Update createWorkflow to handle draftComplexity** ✅ COMPLETED
+  - **Purpose**: Persist draftComplexity when creating workflows
+  - File: `src/models/workflow-repository.ts`
+  - Change: Add `draftComplexity: data.draftComplexity` to Prisma create call
+  - Acceptance: Repository creates workflows with draft complexity field ✅ VERIFIED
+
+### 4.3 Test Updates
+- [x] **4.3.1 Update workflow repository test mocks** ✅ COMPLETED
+  - **Purpose**: Fix TypeScript errors from new required field
+  - File: `tests/unit/repositories/workflow-repository.test.ts`
+  - Change: Add `draftComplexity: null` to mockWorkflow object
+  - Reason: Workflow type now includes draftComplexity field
+  - Acceptance: All 20 workflow repository tests passing ✅ VERIFIED
+
+- [x] **4.3.2 Verify no test regressions** ✅ COMPLETED
+  - **Purpose**: Ensure schema changes don't break existing tests
+  - Command: `pnpm test`
+  - Result: 92/92 tests passing (70 existing + 21 new prompt-generator + 1 setup)
+  - Coverage: No degradation from schema changes
+  - Acceptance: All tests pass, no regressions introduced ✅ VERIFIED
+
+### 4.4 Exit Criteria
+- [x] **4.4.1 Verify Phase 1.5 completion** ✅ COMPLETED
+  - ✓ Migration applied: `20251005041417_add_draft_complexity` ✅ VERIFIED
+  - ✓ Schema updated: draftComplexity field exists in Workflow model ✅ VERIFIED
+  - ✓ Types updated: PENDING_COMPLEXITY in WorkflowStatus enum ✅ VERIFIED
+  - ✓ Repository methods: updateComplexity() implemented ✅ VERIFIED
+  - ✓ Tests passing: 92/92 tests, no regressions ✅ VERIFIED
+  - ✓ TypeScript clean: `pnpm tsc --noEmit` passes ✅ VERIFIED
+  - Decision: Schema extensions complete, proceed to Phase 2 implementation ✅ APPROVED
+
+**Commit**: `feat(complexity): add CC-assisted complexity determination` (0f49617)
+
+---
+
+## 5. Phase 2 – Orchestration Core (7-10 days)
 
 **Objective**: Build prompt parsing, chain resolution, state management, orchestrator coordinator with ≥80% coverage (Development Plan §5.5, PRD §5.2).
 
-### 4.1 Domain Models & Types (PRD §3, §4.2)
-- [ ] **4.1.1 Define domain types**
+### 5.1 Domain Models & Types (PRD §3, §4.2)
+- [ ] **5.1.1 Define domain types**
   - File: `src/types/workflow.ts`
   - Enums: `ChainName` (9 chains from PRD §4.2), `Complexity` (SIMPLE, MODERATE, COMPLEX), `AgentRole` (ARCHITECT, BACKEND_DEVELOPER, FRONTEND_DEVELOPER, REVIEWER, DEBUGGER), `WorkflowStatus` (ACTIVE, COMPLETED, FAILED)
   - Types: `WorkflowContext`, `AgentTask`, `Intent`
   - Zod schemas: For runtime validation
   - Acceptance: Types match PRD enums
 
-- [ ] **4.1.2 Write type validation tests**
+- [ ] **5.1.2 Write type validation tests**
   - File: `tests/unit/types/workflow.test.ts`
   - Tests: Valid enum values accepted, invalid values rejected, zod schema validation works
   - Acceptance: Type guards functional
 
-### 4.2 Prompt Parser (TDD, PRD §5.2 Step 1)
-- [ ] **4.2.1 Write prompt parser tests**
+### 5.2 Prompt Parser (TDD, PRD §5.2 Step 1)
+- [ ] **5.2.1 Write prompt parser tests**
   - File: `tests/unit/services/prompt-parser.test.ts`
   - Test cases (15+):
     - "Implement REST API" → backend intent
@@ -548,15 +636,15 @@
   - Expected: Tests fail (red)
   - Acceptance: 15+ test cases covering all 5 roles + edge cases
 
-- [ ] **4.2.2 Implement prompt parser**
+- [ ] **5.2.2 Implement prompt parser**
   - File: `src/services/prompt-parser.ts`
   - Function: `parseIntent(prompt: string): Intent { roles: AgentRole[], keywords: string[] }`
   - Logic: Keyword matching for architect/backend/frontend/reviewer/debugger (PRD §4.2 keyword strategy)
   - Run tests: Should pass (green)
   - Acceptance: Parser correctly identifies roles
 
-### 4.3 Complexity Analyzer (TDD, PRD §5.2 Step 3)
-- [ ] **4.3.1 Write complexity analyzer tests**
+### 5.3 Complexity Analyzer (TDD, PRD §5.2 Step 3)
+- [ ] **5.3.1 Write complexity analyzer tests**
   - File: `tests/unit/services/complexity-analyzer.test.ts`
   - Test cases (12+) per PRD §5.2 rubric:
     - Simple: "Quick fix typo", "Add validation", "Rename variable" → SIMPLE
@@ -567,7 +655,7 @@
   - Expected: Tests fail (red)
   - Acceptance: 12+ test cases covering scoring rubric + keyword modifiers
 
-- [ ] **4.3.2 Implement complexity analyzer**
+- [ ] **5.3.2 Implement complexity analyzer**
   - File: `src/services/complexity-analyzer.ts`
   - Function: `analyzeComplexity(prompt: string, intent: Intent): Complexity`
   - Scoring factors (PRD §5.2 table): Scope (single file vs multi-module), Dependencies (none vs multiple), Risk (no breaking changes vs schema changes)
@@ -576,8 +664,8 @@
   - Run tests: Should pass (green)
   - Acceptance: Complexity correctly determined
 
-### 4.4 Chain Resolver (TDD, PRD §4.2, §5.2 Step 2)
-- [ ] **4.4.1 Write chain resolver tests**
+### 5.4 Chain Resolver (TDD, PRD §4.2, §5.2 Step 2)
+- [ ] **5.4.1 Write chain resolver tests**
   - File: `tests/unit/services/chain-resolver.test.ts`
   - Test cases (9+) for all PRD §4.2 chains:
     - "Implement backend API" → backend-development (architect → backend-developer → reviewer)
@@ -589,7 +677,7 @@
   - Expected: Tests fail (red)
   - Acceptance: 9+ tests covering all chains + keyword selection
 
-- [ ] **4.4.2 Implement chain resolver**
+- [ ] **5.4.2 Implement chain resolver**
   - File: `src/services/chain-resolver.ts`
   - Function: `resolveChain(intent: Intent): { chainName: ChainName, agentSequence: AgentRole[] }`
   - Keywords: Backend (`java`, `api`, `database`, `controller`, `service`, `rest`), Frontend (`ui`, `ux`, `component`, `page`, `react`, `vue`, `button`)
@@ -597,8 +685,8 @@
   - Run tests: Should pass (green)
   - Acceptance: All chain resolver tests pass
 
-### 4.5 Workflow State Manager (TDD, Development Plan: "UUID v4 for workflow IDs")
-- [ ] **4.5.1 Write state manager tests**
+### 5.5 Workflow State Manager (TDD, Development Plan: "UUID v4 for workflow IDs")
+- [ ] **5.5.1 Write state manager tests**
   - File: `tests/unit/services/state-manager.test.ts`
   - Test cases (10+):
     - createWorkflow() → Returns UUID, stores in DB with ACTIVE status
@@ -612,7 +700,7 @@
   - Expected: Tests fail (red)
   - Acceptance: 10+ test cases covering lifecycle + edge cases
 
-- [ ] **4.5.2 Implement state manager**
+- [ ] **5.5.2 Implement state manager**
   - File: `src/services/state-manager.ts`
   - Class: `StateManager { createWorkflow(), advanceStep(), getWorkflow(), completeWorkflow(), failWorkflow() }`
   - Dependencies: Inject IWorkflowRepository, ITransitionRepository
@@ -621,8 +709,8 @@
   - Run tests: Should pass (green)
   - Acceptance: State transitions tested and reliable
 
-### 4.6 Context Serialization (TDD, PRD §6.2: "Review previous results: {summary}")
-- [ ] **4.6.1 Write context serializer tests**
+### 5.6 Context Serialization (TDD, PRD §6.2: "Review previous results: {summary}")
+- [ ] **5.6.1 Write context serializer tests**
   - File: `tests/unit/services/context-serializer.test.ts`
   - Test cases (5+):
     - extractSummary() from agent results JSON
@@ -633,7 +721,7 @@
   - Expected: Tests fail (red)
   - Acceptance: 5+ serialization scenarios
 
-- [ ] **4.6.2 Implement context serializer**
+- [ ] **5.6.2 Implement context serializer**
   - File: `src/services/context-serializer.ts`
   - Function: `buildContextForAgent(previousResults: AgentResult[]): string`
   - Logic: Extract `summary` field from results JSON, format as numbered list
@@ -641,8 +729,8 @@
   - Run tests: Should pass (green)
   - Acceptance: Context readable for next agent
 
-### 4.7 Orchestrator Coordinator (TDD, PRD §6.1, §6.2)
-- [ ] **4.7.1 Write orchestrator tests**
+### 5.7 Orchestrator Coordinator (TDD, PRD §6.1, §6.2)
+- [ ] **5.7.1 Write orchestrator tests**
   - File: `tests/unit/services/orchestrator.test.ts`
   - Test scenarios (8+):
     - handleUserPrompt() → Parses intent, resolves chain, creates workflow, returns first agent prompt
@@ -655,7 +743,7 @@
   - Expected: Tests fail (red)
   - Acceptance: 8+ integration tests covering happy path + failure modes
 
-- [ ] **4.7.2 Implement orchestrator coordinator**
+- [ ] **5.7.2 Implement orchestrator coordinator**
   - File: `src/services/orchestrator.ts`
   - Class: `Orchestrator { handleUserPrompt(), handleAgentComplete() }`
   - Dependencies: Inject parser, analyzer, resolver, state manager, context serializer
@@ -664,8 +752,8 @@
   - Run tests: Should pass (green)
   - Acceptance: Orchestrator tests pass
 
-### 4.8 Prompt Templates (PRD §6.1, §6.2)
-- [ ] **4.8.1 Create prompt template module**
+### 5.8 Prompt Templates (PRD §6.1, §6.2)
+- [ ] **5.8.1 Create prompt template module**
   - File: `src/utils/prompt-templates.ts`
   - Templates:
     - `generateFirstAgentPrompt(agentRole, complexity, tasks[])` → Returns: "Use the {role}-{complexity} subagent to:\n1. {task}\n...\nN. Send results to CCOrch API: POST /api/workflows/{workflow_id}/results"
@@ -674,13 +762,13 @@
   - Format: Match PRD §6.1, §6.2 examples exactly
   - Acceptance: Templates include API submission reminder, context from previous agent
 
-- [ ] **4.8.2 Write prompt template tests**
+- [ ] **5.8.2 Write prompt template tests**
   - File: `tests/unit/utils/prompt-templates.test.ts`
   - Tests: Verify all templates include required elements, no `{undefined}`, correct formatting
   - Acceptance: Template tests pass
 
-### 4.9 Decision Logging (Development Plan: "Log chain selected, complexity determined, agent transitions")
-- [ ] **4.9.1 Add orchestrator decision logging**
+### 5.9 Decision Logging (Development Plan: "Log chain selected, complexity determined, agent transitions")
+- [ ] **5.9.1 Add orchestrator decision logging**
   - File: `src/services/orchestrator.ts` (update)
   - Logs (console.log for now, will integrate pino in Phase 5):
     - Chain selected: `{ prompt, chainName, complexity, agentSequence }`
@@ -688,120 +776,134 @@
     - Ambiguous prompts: Warning level with detected keywords
   - Acceptance: Console logs visible during tests
 
-### 4.10 Phase Completion
-- [ ] **4.10.1 Run full test suite for Phase 2**
+### 5.10 Phase Completion
+- [ ] **5.10.1 Run full test suite for Phase 2**
   - Run: `pnpm test tests/unit/services/ tests/unit/utils/prompt-templates.test.ts`
   - Check: All orchestrator core tests pass
   - Check coverage: `pnpm test:coverage` ≥80% for orchestration modules
   - Acceptance: Orchestrator core fully tested
 
-- [ ] **4.10.2 Test orchestrator integration E2E**
+- [ ] **5.10.2 Test orchestrator integration E2E**
   - File: `tests/integration/orchestrator-flow.test.ts`
   - Scenario: Full workflow from user prompt → chain completion (mocked DB)
   - Verify: No errors, workflow completes correctly
   - Acceptance: E2E flow works
 
-- [ ] **4.10.3 Commit Phase 2 artifacts**
+- [ ] **5.10.3 Commit Phase 2 artifacts**
   - Commit: `feat(orchestrator): implement core orchestration logic with parser, resolver, and state manager`
   - Body: List modules (parser, analyzer, resolver, state manager, context serializer, coordinator)
   - Acceptance: Conventional commit
 
-- [ ] **4.10.4 Verify Phase 2 exit criteria**
+- [ ] **5.10.4 Verify Phase 2 exit criteria**
   - ✓ Orchestrator API stable: Interfaces defined, methods tested
   - ✓ Coverage ≥80%: `pnpm test:coverage` confirms
   - ✓ Decision logging: Logs visible in test output
   - ✓ All 9 workflow chains supported
   - Decision: Proceed to Phase 3
 
-### 4.11 CC-Assisted Complexity Determination (Optional Feature)
-- [x] **4.11.1 Add draftComplexity field to schema** ✅ COMPLETED
-  - File: `prisma/schema.prisma`
-  - Field: `draftComplexity String? @map("draft_complexity")` in Workflow model
-  - Migration: `pnpm prisma migrate dev --name add_draft_complexity`
-  - Acceptance: Migration applied, Prisma client regenerated
+### 5.11 CC-Assisted Complexity Implementation (Continuation from Phase 1.5)
 
-- [x] **4.11.2 Create prompt-generator service** ✅ COMPLETED
+**Prerequisites**: Phase 1.5 database schema changes completed (see §4)
+
+**Note**: This section contains implementation and testing tasks for the CC-assisted complexity feature. Database schema changes are in Phase 1.5 (§4.1-4.4).
+
+- [x] **5.11.1 Create prompt-generator service** ✅ COMPLETED
+  - **Purpose**: Centralized prompt generation for complexity analysis and agent injection
   - File: `src/services/prompt-generator.ts`
   - Functions:
-    - `generateComplexityAnalysisPrompt(userPrompt, draftComplexity, workflowId, apiBaseUrl)`
-    - `generateAgentPrompt(chain, context?, workflowId?)`
-    - `generateCompletionMessage(chainName, agentSummaries)`
-  - Acceptance: Reusable prompt generation for CC and agents
+    - `generateComplexityAnalysisPrompt(userPrompt, draftComplexity, workflowId, apiBaseUrl)` - Ask CC to analyze complexity
+    - `generateAgentPrompt(chain, context?, workflowId?)` - Generate agent-specific prompts
+    - `generateCompletionMessage(chainName, agentSummaries)` - Format workflow completion
+  - Acceptance: Service provides reusable prompt templates ✅ VERIFIED
 
-- [x] **4.11.3 Create complexity validator** ✅ COMPLETED
+- [x] **5.11.2 Create complexity validators** ✅ COMPLETED
+  - **Purpose**: Runtime validation for set-complexity API requests/responses
   - File: `src/api/validators/complexity.validator.ts`
-  - Schemas: `SetComplexityRequestSchema`, `WorkflowIdParamSchema`, `SetComplexityResponseSchema`, `ErrorResponseSchema`
-  - Acceptance: Zod validation for set-complexity endpoint
+  - Schemas:
+    - `SetComplexityRequestSchema` - Validate incoming complexity determination
+    - `WorkflowIdParamSchema` - Validate URL parameters
+    - `SetComplexityResponseSchema` - Validate API responses
+    - `ErrorResponseSchema` - Validate error responses
+  - Acceptance: Zod schemas defined for all API contracts ✅ VERIFIED
 
-- [x] **4.11.4 Implement set-complexity API endpoint** ✅ COMPLETED
+- [x] **5.11.3 Implement set-complexity API endpoint** ✅ COMPLETED
+  - **Purpose**: Receive CC's complexity determination and return first agent prompt
   - File: `src/api/routes/complexity.ts`
   - Route: `POST /api/workflows/:workflowId/set-complexity`
   - Logic:
-    - Validate workflow exists and status is PENDING_COMPLEXITY
-    - Update workflow: complexity, status=ACTIVE, currentStep=0
-    - Generate first agent prompt using prompt-generator
-    - Return nextInstructions for CC to execute
-  - Acceptance: API endpoint functional, returns agent prompt
+    - Validate workflow exists and status is PENDING_COMPLEXITY (409 if wrong state)
+    - Call `workflowRepo.updateComplexity()` to update workflow
+    - Generate first agent prompt using `prompt-generator` service
+    - Return `nextInstructions` for CC to execute
+  - Error handling: 404 (not found), 409 (invalid state), 400 (validation error)
+  - Acceptance: Endpoint functional, all error paths handled ✅ VERIFIED
 
-- [x] **4.11.5 Update workflow repository** ✅ COMPLETED
-  - File: `src/models/workflow-repository.ts`
-  - Method: `updateComplexity(id, data: SetComplexityData)`
-  - Updates: complexity field, status to ACTIVE, currentStep to 0
-  - Acceptance: Method updates workflow and returns updated record
-
-- [x] **4.11.6 Add ENABLE_CC_COMPLEXITY env config** ✅ COMPLETED
+- [x] **5.11.4 Add ENABLE_CC_COMPLEXITY feature flag** ✅ COMPLETED
+  - **Purpose**: Allow gradual rollout and A/B testing of CC-assisted complexity
   - Files: `.env.example`, `src/config/env.ts`
-  - Config: `ENABLE_CC_COMPLEXITY=false` (default disabled)
-  - Validation: Zod transform string to boolean
-  - Acceptance: Feature flag available in env config
+  - Config: `ENABLE_CC_COMPLEXITY=false` (default disabled for backward compatibility)
+  - Validation: Zod schema transforms string to boolean
+  - Usage: When false, use keyword-based complexity; when true, use CC analysis
+  - Acceptance: Feature flag available in env config ✅ VERIFIED
 
-- [x] **4.11.7 Update repository types** ✅ COMPLETED
-  - File: `src/types/repositories.ts`
-  - Types: Add `draftComplexity?: Complexity` to WorkflowCreateInput
-  - Interface: `SetComplexityData { complexity, reasoning? }`
-  - Status: Add `PENDING_COMPLEXITY` to WorkflowStatus enum
-  - Acceptance: Types support new workflow states and complexity flow
-
-- [ ] **4.11.8 Write unit tests for prompt-generator**
+- [x] **5.11.5 Write unit tests for prompt-generator** ✅ COMPLETED
+  - **Purpose**: Validate prompt generation logic without external dependencies
   - File: `tests/unit/services/prompt-generator.test.ts`
-  - Test cases:
-    - `generateComplexityAnalysisPrompt()` includes all required fields
-    - `generateAgentPrompt()` varies by role (architect, developer, reviewer)
-    - `generateCompletionMessage()` formats agent summaries correctly
-  - Estimate: 0.5 days
-  - Acceptance: ≥90% coverage for prompt-generator service
+  - Test cases (21 tests):
+    - `generateComplexityAnalysisPrompt()` includes all required fields (task, guidelines, API endpoint)
+    - `generateAgentPrompt()` varies by role (architect, developer, reviewer, debugger)
+    - `generateCompletionMessage()` formats agent summaries as numbered list
+    - All complexity levels handled (simple, moderate, complex)
+  - Coverage: 100% for prompt-generator service
+  - Acceptance: All 21 tests passing ✅ VERIFIED
 
-- [ ] **4.11.9 Write integration tests for set-complexity API**
+- [ ] **5.11.6 Write integration tests for set-complexity API**
+  - **Purpose**: Test API endpoint with real database operations
   - File: `tests/integration/api/complexity.test.ts`
   - Test cases:
-    - POST with valid complexity → 200, workflow updated
-    - POST with invalid workflow ID → 404
-    - POST with wrong state (ACTIVE) → 409
-    - POST with invalid complexity value → 400
+    - POST with valid complexity → 200, workflow updated, nextInstructions returned
+    - POST with invalid workflow ID → 404 error
+    - POST with wrong state (ACTIVE instead of PENDING_COMPLEXITY) → 409 conflict
+    - POST with invalid complexity value → 400 validation error
+    - POST without reasoning (optional field) → 200 success
+  - **Status**: Tests written, deferred to Phase 3/4 (requires Express app setup)
   - Estimate: 0.5 days
-  - Acceptance: All success and error paths tested
+  - Acceptance: All success and error paths tested with real database
 
-- [ ] **4.11.10 Write E2E complexity flow test**
+- [ ] **5.11.7 Write E2E complexity flow test**
+  - **Purpose**: Validate full flow from UserPromptSubmit hook to agent execution
   - File: `tests/integration/hooks/complexity-flow.test.ts`
-  - Flow: UserPromptSubmit → CC calls set-complexity → agent injection
-  - Verify: Workflow transitions from PENDING_COMPLEXITY → ACTIVE
+  - Flow sequence:
+    1. UserPromptSubmit hook creates workflow (status=PENDING_COMPLEXITY)
+    2. Hook returns prompt asking CC to analyze complexity
+    3. CC calls POST /api/workflows/:id/set-complexity
+    4. API updates workflow (status=ACTIVE, currentStep=0)
+    5. API returns nextInstructions with agent prompt
+    6. Verify workflow state transitions correctly
+  - **Status**: Deferred to Phase 3 (requires hook handler integration)
   - Estimate: 0.5 days
   - Acceptance: Full CC-assisted flow validated end-to-end
 
-- [x] **4.11.11 Update documentation** ✅ COMPLETED
-  - Files: `docs/PRD.md`, `docs/technical-spec.md`, `docs/architecture.md`, `docs/WBS.md`, `docs/development-plan.md`
-  - Updates: New API endpoint, workflow changes, sequence diagrams, feature flag
-  - Acceptance: All docs reflect CC-assisted complexity feature
+- [x] **5.11.8 Update documentation** ✅ COMPLETED
+  - **Purpose**: Document CC-assisted complexity feature across all docs
+  - Files updated:
+    - `docs/PRD.md` - New workflow steps 3a-3c, API section 5.4.2
+    - `docs/technical-spec.md` - Schema changes, API specs, project structure
+    - `docs/architecture.md` - Sequence diagram 2.1b for CC complexity flow
+    - `docs/WBS.md` - Section 4 (Phase 1.5) and section 5.11 (Phase 2)
+    - `docs/development-plan.md` - Phase 2 updates with +3-4 day estimate
+  - Acceptance: All documentation reflects new feature ✅ VERIFIED
 
-**Estimate**: 3-4 days total (1.5 days implementation ✅ DONE, 1.5 days testing PENDING, 1 day docs ✅ DONE)
+**Implementation Status**: ✅ 5/5 implementation tasks complete, 2/3 testing tasks deferred to Phase 3/4
+**Estimate**: 1.5 days implementation (DONE), 1 day testing (PENDING), 1 day docs (DONE)
 
 ---
 
-## 5. Phase 3 – Hook Handler Integration (7-10 days)
+## 6. Phase 3 – Hook Handler Integration (7-10 days)
 
 **Objective**: Integrate Claude Code hooks, implement HTTP endpoints, validate configuration, create test harness (Development Plan §5.6, PRD §5.1).
 
-### 5.1 Hook Adapters (TDD, PRD §5.1 Hook Processing)
+### 6.1 Hook Adapters (TDD, PRD §5.1 Hook Processing)
 - [ ] **Write UserPromptSubmit handler tests**
   - File: `tests/unit/hooks/user-prompt-submit.test.ts`
   - Test cases (5+):
@@ -858,7 +960,7 @@
   - Run tests: Should pass (green)
   - Acceptance: Cleanup logic tested
 
-### 5.2 HTTP Endpoint Integration
+### 6.2 HTTP Endpoint Integration
 - [ ] **Write hook endpoint tests**
   - File: `tests/integration/hooks/endpoints.test.ts`
   - Use: Supertest to simulate HTTP requests
@@ -890,7 +992,7 @@
   - Test: curl `POST http://localhost:3000/hooks/user-prompt-submit` → Returns response
   - Acceptance: Endpoints reachable
 
-### 5.3 Hook Authentication Integration Tests (Security)
+### 6.3 Hook Authentication Integration Tests (Security)
 - [ ] **Write hook authentication integration tests**
   - File: `tests/integration/hooks/auth.test.ts`
   - Test cases (4+):
@@ -908,7 +1010,7 @@
   - Test authenticated: `curl -X POST -H "X-Hook-Secret: ${HOOK_SECRET}" http://localhost:3000/hooks/user-prompt-submit` → Returns 200
   - Acceptance: Authentication enforced on all hook endpoints
 
-### 5.4 Configuration Validation (Development Plan: "Validate all 15 agent configurations at startup")
+### 6.4 Configuration Validation (Development Plan: "Validate all 15 agent configurations at startup")
 - [ ] **Write config validation tests**
   - File: `tests/unit/config/validator.test.ts`
   - Test cases:
@@ -927,7 +1029,7 @@
   - Run tests: Should pass (green)
   - Acceptance: Server refuses to start with incomplete config
 
-### 5.5 Environment Configuration
+### 6.5 Environment Configuration
 - [ ] **Write env config tests**
   - File: `tests/unit/config/env.test.ts`
   - Test cases:
@@ -946,7 +1048,7 @@
   - Run tests: Should pass (green)
   - Acceptance: Config validates at startup
 
-### 5.6 Hook Test Harness (Development Plan: "Develop dual-purpose test harness")
+### 6.6 Hook Test Harness (Development Plan: "Develop dual-purpose test harness")
 - [ ] **Create mock HTTP server**
   - File: `tests/harness/mock-claude-server.ts`
   - Purpose: Simulates Claude Code sending hook payloads to CCOrch
@@ -979,7 +1081,7 @@
   - Include: Sample payload files for each hook type
   - Acceptance: QA can run test harness without developer help
 
-### 5.7 Prompt Template Testing
+### 6.7 Prompt Template Testing
 - [ ] **Create prompt template integration tests**
   - File: `tests/integration/prompt-templates.test.ts`
   - Test cases:
@@ -989,7 +1091,7 @@
     - Template variables replaced (no `{undefined}`)
   - Acceptance: Generated prompts match PRD §6 examples
 
-### 5.8 Hook Setup Documentation
+### 6.8 Hook Setup Documentation
 - [ ] **Create hook setup guide**
   - File: `docs/hook-setup.md`
   - Sections:
@@ -1020,7 +1122,7 @@
     ```
   - Acceptance: Developers can configure hooks with authentication from this doc alone
 
-### 5.9 Phase Completion
+### 6.9 Phase Completion
 - [ ] **Run full test suite for Phase 3**
   - Run: `pnpm test tests/unit/hooks/ tests/integration/hooks/`
   - Check: All hook tests pass
@@ -1049,13 +1151,13 @@
 
 ---
 
-## 6. Phase 4 – API & Administrative Surface (5-7 days)
+## 7. Phase 4 – API & Administrative Surface (5-7 days)
 
 **Objective**: Implement monitoring and admin API endpoints with authentication, validation, comprehensive tests (Development Plan §5.7, PRD §5.4).
 
 **Note**: Agent result submission moved to PostToolUse hook (Phase 3). This phase focuses on monitoring and admin endpoints only.
 
-### 6.1 API Route Structure
+### 7.1 API Route Structure
 - [ ] **Create API router skeleton**
   - File: `src/api/workflows.ts`
   - Routes: GET /status, POST /transition (return 501 Not Implemented stubs)
@@ -1064,7 +1166,7 @@
   - Test: curl endpoints → Returns 501
   - Acceptance: Routes registered
 
-### 6.2 Zod Validation Schemas (TDD, PRD §5.4 constraints)
+### 7.2 Zod Validation Schemas (TDD, PRD §5.4 constraints)
 - [ ] **Write validation schema tests**
   - File: `tests/unit/api/validation.test.ts`
   - Test cases (6+) per PRD §5.4:
@@ -1085,7 +1187,7 @@
   - Run tests: Should pass (green)
   - Acceptance: Validation schemas match PRD §5.4
 
-### 6.3 GET /api/workflows/:id/status (TDD, PRD §5.4.2)
+### 7.3 GET /api/workflows/:id/status (TDD, PRD §5.4.2)
 - [ ] **Write status endpoint tests**
   - File: `tests/integration/api/status.test.ts`
   - Test cases (5+):
@@ -1107,7 +1209,7 @@
   - Run tests: Should pass (green)
   - Acceptance: Status endpoint tests pass
 
-### 6.4 POST /api/workflows/:id/transition (Admin, TDD, PRD §5.4.3)
+### 7.4 POST /api/workflows/:id/transition (Admin, TDD, PRD §5.4.3)
 - [ ] **Write transition endpoint tests**
   - File: `tests/integration/api/transition.test.ts`
   - Test cases (10+) per PRD §5.4.3:
@@ -1144,7 +1246,7 @@
   - Run tests: Should pass (green)
   - Acceptance: Transition endpoint tests pass
 
-### 6.5 Error Handling
+### 7.5 Error Handling
 - [ ] **Write error handler tests**
   - File: `tests/unit/api/error-handler.test.ts`
   - Test cases:
@@ -1163,7 +1265,7 @@
   - Run tests: Should pass (green)
   - Acceptance: Error handler tests pass
 
-### 6.6 API Documentation
+### 7.6 API Documentation
 - [ ] **Create API reference**
   - File: `docs/api-reference.md`
   - Sections per PRD §5.4:
@@ -1175,7 +1277,7 @@
   - Include: curl examples for each endpoint
   - Acceptance: Developers can integrate with API using this doc alone
 
-### 6.7 Concurrent Workflow Isolation Tests (Development Plan §8)
+### 7.7 Concurrent Workflow Isolation Tests (Development Plan §8)
 - [ ] **Write concurrent workflow tests**
   - File: `tests/integration/api/concurrent-workflows.test.ts`
   - Test scenario:
@@ -1189,7 +1291,7 @@
     - All transitions recorded accurately for each workflow
   - Acceptance: Concurrent workflows isolated, no race conditions
 
-### 6.8 Phase Completion
+### 7.8 Phase Completion
 - [ ] **Run full test suite for Phase 4**
   - Run: `pnpm test tests/integration/api/`
   - Check: All API tests pass
@@ -1222,11 +1324,11 @@
 
 ---
 
-## 7. Phase 5 – Observability & Operations (5-7 days)
+## 8. Phase 5 – Observability & Operations (5-7 days)
 
 **Objective**: Add logging, metrics, failure recovery, operational documentation (Development Plan §5.8, PRD §8).
 
-### 7.1 Logging Infrastructure (technical-spec.md §1.6: Use pino)
+### 8.1 Logging Infrastructure (technical-spec.md §1.6: Use pino)
 - [ ] **Write logger tests**
   - File: `tests/unit/utils/logger.test.ts`
   - Test cases:
@@ -1268,7 +1370,7 @@
     - Workflow completed: `logger.info({ workflowId, totalSteps, duration }, 'Workflow completed')`
   - Acceptance: All orchestrator actions logged with structured data
 
-### 7.2 Metrics Stubs (Development Plan: "Add metrics stubs with TODO for Prometheus")
+### 8.2 Metrics Stubs (Development Plan: "Add metrics stubs with TODO for Prometheus")
 - [ ] **Add metrics placeholders**
   - File: `src/utils/metrics.ts`
   - Metrics (log to console with TODO comments):
@@ -1289,7 +1391,7 @@
   - Test: `curl http://localhost:3000/health` → Returns 200
   - Acceptance: Health endpoint returns 200 if DB connected
 
-### 7.3 Failure Recovery (Development Plan §8)
+### 8.3 Failure Recovery (Development Plan §8)
 - [ ] **Write failure recovery tests**
   - File: `tests/unit/services/recovery.test.ts`
   - Test cases:
@@ -1325,7 +1427,7 @@
   - Run tests: Should pass (green)
   - Acceptance: Archival logic tested
 
-### 7.4 Operational Runbook (Development Plan: "Draft in docs/runbook.md")
+### 8.4 Operational Runbook (Development Plan: "Draft in docs/runbook.md")
 - [ ] **Create runbook**
   - File: `docs/runbook.md`
   - Sections per Development Plan §5: Phase 5:
@@ -1337,7 +1439,7 @@
     6. **Monitoring**: Health check endpoint (`/health`), log locations, metrics placeholders (Prometheus TODO)
   - Acceptance: Ops can deploy and manage system from this doc alone
 
-### 7.5 Deployment Automation
+### 8.5 Deployment Automation
 - [ ] **Create deployment script**
   - File: `scripts/deploy.sh`
   - Steps:
@@ -1365,7 +1467,7 @@
     5. Manual transition → Audit log updated: Check `workflow_transitions` table
   - Acceptance: All smoke tests documented
 
-### 7.6 Performance Testing (PRD §8.1: <500ms hook response, <1s transitions)
+### 8.6 Performance Testing (PRD §8.1: <500ms hook response, <1s transitions)
 - [ ] **Write performance tests**
   - File: `tests/performance/latency.test.ts`
   - Test cases:
@@ -1382,14 +1484,14 @@
   - Measure: Requests/sec, average latency, 99th percentile
   - Acceptance: No 500 errors, average latency < 500ms
 
-### 7.7 Log Retention Configuration (Development Plan §10: 7 days, Loki stack)
+### 8.7 Log Retention Configuration (Development Plan §10: 7 days, Loki stack)
 - [ ] **Document log retention policy**
   - File: `docs/logging.md`
   - Document: 7-day retention policy for production logs (Loki stack per Development Plan §10)
   - Include: Setup instructions for Loki + Grafana (future enhancement, link to Loki docs)
   - Acceptance: Log retention policy documented
 
-### 7.8 Phase Completion
+### 8.8 Phase Completion
 - [ ] **Run full test suite for Phase 5**
   - Run: `pnpm test`
   - Check: All tests pass (unit, integration, performance)
@@ -1418,11 +1520,11 @@
 
 ---
 
-## 8. Phase 6 – Launch Readiness (2-3 days)
+## 9. Phase 6 – Launch Readiness (2-3 days)
 
 **Objective**: Final validation, coverage verification, production preparation (PRD §8).
 
-### 8.1 Coverage Verification (technical-spec.md §4.2: ≥80% coverage)
+### 9.1 Coverage Verification (technical-spec.md §4.2: ≥80% coverage)
 - [ ] **Generate coverage report**
   - Run: `pnpm test:coverage`
   - Check: Statement coverage ≥80%, Branch coverage ≥80%, Function coverage ≥80%, Line coverage ≥80%
@@ -1435,7 +1537,7 @@
   - Decision: Justify (e.g., trivial code) or add tests
   - Acceptance: All critical paths covered
 
-### 8.2 Quality Gate Verification (technical-spec.md §4.3)
+### 9.2 Quality Gate Verification (technical-spec.md §4.3)
 - [ ] **Run linter**
   - Run: `pnpm lint`
   - Fix: All linting errors and warnings
@@ -1457,7 +1559,7 @@
   - Fix: Any CI failures
   - Acceptance: All CI checks green
 
-### 8.3 Production Preparation
+### 9.3 Production Preparation
 - [ ] **Review .env.example**
   - Verify: All required vars documented (PORT, DATABASE_URL, API_KEY_ADMIN, HOOK_SECRET, LOG_LEVEL)
   - Check: No secrets in repo (`.env` in `.gitignore`)
@@ -1482,7 +1584,7 @@
   - Verify: All 5 smoke tests pass (health check, create workflow, submit result, query status, manual transition)
   - Acceptance: System ready for production use
 
-### 8.4 Documentation Review
+### 9.4 Documentation Review
 - [ ] **Review all documentation files**
   - Files: `CLAUDE.md`, `CONTRIBUTING.md`, `docs/PRD.md`, `docs/development-plan.md`, `docs/WBS.md`, `docs/database.md`, `docs/hook-setup.md`, `docs/test-harness.md`, `docs/api-reference.md`, `docs/runbook.md`, `docs/smoke-tests.md`, `docs/logging.md`
   - Check: No broken links, accurate commands, up-to-date examples
@@ -1504,7 +1606,7 @@
     - [ ] Performance validated (<500ms hook response, <1s transitions)
   - Acceptance: Checklist ready for future releases
 
-### 8.5 Final PR Review
+### 9.5 Final PR Review
 - [ ] **Create release PR**
   - Branch: `develop` → `main`
   - Title: `chore(release): v1.0.0 production ready`
@@ -1524,7 +1626,7 @@
   - Tag: `git tag v1.0.0 && git push origin v1.0.0`
   - Acceptance: Release tagged and merged to main
 
-### 8.6 Phase Completion
+### 9.6 Phase Completion
 - [ ] **Verify all Phase 6 exit criteria**
   - ✓ Coverage: ≥80% across all modules
   - ✓ Quality: Lint, type-check, tests all pass
