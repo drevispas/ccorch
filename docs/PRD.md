@@ -55,11 +55,13 @@ The Claude Code Orchestrator (CCOrch) is an intelligent agent coordination syste
 Agent definition files stored in `.claude/agents/` with two dimensions:
 
 **Roles:**
-- `architect` - System design and architecture (design only, no implementation)
+- `backend-architect` - Backend system design and architecture (design only, no implementation)
+- `frontend-architect` - Frontend/UI design and architecture (design only, no implementation)
 - `backend-developer` - Backend implementation
 - `frontend-developer` - Frontend implementation
 - `reviewer` - Code review (reviews unstaged and staged changes)
 - `debugger` - Debugging and issue resolution
+- `e2e-test-architect` - End-to-end testing strategy and design (design only, no implementation)
 
 **Complexity Levels:**
 - `simple` - Max 8 lines, straightforward tasks
@@ -68,11 +70,13 @@ Agent definition files stored in `.claude/agents/` with two dimensions:
 
 **Agent Files:**
 ```
-architect-{simple,moderate,complex}.md
+backend-architect-{simple,moderate,complex}.md
+frontend-architect-{simple,moderate,complex}.md
 backend-developer-{simple,moderate,complex}.md
 frontend-developer-{simple,moderate,complex}.md
 reviewer-{simple,moderate,complex}.md
 debugger-{simple,moderate,complex}.md
+e2e-test-architect-{simple,moderate,complex}.md
 ```
 
 ### 3.2 Runtime Requirements
@@ -107,11 +111,12 @@ debugger-{simple,moderate,complex}.md
 
 | Chain Name             | Agent Sequence                                                  |
 |------------------------|-----------------------------------------------------------------|
-| `backend-development`  | architect → backend-developer → reviewer                        |
-| `frontend-development` | architect → frontend-developer → reviewer                       |
+| `backend-development`  | backend-architect → backend-developer → reviewer                |
+| `frontend-development` | frontend-architect → frontend-developer → reviewer              |
 | `debug`                | debugger → backend-developer OR frontend-developer → reviewer   |
 | `review`               | reviewer → backend-developer OR frontend-developer              |
-| `design-only`          | architect                                                       |
+| `backend-design-only`  | backend-architect                                               |
+| `frontend-design-only` | frontend-architect                                              |
 | `backend-only`         | backend-developer                                               |
 | `frontend-only`        | frontend-developer                                              |
 | `review-only`          | reviewer                                                        |
@@ -155,7 +160,7 @@ When a chain offers both `backend-developer` and `frontend-developer` options (d
 
 #### Step 1: Parse User Intent
 - Extract action type from user prompt
-- Identify roles involved: `architect`, `backend`, `frontend`, `reviewer`, `debugger`
+- Identify roles involved: `backend-architect`, `frontend-architect`, `backend-developer`, `frontend-developer`, `reviewer`, `debugger`
 
 #### Step 2: Determine Chain
 - Map action to predefined chain (see [section 4.2](#42-workflow-chains))
@@ -290,7 +295,7 @@ interface AgentResults {
   "total_steps": 3,
   "completed_agents": [
     {
-      "role": "architect",
+      "role": "backend-architect",
       "step": 0,
       "status": "COMPLETED",
       "completed_at": 1734567890000
@@ -317,7 +322,7 @@ interface AgentResults {
 ```json
 {
   "action": "advance",
-  "reason": "Manually skipping broken architect step for testing"
+  "reason": "Manually skipping broken backend-architect step for testing"
 }
 ```
 
@@ -395,15 +400,15 @@ Workflow complete. All agents finished successfully.
 1. **Parse intent**: Backend development task
 2. **Determine complexity**: Moderate (API implementation, 2-5 files)
 3. **Select chain**: `backend-development-moderate`
-4. **Agent sequence**: architect-moderate → backend-developer-moderate → reviewer-moderate
+4. **Agent sequence**: backend-architect-moderate → backend-developer-moderate → reviewer-moderate
 
 ---
 
-#### Step 1: Architect Agent
+#### Step 1: Backend Architect Agent
 
 **CCOrch injects**:
 ```
-Use the architect-moderate subagent to design authentication API architecture
+Use the backend-architect-moderate subagent to design authentication API architecture
 (design only, do not implement)
 ```
 
@@ -415,12 +420,12 @@ Use the architect-moderate subagent to design authentication API architecture
 
 #### Step 2: Backend Developer Agent
 
-**CCOrch receives** architect results via PostToolUse hook payload
+**CCOrch receives** backend-architect results via PostToolUse hook payload
 
 **CCOrch injects**:
 ```
 Use the backend-developer-moderate subagent to implement authentication API
-based on design: {architect_results}
+based on design: {backend_architect_results}
 ```
 
 **Agent actions**:

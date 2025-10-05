@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Claude Code Orchestrator (CCOrch)** is an intelligent agent coordination system that intercepts Claude Code interactions via hooks and orchestrates multi-agent workflows based on task complexity and role requirements.
 
-The orchestrator manages chains of specialized agents (architect, backend-developer, frontend-developer, reviewer, debugger) at varying complexity levels (simple, moderate, complex) to automate complex development workflows without manual agent switching.
+The orchestrator manages chains of specialized agents (backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger, e2e-test-architect) at varying complexity levels (simple, moderate, complex) to automate complex development workflows without manual agent switching.
 
 ## Architecture
 
@@ -33,11 +33,12 @@ The orchestrator manages chains of specialized agents (architect, backend-develo
 
 | Chain | Agent Sequence |
 |-------|----------------|
-| `backend-development` | architect → backend-developer → reviewer |
-| `frontend-development` | architect → frontend-developer → reviewer |
+| `backend-development` | backend-architect → backend-developer → reviewer |
+| `frontend-development` | frontend-architect → frontend-developer → reviewer |
 | `debug` | debugger → (backend/frontend)-developer → reviewer |
 | `review` | reviewer → (backend/frontend)-developer |
-| `design-only` | architect |
+| `backend-design-only` | backend-architect |
+| `frontend-design-only` | frontend-architect |
 | `backend-only` | backend-developer |
 | `frontend-only` | frontend-developer |
 | `review-only` | reviewer |
@@ -145,9 +146,9 @@ Run after **every change**:
 ### Configuration Validation
 
 At startup, validate that all expected agent configurations exist:
-- 5 roles (architect, backend-developer, frontend-developer, reviewer, debugger)
+- 7 roles (backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger, e2e-test-architect)
 - 3 complexity levels (simple, moderate, complex)
-- Total: 15 agent configurations
+- Total: 21 agent configurations
 
 Note: Agent definition files (`.claude/agents/*.md`) live in Claude Code's directory on the user's machine. CCOrch validates its internal config references, not filesystem paths.
 

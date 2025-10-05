@@ -153,7 +153,7 @@ CREATE TABLE workflows (
 
   -- Current position in the agent chain (0-indexed)
   -- Indicates the next agent to execute
-  -- Example: 0 = architect (first agent), 1 = backend-developer (second agent)
+  -- Example: 0 = backend-architect (first agent), 1 = backend-developer (second agent)
   current_step INTEGER DEFAULT 0,
 
   -- Workflow execution status
@@ -182,7 +182,7 @@ CREATE TABLE agent_results (
   workflow_id TEXT NOT NULL,
 
   -- Role of the agent that produced this result
-  -- Valid values: architect, backend-developer, frontend-developer, reviewer, debugger
+  -- Valid values: backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger, e2e-test-architect
   agent_role TEXT NOT NULL,
 
   -- Complexity level of the agent
@@ -235,7 +235,7 @@ CREATE TABLE workflow_transitions (
   to_step INTEGER NOT NULL,
 
   -- Agent role that completed (nullable for initial transition)
-  -- Valid values: architect, backend-developer, frontend-developer, reviewer, debugger, NULL
+  -- Valid values: backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger, e2e-test-architect, NULL
   from_agent TEXT,
 
   -- Agent role that will execute next (nullable for final transition)
@@ -365,11 +365,13 @@ enum Complexity {
 
 // Agent roles
 enum AgentRole {
-  ARCHITECT = 'architect',
+  BACKEND_ARCHITECT = 'backend-architect',
+  FRONTEND_ARCHITECT = 'frontend-architect',
   BACKEND_DEVELOPER = 'backend-developer',
   FRONTEND_DEVELOPER = 'frontend-developer',
   REVIEWER = 'reviewer',
   DEBUGGER = 'debugger',
+  E2E_TEST_ARCHITECT = 'e2e-test-architect',
 }
 
 // Workflow chains
@@ -378,7 +380,8 @@ enum ChainName {
   FRONTEND_DEVELOPMENT = 'frontend-development',
   DEBUG = 'debug',
   REVIEW = 'review',
-  DESIGN_ONLY = 'design-only',
+  BACKEND_DESIGN_ONLY = 'backend-design-only',
+  FRONTEND_DESIGN_ONLY = 'frontend-design-only',
   BACKEND_ONLY = 'backend-only',
   FRONTEND_ONLY = 'frontend-only',
   REVIEW_ONLY = 'review-only',
@@ -450,7 +453,7 @@ Claude Code → /hooks/post-tool-use (with results) → Next agent or completion
 **Response**:
 ```json
 {
-  "message": "Use the architect-moderate subagent to:\n1. Design authentication system..."
+  "message": "Use the backend-architect-moderate subagent to:\n1. Design authentication system..."
 }
 ```
 
@@ -538,7 +541,7 @@ interface WorkflowStatusResponse {
   "total_steps": 3,
   "completed_agents": [
     {
-      "role": "architect",
+      "role": "backend-architect",
       "step": 0,
       "status": "COMPLETED",
       "completed_at": 1734567890000
