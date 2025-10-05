@@ -609,60 +609,65 @@
 **Objective**: Build prompt parsing, chain resolution, state management, orchestrator coordinator with ≥80% coverage (Development Plan §5.5, PRD §5.2).
 
 ### 5.1 Domain Models & Types (PRD §3, §4.2)
-- [ ] **5.1.1 Define domain types**
+- [x] **5.1.1 Define domain types** ✅ COMPLETED
   - File: `src/types/workflow.ts`
-  - Enums: `ChainName` (9 chains from PRD §4.2), `Complexity` (SIMPLE, MODERATE, COMPLEX), `AgentRole` (ARCHITECT, BACKEND_DEVELOPER, FRONTEND_DEVELOPER, REVIEWER, DEBUGGER), `WorkflowStatus` (ACTIVE, COMPLETED, FAILED)
-  - Types: `WorkflowContext`, `AgentTask`, `Intent`
+  - Enums: `ChainName` (10 chains from PRD §4.2), `Complexity` (SIMPLE, MODERATE, COMPLEX), `AgentRole` (7 roles including BACKEND_ARCHITECT, FRONTEND_ARCHITECT, BACKEND_DEVELOPER, FRONTEND_DEVELOPER, REVIEWER, DEBUGGER, E2E_TEST_ARCHITECT), `WorkflowStatus` (PENDING_COMPLEXITY, ACTIVE, COMPLETED, FAILED)
+  - Types: `WorkflowContext`, `AgentTask`, `Intent`, `AgentResultData`
   - Zod schemas: For runtime validation
-  - Acceptance: Types match PRD enums
+  - Type guards: `isChainName`, `isComplexity`, `isAgentRole`, `isWorkflowStatus`
+  - Acceptance: Types match PRD enums ✅ VERIFIED
 
-- [ ] **5.1.2 Write type validation tests**
+- [x] **5.1.2 Write type validation tests** ✅ COMPLETED
   - File: `tests/unit/types/workflow.test.ts`
-  - Tests: Valid enum values accepted, invalid values rejected, zod schema validation works
-  - Acceptance: Type guards functional
+  - Tests: 47 tests covering all enums, schemas, type guards, and integration scenarios
+  - Coverage: Valid enum values accepted, invalid values rejected, zod schema validation works, type guards functional
+  - Acceptance: All tests passing ✅ VERIFIED
 
 ### 5.2 Prompt Parser (TDD, PRD §5.2 Step 1)
-- [ ] **5.2.1 Write prompt parser tests**
+- [x] **5.2.1 Write prompt parser tests** ✅ COMPLETED
   - File: `tests/unit/services/prompt-parser.test.ts`
-  - Test cases (15+):
-    - "Implement REST API" → backend intent
-    - "Design authentication system" → architect intent
-    - "Fix login bug" → debugger intent
-    - "Review my changes" → reviewer intent
-    - "Add button component" → frontend intent
-    - Empty prompt → error
-    - Multi-intent prompts → multiple roles detected
-    - Ambiguous prompts → default behavior
-  - Expected: Tests fail (red)
-  - Acceptance: 15+ test cases covering all 5 roles + edge cases
+  - Test cases: 41 comprehensive tests covering:
+    - Architect role detection (backend/frontend) with "design", "architect" keywords
+    - Developer role detection (backend/frontend) with "implement", "build", "create", "add" keywords
+    - Reviewer role detection with "review" keyword
+    - Debugger role detection with "debug", "fix", "resolve", "troubleshoot" keywords
+    - Multi-role detection (combined architect+developer, debugger+developer, reviewer+developer)
+    - Backend vs frontend keyword detection (all PRD §4.2 keywords tested)
+    - Edge cases: empty prompts, whitespace, case-insensitive, punctuation, long prompts, deduplication
+    - Real-world scenarios: REST API implementation, microservices design, bug fixes, code review, UI components
+  - Expected: Tests fail (red) ✅ VERIFIED (initial run failed as expected)
+  - Acceptance: 15+ test cases covering all 5 roles + edge cases ✅ VERIFIED (41 tests total)
 
-- [ ] **5.2.2 Implement prompt parser**
+- [x] **5.2.2 Implement prompt parser** ✅ COMPLETED
   - File: `src/services/prompt-parser.ts`
   - Function: `parseIntent(prompt: string): Intent { roles: AgentRole[], keywords: string[] }`
   - Logic: Keyword matching for architect/backend/frontend/reviewer/debugger (PRD §4.2 keyword strategy)
-  - Run tests: Should pass (green)
-  - Acceptance: Parser correctly identifies roles
+  - Features implemented:
+    - Case-insensitive keyword matching
+    - Simple stemming for plural forms (endpoints → endpoint, components → component)
+    - Backend vs frontend differentiation with keyword analysis
+    - Default to backend-developer when ambiguous
+    - Multi-role detection support
+    - Comprehensive keyword extraction (action keywords + domain keywords)
+  - Run tests: All pass (green) ✅ VERIFIED (41/41 tests passing)
+  - Acceptance: Parser correctly identifies roles ✅ VERIFIED
 
 ### 5.3 Complexity Analyzer (TDD, PRD §5.2 Step 3)
-- [ ] **5.3.1 Write complexity analyzer tests**
+- [x] **5.3.1 Write complexity analyzer tests** ✅ COMPLETED
   - File: `tests/unit/services/complexity-analyzer.test.ts`
-  - Test cases (12+) per PRD §5.2 rubric:
-    - Simple: "Quick fix typo", "Add validation", "Rename variable" → SIMPLE
-    - Moderate: "Add JWT auth endpoint", "Create user profile component" → MODERATE
-    - Complex: "Design microservices architecture", "Refactor to event-driven" → COMPLEX
-    - Keyword modifiers: "simple fix" → SIMPLE, "complete system" → COMPLEX
-    - Multi-factor: "Small refactor + tests" → MODERATE
-  - Expected: Tests fail (red)
-  - Acceptance: 12+ test cases covering scoring rubric + keyword modifiers
+  - Test cases: 43 tests covering scope, dependencies, risk, keyword modifiers, default behavior, intent integration, real-world scenarios, edge cases
+  - Expected: Tests fail (red) ✅ VERIFIED
+  - Acceptance: 12+ test cases covering scoring rubric + keyword modifiers ✅ VERIFIED (43 total)
 
-- [ ] **5.3.2 Implement complexity analyzer**
+- [x] **5.3.2 Implement complexity analyzer** ✅ COMPLETED
   - File: `src/services/complexity-analyzer.ts`
   - Function: `analyzeComplexity(prompt: string, intent: Intent): Complexity`
-  - Scoring factors (PRD §5.2 table): Scope (single file vs multi-module), Dependencies (none vs multiple), Risk (no breaking changes vs schema changes)
-  - Keyword modifiers: `simple`, `quick`, `fix` → SIMPLE; `whole`, `complete`, `design`, `architect`, `enterprise` → COMPLEX
-  - Default: MODERATE if ambiguous
-  - Run tests: Should pass (green)
-  - Acceptance: Complexity correctly determined
+  - Configuration system: `src/config/complexity/` (types, keyword-registry, scoring-factors, default-config, index)
+  - Scoring factors: Scope, Dependencies, Risk, Keyword Modifiers (pluggable, configuration-driven)
+  - Features: Weighted scoring, adjustable thresholds, runtime overrides, evidence tracking
+  - Run tests: All pass (green) ✅ VERIFIED (43/43 passing)
+  - TypeScript: Type checking passes ✅ VERIFIED
+  - Acceptance: Complexity correctly determined ✅ VERIFIED
 
 ### 5.4 Chain Resolver (TDD, PRD §4.2, §5.2 Step 2)
 - [ ] **5.4.1 Write chain resolver tests**

@@ -20,6 +20,9 @@
 3. [API Specifications](#3-api-specifications)
 4. [Development Practices](#4-development-practices)
 5. [Project Structure](#5-project-structure)
+5a. [Orchestration Services](#5a-orchestration-services)
+   - [Prompt Parser Service](#5a1-prompt-parser-service)
+   - [Complexity Analyzer Service](#5a2-complexity-analyzer-service)
 6. [Error Handling](#6-error-handling)
 7. [Performance Requirements](#7-performance-requirements)
 
@@ -990,6 +993,281 @@ orchestrator-v3/
 ├── package.json                 # Dependencies & scripts
 └── pnpm-lock.yaml               # Lockfile
 ```
+
+---
+
+## 5a. Orchestration Services
+
+This section documents the core orchestration services that power the workflow engine.
+
+### 5a.1 Prompt Parser Service
+
+**File**: `src/services/prompt-parser.ts`
+
+**Purpose**: Parse user prompts to extract intent (roles and keywords) for workflow chain determination.
+
+**Key Functions**:
+- `parseIntent(prompt: string): Intent`
+
+**Features**:
+- Keyword-based role detection (architect, developer, reviewer, debugger)
+- Case-insensitive matching with simple stemming for plural forms
+- Backend vs frontend differentiation using keyword analysis
+- Default to backend-developer when ambiguous
+
+**Keyword Categories**:
+- Action keywords: design, implement, build, create, add, review, debug, fix, troubleshoot
+- Backend keywords: java, api, database, controller, service, repository, rest, endpoint, sql, jwt
+- Frontend keywords: ui, ux, component, page, react, vue, css, html, button, typescript
+
+### 5a.2 Complexity Analyzer Service
+
+**File**: `src/services/complexity-analyzer.ts`
+
+**Purpose**: Analyze user prompts to determine task complexity (simple, moderate, complex) using a pluggable, configuration-driven scoring system.
+
+**Architecture**: Configuration-driven with pluggable scoring factors for maximum flexibility and scalability.
+
+#### Main Functions
+
+```typescript
+// Simple complexity determination
+analyzeComplexity(prompt: string, intent: Intent, overrides?: ConfigOverrides): Complexity
+
+// Detailed analysis with breakdown
+analyzeComplexityDetailed(prompt: string, intent: Intent, overrides?: ConfigOverrides): ComplexityAnalysisResult
+```
+
+#### Configuration System
+
+**Location**: `src/config/complexity/`
+
+**Files**:
+- `types.ts` - Type definitions for pluggable factors, keyword registry, configuration interfaces
+- `keyword-registry.ts` - Centralized keyword definitions (150+ keywords across 4 categories)
+- `scoring-factors.ts` - Built-in scoring factors (scope, dependencies, risk, keyword-modifiers)
+- `default-config.ts` - Default configuration with thresholds, weights, role adjustments
+- `index.ts` - Module exports
+
+#### Pluggable Factor System
+
+Each complexity factor implements the `ComplexityFactor` interface:
+
+```typescript
+interface ComplexityFactor {
+  id: string;                    // Unique identifier
+  name: string;                  // Human-readable name
+  weight?: number;               // Weight in overall score (0-1)
+  enabled: boolean;              // Can be disabled via config
+  evaluate: FactorEvaluator;     // Scoring function
+  metadata?: Record<string, any>; // Custom data for factor
+}
+
+type FactorEvaluator = (
+  prompt: string,
+  intent: Intent,
+  context: EvaluationContext
+) => FactorScore;
+
+interface FactorScore {
+  score: number;        // Normalized score (0-1)
+  confidence: number;   // Confidence level (0-1)
+  evidence: string[];   // Reasons for this score
+}
+```
+
+#### Built-in Scoring Factors
+
+**1. Scope Factor** (30% default weight):
+- Single file/function: score ≈ 0.2 (SIMPLE)
+- Few files (2-5): score ≈ 0.5 (MODERATE)
+- Many files (6-10): score ≈ 0.7 (MODERATE)
+- System-wide/multi-module: score = 1.0 (COMPLEX)
+- Supports numeric hints: "modify 15 files" → score = 1.0
+
+**2. Dependencies Factor** (25% default weight):
+- Standalone/isolated: score = 0.1 (SIMPLE)
+- Few integrations (1-2): score = 0.5 (MODERATE)
+- Multiple external services (3+): score = 0.95-1.0 (COMPLEX)
+- Detects specific technologies: Redis, Postgres, Kafka, Elasticsearch, etc.
+
+**3. Risk Factor** (20% default weight):
+- Low risk (additions, extensions): score = 0.2 (SIMPLE)
+- Medium risk (modifications, updates): score = 0.5 (MODERATE)
+- High risk (migrations, breaking changes, schema changes): score = 0.9 (COMPLEX)
+
+**4. Keyword Modifiers Factor** (25% default weight):
+- Simple modifiers: `simple`, `quick`, `small`, `fix`, `patch`, `hotfix`
+- Complex modifiers: `complete`, `entire`, `enterprise`, `migrate`, `refactor`, `system-wide`
+- Net score calculation: (complexScore - simpleScore) × 1.2 + 0.5
+
+#### Scoring Algorithm
+
+```typescript
+// 1. Evaluate each enabled factor
+for (const factor of config.factors) {
+  if (!factor.enabled) continue;
+
+  const factorScore = factor.evaluate(prompt, intent, context);
+  const weight = factor.weight ?? config.defaultWeights[factor.id];
+  totalWeightedScore += factorScore.score * weight;
+  totalWeight += weight;
+}
+
+// 2. Normalize score
+finalScore = totalWeightedScore / totalWeight;
+
+// 3. Apply role adjustments (if enabled)
+if (useRoleBias) {
+  for (const role of intent.roles) {
+    finalScore *= roleAdjustments[role].multiplier;
+  }
+}
+
+// 4. Determine complexity from thresholds
+if (finalScore < 0.35) return Complexity.SIMPLE;
+if (finalScore >= 0.65) return Complexity.COMPLEX;
+return Complexity.MODERATE;
+```
+
+#### Configuration Cascade
+
+Priority order (highest to lowest):
+1. **Runtime overrides** - Passed as parameters to `analyzeComplexity()`
+2. **Project config file** - `.ccorch/complexity-config.json` (future)
+3. **Environment variables** - `CCORCH_COMPLEXITY_*` (future)
+4. **Default configuration** - `DEFAULT_COMPLEXITY_CONFIG`
+
+#### Default Configuration
+
+```typescript
+// Thresholds
+{
+  simple: 0.35,    // < 0.35 = SIMPLE
+  complex: 0.65,   // >= 0.65 = COMPLEX
+}
+
+// Factor Weights
+{
+  'scope': 0.30,              // 30%
+  'dependencies': 0.25,       // 25%
+  'risk': 0.20,               // 20%
+  'keyword-modifiers': 0.25,  // 25%
+}
+
+// Role Adjustments
+{
+  'backend-architect': { multiplier: 1.1 },   // +10%
+  'frontend-architect': { multiplier: 1.1 },  // +10%
+  'debugger': { multiplier: 0.9 },            // -10%
+}
+
+// Feature Flags
+{
+  useNumericHints: true,    // Parse "modify 5 files"
+  useRoleBias: true,        // Apply role adjustments
+  strictMode: false,        // Don't require min confidence
+}
+```
+
+#### Extensibility Examples
+
+**Adding Custom Factors**:
+
+```typescript
+const testCoverageFactor: ComplexityFactor = {
+  id: 'test-coverage',
+  name: 'Test Coverage Requirement',
+  weight: 0.10,
+  enabled: true,
+  evaluate: (prompt, intent, context) => {
+    const mentionsTests = /\b(test|testing|junit|vitest)\b/i.test(prompt);
+    return {
+      score: mentionsTests ? 0.6 : 0.0,
+      confidence: mentionsTests ? 0.8 : 0.5,
+      evidence: mentionsTests ? ['Tests required'] : [],
+    };
+  },
+};
+
+// Use custom config
+const customConfig: ComplexityConfig = {
+  ...DEFAULT_CONFIG,
+  factors: [...DEFAULT_CONFIG.factors, testCoverageFactor],
+};
+```
+
+**Adjusting Weights via Runtime Override**:
+
+```typescript
+const overrides: ConfigOverrides = {
+  weights: {
+    'scope': 0.40,        // Increase scope importance
+    'keyword-modifiers': 0.20,
+  },
+  thresholds: {
+    simple: 0.30,         // Lower simple threshold
+  },
+};
+
+const complexity = analyzeComplexity(prompt, intent, overrides);
+```
+
+**Domain-Specific Configurations**:
+
+```typescript
+// Backend team configuration
+export const BACKEND_COMPLEXITY_CONFIG: ComplexityConfig = {
+  ...DEFAULT_CONFIG,
+  keywords: {
+    ...DEFAULT_CONFIG.keywords,
+    dependencies: {
+      ...DEFAULT_CONFIG.keywords.dependencies,
+      many: [
+        ...DEFAULT_CONFIG.keywords.dependencies.many,
+        { keyword: 'kafka', weight: 0.8 },
+        { keyword: 'redis', weight: 0.7 },
+      ],
+    },
+  },
+};
+
+// Frontend team configuration
+export const FRONTEND_COMPLEXITY_CONFIG: ComplexityConfig = {
+  ...DEFAULT_CONFIG,
+  keywords: {
+    ...DEFAULT_CONFIG.keywords,
+    scope: {
+      ...DEFAULT_CONFIG.keywords.scope,
+      many: [
+        ...DEFAULT_CONFIG.keywords.scope.many,
+        { keyword: 'responsive', weight: 0.6 },
+        { keyword: 'accessible', weight: 0.7 },
+      ],
+    },
+  },
+};
+```
+
+#### Benefits of Pluggable Architecture
+
+- ✅ **Easy Keyword Updates**: Edit `keyword-registry.ts` without touching logic
+- ✅ **Adjustable Weights**: Tune via config file or environment variables
+- ✅ **Custom Factors**: Add domain-specific factors as plugins
+- ✅ **Project-Specific**: Override config per project
+- ✅ **Environment-Aware**: Different configs for dev/staging/prod
+- ✅ **Testable**: Each factor tested in isolation
+- ✅ **Observable**: Evidence tracking for debugging
+- ✅ **Team-Specific**: Backend/frontend/QA can customize
+- ✅ **Future-Proof**: ML/AI complexity prediction can be added as a factor plugin
+
+#### Future Enhancements
+
+**Phase 3+** (documented for future consideration):
+- ML-based complexity prediction (train on historical workflow data)
+- Context-aware scoring (codebase size, tech stack complexity)
+- A/B testing framework for configuration optimization
+- Auto-calibration based on actual workflow duration metrics
 
 ---
 
