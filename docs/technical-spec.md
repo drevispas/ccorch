@@ -1010,7 +1010,7 @@ This section documents the core orchestration services that power the workflow e
 - `parseIntent(prompt: string): Intent`
 
 **Features**:
-- Keyword-based role detection (architect, developer, reviewer, debugger)
+- Keyword-based role detection (backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger)
 - Case-insensitive matching with simple stemming for plural forms
 - Backend vs frontend differentiation using keyword analysis
 - Default to backend-developer when ambiguous

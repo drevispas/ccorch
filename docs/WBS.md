@@ -465,7 +465,7 @@
   - **Purpose**: Create sample data for local development and testing. This demonstrates a complete workflow lifecycle (backend-development chain with 3 agents) and enables manual testing without invoking hooks.
   - File: `prisma/seed.ts`
   - Data: Insert 1 workflow (backend-development-moderate)
-  - Chain: 3 agent results (architect → backend-developer → reviewer)
+  - Chain: 3 agent results (backend-architect → backend-developer → reviewer)
   - Transitions: 2 transitions (step 0→1, step 1→2)
   - Add to package.json: `"prisma": { "seed": "tsx prisma/seed.ts" }` ✅ Added
   - Test: `pnpm prisma db seed` ✅ Verified
@@ -631,7 +631,7 @@
     - Developer role detection (backend/frontend) with "implement", "build", "create", "add" keywords
     - Reviewer role detection with "review" keyword
     - Debugger role detection with "debug", "fix", "resolve", "troubleshoot" keywords
-    - Multi-role detection (combined architect+developer, debugger+developer, reviewer+developer)
+    - Multi-role detection (combined backend-architect+backend-developer or frontend-architect+frontend-developer, debugger+developer, reviewer+developer)
     - Backend vs frontend keyword detection (all PRD §4.2 keywords tested)
     - Edge cases: empty prompts, whitespace, case-insensitive, punctuation, long prompts, deduplication
     - Real-world scenarios: REST API implementation, microservices design, bug fixes, code review, UI components
@@ -641,7 +641,7 @@
 - [x] **5.2.2 Implement prompt parser** ✅ COMPLETED
   - File: `src/services/prompt-parser.ts`
   - Function: `parseIntent(prompt: string): Intent { roles: AgentRole[], keywords: string[] }`
-  - Logic: Keyword matching for architect/backend/frontend/reviewer/debugger (PRD §4.2 keyword strategy)
+  - Logic: Keyword matching for backend-architect/frontend-architect/backend-developer/frontend-developer/reviewer/debugger (PRD §4.2 keyword strategy)
   - Features implemented:
     - Case-insensitive keyword matching
     - Simple stemming for plural forms (endpoints → endpoint, components → component)
@@ -673,11 +673,12 @@
 - [ ] **5.4.1 Write chain resolver tests**
   - File: `tests/unit/services/chain-resolver.test.ts`
   - Test cases (9+) for all PRD §4.2 chains:
-    - "Implement backend API" → backend-development (architect → backend-developer → reviewer)
-    - "Build React component" → frontend-development (architect → frontend-developer → reviewer)
+    - "Implement backend API" → backend-development (backend-architect → backend-developer → reviewer)
+    - "Build React component" → frontend-development (frontend-architect → frontend-developer → reviewer)
     - "Debug API error" → debug (debugger → backend-developer → reviewer)
     - "Review my code" → review (reviewer → backend-developer)
-    - "Design system" → design-only (architect)
+    - "Design backend system" → backend-design-only (backend-architect)
+    - "Design frontend UI" → frontend-design-only (frontend-architect)
   - Backend/Frontend selection: Test keyword dispatch (PRD §4.2: `java`, `api` → backend; `ui`, `component` → frontend; default: backend)
   - Expected: Tests fail (red)
   - Acceptance: 9+ tests covering all chains + keyword selection
@@ -730,7 +731,7 @@
   - File: `src/services/context-serializer.ts`
   - Function: `buildContextForAgent(previousResults: AgentResult[]): string`
   - Logic: Extract `summary` field from results JSON, format as numbered list
-  - Format: "Previous agent results:\n1. [architect]: <summary>\n2. [backend-developer]: <summary>"
+  - Format: "Previous agent results:\n1. [backend-architect]: <summary>\n2. [backend-developer]: <summary>"
   - Run tests: Should pass (green)
   - Acceptance: Context readable for next agent
 
@@ -856,7 +857,7 @@
   - File: `tests/unit/services/prompt-generator.test.ts`
   - Test cases (21 tests):
     - `generateComplexityAnalysisPrompt()` includes all required fields (task, guidelines, API endpoint)
-    - `generateAgentPrompt()` varies by role (architect, developer, reviewer, debugger)
+    - `generateAgentPrompt()` varies by role (backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger)
     - `generateCompletionMessage()` formats agent summaries as numbered list
     - All complexity levels handled (simple, moderate, complex)
   - Coverage: 100% for prompt-generator service
@@ -1028,7 +1029,7 @@
 - [ ] **Implement config validator**
   - File: `src/config/validator.ts`
   - Function: `validateAgentConfig(): void`
-  - Logic: Check all combinations of (ARCHITECT, BACKEND_DEVELOPER, FRONTEND_DEVELOPER, REVIEWER, DEBUGGER) × (SIMPLE, MODERATE, COMPLEX) = 15 configurations
+  - Logic: Check all combinations of (BACKEND_ARCHITECT, FRONTEND_ARCHITECT, BACKEND_DEVELOPER, FRONTEND_DEVELOPER, REVIEWER, DEBUGGER, E2E_TEST_ARCHITECT) × (SIMPLE, MODERATE, COMPLEX) = 21 configurations
   - Note: Validates internal config references, NOT `.claude/agents/` filesystem (per Development Plan)
   - Startup hook: Call from `src/server.ts` before starting server
   - Run tests: Should pass (green)

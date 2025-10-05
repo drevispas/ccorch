@@ -41,7 +41,7 @@ erDiagram
     AgentResult {
         int id PK "Auto-increment"
         string workflow_id FK "References Workflow.id"
-        string agent_role "architect, backend-developer, etc."
+        string agent_role "backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger, e2e-test-architect"
         string complexity "simple, moderate, complex"
         int step_number "Unique per workflow"
         string results "JSON blob with agent output"
@@ -224,7 +224,7 @@ pnpm prisma db seed
 
 This runs `prisma/seed.ts`, which creates:
 - 1 workflow (`backend-development` chain)
-- 3 agent results (architect → backend-developer → reviewer)
+- 3 agent results (backend-architect → backend-developer → reviewer)
 - 2 workflow transitions
 
 ### Reset with Seed

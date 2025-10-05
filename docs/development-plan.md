@@ -42,7 +42,8 @@
 - **Minimum Version**: Claude Code with hooks support enabled
 - **Hook Feature Availability**: `UserPromptSubmit`, `SubagentStop`, `Stop` hooks must be available
 - **Agent Definitions**: `.claude/agents/` directory populated with all required agent files:
-  - `architect-{simple,moderate,complex}.md`
+  - `backend-architect-{simple,moderate,complex}.md`
+  - `frontend-architect-{simple,moderate,complex}.md`
   - `backend-developer-{simple,moderate,complex}.md`
   - `frontend-developer-{simple,moderate,complex}.md`
   - `reviewer-{simple,moderate,complex}.md`
@@ -63,7 +64,7 @@
 ## 2. Context & Objectives
 - **Scope**: Implement the multi-agent orchestration platform described in `docs/PRD.md`, including hook processing, workflow state management, and supporting APIs.
 - **Primary Goals**:
-  - Automate selection/sequencing of Claude Code subagents across architect, backend, frontend, reviewer, and debugger roles (§2, §3, §4).
+  - Automate selection/sequencing of Claude Code subagents across backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger, and e2e-test-architect roles (§2, §3, §4).
   - Maintain durable workflow state with SQLite persistence, enabling retries, manual transitions, and auditability (§5, §10).
   - Deliver performant (<500 ms hook response) and observable operations with logging and metrics hooks (§8).
 - **Success Metrics**: 100% coverage of defined workflow chains (§4.2), hook/API latency targets met, ≥80% automated test coverage, CI pipeline passes lint/type/test gates.
@@ -127,7 +128,7 @@
   - **Hook Response Format**: All hook endpoints must return JSON response with `message` field per Claude Code hooks spec:
     ```json
     {
-      "message": "Use the architect-moderate subagent to:\n1. Design system architecture\n2. Send results to: POST /api/workflows/{workflow_id}/results"
+      "message": "Use the backend-architect-moderate subagent to:\n1. Design backend system architecture\n2. Send results to: POST /api/workflows/{workflow_id}/results"
     }
     ```
 - **Hook Configuration**: Configure `.claude/settings.json` to call hook endpoints via `command` field using curl (see [Hook Guide](https://docs.claude.com/en/docs/claude-code/hooks-guide.md)).
@@ -159,7 +160,7 @@
      - Claude Code sends hook payload to CCOrch `POST /hooks/user-prompt-submit`
      - CCOrch returns JSON response with `message` field containing agent injection
      - **Verify**: Claude Code displays the injected message to user
-     - **Verify**: User sees the agent prompt instruction (e.g., "Use architect-moderate subagent...")
+     - **Verify**: User sees the agent prompt instruction (e.g., "Use backend-architect-moderate subagent...")
   2. **PostToolUse Flow Test**:
      - Agent completes and Claude Code sends `POST /hooks/post-tool-use` (with agent results in payload)
      - CCOrch extracts results from payload, processes inline
@@ -232,7 +233,7 @@
 - **Result Extraction**: PostToolUse handler extracts agent results from hook payload (no separate API submission needed).
 - **Idempotent Handling**: Use deduplication tokens to prevent duplicate transitions on hook retries; check `(workflow_id, step_number)` uniqueness before persisting agent results.
 - **Prompt Templates**: Craft templates referencing correct agent role/complexity naming (§6.1, §6.2). Remove API submission reminders - results come via hook payload.
-- **Configuration Validation**: Implement loader for hook secrets and orchestrator base URL; **validate configuration metadata at startup**: ensure all expected agent roles (architect, backend-developer, frontend-developer, reviewer, debugger) × complexity levels (simple, moderate, complex) = 15 total agent configurations are defined. Note: Agent definition files live in Claude Code's `.claude/agents/` directory on the user's machine, not on CCOrch server—CCOrch validates its internal config references, not filesystem paths.
+- **Configuration Validation**: Implement loader for hook secrets and orchestrator base URL; **validate configuration metadata at startup**: ensure all expected agent roles (backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger, e2e-test-architect) × complexity levels (simple, moderate, complex) = 21 total agent configurations are defined. Note: Agent definition files live in Claude Code's `.claude/agents/` directory on the user's machine, not on CCOrch server—CCOrch validates its internal config references, not filesystem paths.
 - **Test Harness**: Develop dual-purpose test harness:
   - **Mock HTTP Server**: Simulates Claude Code sending hook payloads to CCOrch endpoints
   - **Payload Sender**: Script that generates and posts test hook payloads for manual testing

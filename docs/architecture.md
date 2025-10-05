@@ -57,7 +57,8 @@ graph TB
     end
 
     subgraph "Claude Code Agents"
-        ARCH["architect-(complexity)"]
+        BEARCH["backend-architect-(complexity)"]
+        FEARCH["frontend-architect-(complexity)"]
         BACKEND["backend-developer-(complexity)"]
         FRONTEND["frontend-developer-(complexity)"]
         REVIEWER["reviewer-(complexity)"]
@@ -147,15 +148,16 @@ flowchart LR
 
 ### 1.4 Workflow Chains
 
-CCOrch supports 9 predefined workflow chains:
+CCOrch supports 10 predefined workflow chains:
 
 | Chain Name | Agent Sequence | Use Case |
 |------------|----------------|----------|
-| `backend-development` | architect → backend-developer → reviewer | Full backend feature development |
-| `frontend-development` | architect → frontend-developer → reviewer | Full frontend feature development |
+| `backend-development` | backend-architect → backend-developer → reviewer | Full backend feature development |
+| `frontend-development` | frontend-architect → frontend-developer → reviewer | Full frontend feature development |
 | `debug` | debugger → backend/frontend-developer → reviewer | Bug investigation and fix |
 | `review` | reviewer → backend/frontend-developer | Code review with optional fixes |
-| `design-only` | architect | Architecture design without implementation |
+| `backend-design-only` | backend-architect | Backend architecture design without implementation |
+| `frontend-design-only` | frontend-architect | Frontend architecture design without implementation |
 | `backend-only` | backend-developer | Backend implementation without design |
 | `frontend-only` | frontend-developer | Frontend implementation without design |
 | `review-only` | reviewer | Code review without fixes |
@@ -248,7 +250,7 @@ sequenceDiagram
     Hook->>Resolver: 4. Determine chain & complexity
     activate Resolver
     Note over Resolver: Analyze keywords:<br/>- "implement" + "API" = backend-development<br/>- Scope: 2-5 files = moderate
-    Resolver-->>Hook: Chain: "backend-development-moderate"<br/>Sequence: [architect, backend-dev, reviewer]
+    Resolver-->>Hook: Chain: "backend-development-moderate"<br/>Sequence: [backend-architect, backend-dev, reviewer]
     deactivate Resolver
 
     Hook->>StateMgr: 5. Create workflow
@@ -258,14 +260,14 @@ sequenceDiagram
     DB-->>StateMgr: workflow_id: "abc-123"
     deactivate DB
 
-    StateMgr->>DB: 5b. INSERT INTO workflow_transitions<br/>(workflow_id, from_step=-1, to_step=0, to_agent='architect')
+    StateMgr->>DB: 5b. INSERT INTO workflow_transitions<br/>(workflow_id, from_step=-1, to_step=0, to_agent='backend-architect')
     activate DB
     DB-->>StateMgr: OK
     deactivate DB
     StateMgr-->>Hook: Workflow created: abc-123
     deactivate StateMgr
 
-    Hook-->>CC: 6. Inject prompt:<br/>"Use architect-moderate to:<br/>- Design auth API architecture (design only, no implementation)<br/>- Send results to POST /api/workflows/abc-123/results"
+    Hook-->>CC: 6. Inject prompt:<br/>"Use backend-architect-moderate to:<br/>- Design backend auth API architecture (design only, no implementation)<br/>- Send results to POST /api/workflows/abc-123/results"
     deactivate Hook
     CC->>User: 7. Display injected prompt
     deactivate CC
@@ -278,7 +280,7 @@ sequenceDiagram
 4. **Workflow creation**: Insert workflow record in DB with status=ACTIVE, current_step=0
 5. **Audit logging**: Record transition in workflow_transitions table
 6. **Prompt injection**: Return formatted prompt instructing CC to:
-   - Use the first agent (architect-moderate) for the assigned task
+   - Use the first agent (backend-architect-moderate in this example) for the assigned task
    - POST results to `/api/workflows/{workflow_id}/results` after task completion
    - This enables the agent to report back and trigger the next step in the chain
 
@@ -289,7 +291,7 @@ id='abc-123', user_prompt='Implement REST API for auth', chain_name='backend-dev
 complexity='moderate', current_step=0, status='ACTIVE'
 
 -- workflow_transitions table
-workflow_id='abc-123', from_step=-1, to_step=0, from_agent=NULL, to_agent='architect'
+workflow_id='abc-123', from_step=-1, to_step=0, from_agent=NULL, to_agent='backend-architect'
 ```
 
 ---
@@ -385,7 +387,7 @@ sequenceDiagram
 
     Agent->>CC: 1. Task complete (agent finishes)
     activate CC
-    CC->>Hook: 2. PostToolUse hook (payload includes agent results:<br/>{agent_role: 'architect', complexity: 'moderate',<br/>results: {summary: '...', design: '...'}, status: 'COMPLETED'})
+    CC->>Hook: 2. PostToolUse hook (payload includes agent results:<br/>{agent_role: 'backend-architect', complexity: 'moderate',<br/>results: {summary: '...', design: '...'}, status: 'COMPLETED'})
     activate Hook
 
     Hook->>StateMgr: 3. Extract & validate results from hook payload
@@ -397,7 +399,7 @@ sequenceDiagram
     DB-->>StateMgr: {current_step: 0, chain_name: 'backend-development', status: 'ACTIVE'}
     deactivate DB
 
-    Note over StateMgr: Validate:<br/>- Workflow exists & ACTIVE<br/>- Agent matches expected (architect at step 0)<br/>- No duplicate results for step 0
+    Note over StateMgr: Validate:<br/>- Workflow exists & ACTIVE<br/>- Agent matches expected (backend-architect at step 0)<br/>- No duplicate results for step 0
 
     StateMgr->>DB: 3b. INSERT INTO agent_results<br/>(workflow_id, agent_role, complexity, step_number=0,<br/>results='...', status='COMPLETED')
     activate DB
@@ -409,7 +411,7 @@ sequenceDiagram
     DB-->>StateMgr: OK
     deactivate DB
 
-    StateMgr->>DB: 3d. INSERT INTO workflow_transitions<br/>(workflow_id, from_step=0, to_step=1,<br/>from_agent='architect', to_agent='backend-developer')
+    StateMgr->>DB: 3d. INSERT INTO workflow_transitions<br/>(workflow_id, from_step=0, to_step=1,<br/>from_agent='backend-architect', to_agent='backend-developer')
     activate DB
     DB-->>StateMgr: OK
     deactivate DB
@@ -417,7 +419,7 @@ sequenceDiagram
     StateMgr-->>Hook: 4. Results saved, next agent: backend-developer-moderate
     deactivate StateMgr
 
-    Hook-->>CC: 5. Inject prompt in hook response:<br/>"Use backend-developer-moderate to:<br/>- Review architect results: {...}<br/>- Implement auth API endpoints, JWT logic, DB models"
+    Hook-->>CC: 5. Inject prompt in hook response:<br/>"Use backend-developer-moderate to:<br/>- Review backend-architect results: {...}<br/>- Implement auth API endpoints, JWT logic, DB models"
     deactivate Hook
     CC->>Agent: 6. Display injected prompt
     deactivate CC
@@ -434,7 +436,7 @@ sequenceDiagram
 8. **Audit logging**: Record transition with from_agent and to_agent
 9. **Next agent injection**: Generate prompt for next agent in hook response:
    - Use the next agent in the chain (backend-developer-moderate)
-   - Review previous agent's results (architect's design)
+   - Review previous agent's results (backend-architect's design)
    - Execute the next task (implement auth API endpoints)
    - Synchronous orchestration - next prompt injected directly in PostToolUse hook response
 
@@ -444,10 +446,10 @@ sequenceDiagram
 current_step=1 (incremented), updated_at=<new_timestamp>
 
 -- agent_results table
-workflow_id='abc-123', agent_role='architect', step_number=0, results='...'
+workflow_id='abc-123', agent_role='backend-architect', step_number=0, results='...'
 
 -- workflow_transitions table (new row)
-workflow_id='abc-123', from_step=0, to_step=1, from_agent='architect', to_agent='backend-developer'
+workflow_id='abc-123', from_step=0, to_step=1, from_agent='backend-architect', to_agent='backend-developer'
 ```
 
 ---
@@ -504,7 +506,7 @@ sequenceDiagram
 
     StateMgr->>DB: 3e. SELECT * FROM agent_results WHERE workflow_id='abc-123' ORDER BY step_number
     activate DB
-    DB-->>StateMgr: [{architect results}, {backend-dev results}, {reviewer results}]
+    DB-->>StateMgr: [{backend-architect results}, {backend-dev results}, {reviewer results}]
     deactivate DB
 
     StateMgr-->>Hook: 4. Workflow COMPLETED, all agents finished
@@ -536,7 +538,7 @@ sequenceDiagram
 status='COMPLETED', current_step=3 (beyond last agent), updated_at=<timestamp>
 
 -- agent_results table (all steps completed)
-step_number=0: architect results
+step_number=0: backend-architect results
 step_number=1: backend-developer results
 step_number=2: reviewer results
 
@@ -642,7 +644,7 @@ sequenceDiagram
     participant Orch as Orchestrator Core
     participant API as API Layer
     participant DB as SQLite DB
-    participant Arch as architect-moderate
+    participant Arch as backend-architect-moderate
     participant Backend as backend-developer-moderate
     participant Rev as reviewer-moderate
 
@@ -653,19 +655,19 @@ sequenceDiagram
     Note over Orch: Intent: backend implementation<br/>Scope: 2-5 files (moderate)<br/>Chain: backend-development
     Orch->>DB: 4. CREATE workflow (id='wf-001', chain='backend-development',<br/>complexity='moderate', current_step=0)
     DB-->>Orch: OK
-    Orch-->>Hook: Chain: [architect → backend-dev → reviewer]
-    Hook-->>CC: 5. "Use architect-moderate to design auth API (design only, no impl)"
+    Orch-->>Hook: Chain: [backend-architect → backend-dev → reviewer]
+    Hook-->>CC: 5. "Use backend-architect-moderate to design backend auth API (design only, no impl)"
     CC->>User: Display prompt
 
-    %% Step 1: Architect agent
-    Note over User,CC: [STEP 1] User approves, CC launches architect-moderate agent
+    %% Step 1: Backend Architect agent
+    Note over User,CC: [STEP 1] User approves, CC launches backend-architect-moderate agent
     CC->>Arch: 6. Execute with injected prompt
     activate Arch
     Note over Arch: Design architecture:<br/>- RESTful endpoints (POST /login, /refresh, /logout)<br/>- JWT token strategy<br/>- Refresh token mechanism<br/>- Database schema for users/tokens
-    Arch->>API: 7. POST /api/workflows/wf-001/results<br/>{agent_role: 'architect', results: {<br/>  summary: 'Designed JWT-based auth API',<br/>  design: 'Endpoints: POST /auth/login...',<br/>  recommendations: 'Use bcrypt for passwords'<br/>}}
+    Arch->>API: 7. POST /api/workflows/wf-001/results<br/>{agent_role: 'backend-architect', results: {<br/>  summary: 'Designed JWT-based backend auth API',<br/>  design: 'Endpoints: POST /auth/login...',<br/>  recommendations: 'Use bcrypt for passwords'<br/>}}
     deactivate Arch
 
-    API->>DB: 8a. INSERT agent_results (step=0, agent='architect')
+    API->>DB: 8a. INSERT agent_results (step=0, agent='backend-architect')
     DB-->>API: OK
     API->>DB: 8b. UPDATE workflows SET current_step=1
     DB-->>API: OK
@@ -677,14 +679,14 @@ sequenceDiagram
     CC->>Hook: 11. SubagentStop hook
     Hook->>DB: 12a. Get workflow state (current_step=1)
     DB-->>Hook: Next agent: backend-developer
-    Hook->>DB: 12b. Get architect results
+    Hook->>DB: 12b. Get backend-architect results
     DB-->>Hook: {design: '...', recommendations: '...'}
-    Hook-->>CC: 13. "Use backend-developer-moderate to:<br/>- Review architect design: {...}<br/>- Implement auth API endpoints, JWT logic, DB models<br/>- Send results to POST /api/workflows/wf-001/results"
+    Hook-->>CC: 13. "Use backend-developer-moderate to:<br/>- Review backend-architect design: {...}<br/>- Implement auth API endpoints, JWT logic, DB models<br/>- Send results to POST /api/workflows/wf-001/results"
     CC->>User: Display prompt
 
     %% Step 2: Backend Developer agent
     Note over User,CC: [STEP 2] User approves, CC launches backend-developer-moderate
-    CC->>Backend: 14. Execute with context from architect
+    CC->>Backend: 14. Execute with context from backend-architect
     activate Backend
     Note over Backend: Implement:<br/>- Create AuthController.java (login, refresh, logout endpoints)<br/>- JWT token generation/validation service<br/>- User & RefreshToken JPA entities<br/>- Password hashing with bcrypt<br/>- Unit tests
     Backend->>API: 15. POST /api/workflows/wf-001/results<br/>{agent_role: 'backend-developer', results: {<br/>  summary: 'Implemented JWT auth API with 5 files',<br/>  files_modified: ['AuthController.java', 'JwtService.java', ...],<br/>  recommendations: 'Review security headers and error handling'<br/>}}
@@ -729,7 +731,7 @@ sequenceDiagram
     Hook->>DB: 28a. Get workflow state (status='COMPLETED')
     DB-->>Hook: Workflow finished
     Hook->>DB: 28b. SELECT all agent_results for wf-001
-    DB-->>Hook: [architect, backend-dev, reviewer results]
+    DB-->>Hook: [backend-architect, backend-dev, reviewer results]
     Hook-->>CC: 29. "Workflow complete. All agents finished successfully.<br/><br/>✓ Architecture designed (JWT auth with refresh tokens)<br/>✓ Authentication API implemented (5 files)<br/>✓ Code reviewed (1 warning, consider rate limiting)"
     CC->>User: 30. Display completion summary
 ```
@@ -743,19 +745,19 @@ id='wf-001', user_prompt='Implement REST API for user authentication',
 chain_name='backend-development', complexity='moderate', current_step=0, status='ACTIVE'
 
 -- workflow_transitions
-from_step=-1, to_step=0, from_agent=NULL, to_agent='architect'
+from_step=-1, to_step=0, from_agent=NULL, to_agent='backend-architect'
 ```
 
-**After Architect Completion (Step 1)**:
+**After Backend Architect Completion (Step 1)**:
 ```sql
 -- workflows
 current_step=1, updated_at=<timestamp>
 
 -- agent_results
-step_number=0, agent_role='architect', results='{"summary":"Designed JWT-based auth API",...}'
+step_number=0, agent_role='backend-architect', results='{"summary":"Designed JWT-based backend auth API",...}'
 
 -- workflow_transitions (new row)
-from_step=0, to_step=1, from_agent='architect', to_agent='backend-developer'
+from_step=0, to_step=1, from_agent='backend-architect', to_agent='backend-developer'
 ```
 
 **After Backend Developer Completion (Step 2)**:
