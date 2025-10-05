@@ -14,15 +14,21 @@ import { Workflow, AgentResult, WorkflowTransition } from '@prisma/client';
 // Workflow Repository Types
 // ============================================================================
 
-export type WorkflowStatus = 'ACTIVE' | 'COMPLETED' | 'FAILED';
+export type WorkflowStatus = 'PENDING_COMPLEXITY' | 'ACTIVE' | 'COMPLETED' | 'FAILED';
 export type Complexity = 'simple' | 'moderate' | 'complex';
 
 export interface WorkflowCreateInput {
   userPrompt: string;
   chainName: string;
   complexity: Complexity;
+  draftComplexity?: Complexity;
   currentStep?: number;
   status?: WorkflowStatus;
+}
+
+export interface SetComplexityData {
+  complexity: Complexity;
+  reasoning?: string;
 }
 
 export interface WorkflowFindByIdOptions {
@@ -66,6 +72,12 @@ export interface IWorkflowRepository {
    * Update workflow status and optionally current step
    */
   updateStatus(id: string, status: WorkflowStatus, currentStep?: number): Promise<Workflow>;
+
+  /**
+   * Update workflow complexity and advance to ACTIVE status
+   * Used when Claude Code determines final complexity
+   */
+  updateComplexity(id: string, data: SetComplexityData): Promise<Workflow>;
 
   /**
    * Delete workflow (cascades to agent results and transitions)

@@ -291,6 +291,7 @@ model Workflow {
   userPrompt       String   @map("user_prompt")
   chainName        String   @map("chain_name")
   complexity       String
+  draftComplexity  String?  @map("draft_complexity")
   currentStep      Int      @default(0) @map("current_step")
   status           String   @default("ACTIVE")
   createdAt        BigInt   @map("created_at")
@@ -343,6 +344,7 @@ model WorkflowTransition {
 ```typescript
 // Workflow status
 enum WorkflowStatus {
+  PENDING_COMPLEXITY = 'PENDING_COMPLEXITY',
   ACTIVE = 'ACTIVE',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
@@ -414,9 +416,14 @@ enum ChainName {
    POST /hooks/stop                  - Stop hook handler (cleanup)
    ```
 
-2. **Monitoring/Admin API Endpoints** (optional):
+2. **Public API Endpoints**:
    ```
-   GET  /api/workflows/{id}/status     - Query workflow status (read-only monitoring)
+   POST /api/workflows/{id}/set-complexity - CC submits complexity (public)
+   GET  /api/workflows/{id}/status          - Query workflow status (read-only monitoring)
+   ```
+
+3. **Admin API Endpoints**:
+   ```
    POST /api/workflows/{id}/transition - Manual workflow control (admin, API key)
    ```
 
@@ -501,9 +508,70 @@ Claude Code → /hooks/post-tool-use (with results) → Next agent or completion
 
 ---
 
-### 3.3 Monitoring/Admin API Endpoints
+### 3.3 Public & Admin API Endpoints
 
-#### 3.3.1 GET /api/workflows/{workflow_id}/status (Optional Monitoring)
+#### 3.3.1 POST /api/workflows/{workflow_id}/set-complexity (CC Complexity Determination)
+
+**Purpose**: Receives final complexity determination from Claude Code after analyzing task scope
+
+**Access**: Public (no authentication required)
+
+**Request**:
+```typescript
+interface SetComplexityRequest {
+  complexity: 'simple' | 'moderate' | 'complex';
+  reasoning?: string;  // Optional, max 200 chars
+}
+```
+
+**Response (Success - 200)**:
+```typescript
+interface SetComplexityResponse {
+  success: true;
+  workflowId: string;
+  complexity: 'simple' | 'moderate' | 'complex';
+  nextInstructions: string;  // Agent injection prompt
+}
+```
+
+**Response (Error - 404)**:
+```json
+{
+  "error": {
+    "code": "WORKFLOW_NOT_FOUND",
+    "message": "Workflow abc-123 does not exist"
+  }
+}
+```
+
+**Response (Error - 409)**:
+```json
+{
+  "error": {
+    "code": "INVALID_STATE",
+    "message": "Workflow status is ACTIVE, expected PENDING_COMPLEXITY"
+  }
+}
+```
+
+**Validation Rules** (zod):
+```typescript
+const SetComplexityRequestSchema = z.object({
+  complexity: z.enum(['simple', 'moderate', 'complex']),
+  reasoning: z.string().max(200).optional(),
+});
+```
+
+**Flow**:
+1. UserPromptSubmit hook creates workflow with `status=PENDING_COMPLEXITY`
+2. CC analyzes prompt, calls this endpoint
+3. CCOrch validates workflow state, updates complexity
+4. CCOrch generates first agent prompt
+5. Returns `nextInstructions` for CC to execute
+
+---
+
+#### 3.3.2 GET /api/workflows/{workflow_id}/status (Optional Monitoring)
 
 **Purpose**: Query current workflow state and progress
 
@@ -563,7 +631,7 @@ interface WorkflowStatusResponse {
 
 ---
 
-#### 3.3.2 POST /api/workflows/{workflow_id}/transition (Admin Only)
+#### 3.3.3 POST /api/workflows/{workflow_id}/transition (Admin Only)
 
 **Purpose**: Administrative endpoint for manual workflow control (debugging, recovery, testing)
 
@@ -849,6 +917,7 @@ orchestrator-v3/
 │   │   ├── orchestrator.ts      # Core orchestration logic
 │   │   ├── chain-resolver.ts    # Chain & complexity determination
 │   │   ├── prompt-parser.ts     # User prompt analysis
+│   │   ├── prompt-generator.ts  # Agent & complexity analysis prompts
 │   │   └── state-manager.ts     # Workflow state transitions
 │   │
 │   ├── hooks/
@@ -858,6 +927,7 @@ orchestrator-v3/
 │   │
 │   ├── api/
 │   │   ├── routes/
+│   │   │   ├── complexity.ts       # POST /workflows/:id/set-complexity
 │   │   │   ├── workflows.ts        # GET /workflows/:id/status
 │   │   │   ├── results.ts          # POST /workflows/:id/results
 │   │   │   └── transitions.ts      # POST /workflows/:id/transition
@@ -866,6 +936,7 @@ orchestrator-v3/
 │   │   │   ├── request-logger.ts   # Pino HTTP logger
 │   │   │   └── auth.ts             # API key validation (future)
 │   │   └── validators/
+│   │       ├── complexity.validator.ts # Zod schemas for complexity
 │   │       ├── results.validator.ts    # Zod schemas for results
 │   │       └── transition.validator.ts # Zod schemas for transitions
 │   │
@@ -1126,6 +1197,7 @@ const envSchema = z.object({
   PORT: z.string().transform(Number).pipe(z.number().min(1).max(65535)).default('3000'),
   DATABASE_URL: z.string().min(1), // Prisma supports file:./dev.db format
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
+  ENABLE_CC_COMPLEXITY: z.string().transform((val) => val === 'true').default('false'),
   ADMIN_API_KEY: z.string().optional(),
 });
 

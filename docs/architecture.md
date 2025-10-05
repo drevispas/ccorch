@@ -183,6 +183,39 @@ Each agent in a chain is assigned one of three complexity levels:
 
 ---
 
+### 1.6 CC-Assisted Complexity Determination (Optional Feature)
+
+**Feature Flag**: `ENABLE_CC_COMPLEXITY=true`
+
+When enabled, CCOrch delegates final complexity determination to Claude Code instead of relying solely on keyword-based heuristics:
+
+```mermaid
+---
+title: "Diagram 1.6: CC-Assisted Complexity Flow"
+---
+flowchart LR
+    A[User Prompt] --> B{Parse Intent}
+    B --> C{Determine Chain}
+    C --> D{Determine Draft Complexity}
+    D --> E[Create Workflow: PENDING_COMPLEXITY]
+    E --> F[Ask CC to Analyze]
+    F --> G[CC Analyzes Task Scope]
+    G --> H[CC Calls set-complexity API]
+    H --> I{Validate & Update}
+    I --> J[Workflow Status: ACTIVE]
+    J --> K[Generate First Agent Prompt]
+    K --> L[Return nextInstructions to CC]
+    L --> M[CC Executes Agent]
+```
+
+**Key Points**:
+- Draft complexity serves as initial estimate for CC's analysis
+- Workflow remains in `PENDING_COMPLEXITY` state until CC responds
+- Stop hook cleanup marks workflows >5min old as FAILED (timeout)
+- CC receives agent prompt in `nextInstructions` field of API response
+
+---
+
 ## 2. Hook Flow Sequences
 
 ### 2.1 UserPromptSubmit Hook Flow
@@ -258,6 +291,78 @@ complexity='moderate', current_step=0, status='ACTIVE'
 -- workflow_transitions table
 workflow_id='abc-123', from_step=-1, to_step=0, from_agent=NULL, to_agent='architect'
 ```
+
+---
+
+### 2.1b UserPromptSubmit Hook Flow (with CC Complexity Analysis)
+
+**Trigger**: User submits a prompt to Claude Code (with `ENABLE_CC_COMPLEXITY=true`)
+
+```mermaid
+---
+title: "Diagram 2.1b: UserPromptSubmit with CC Complexity Determination"
+---
+sequenceDiagram
+    actor User
+    participant CC as Claude Code
+    participant Hook as Hook Handler
+    participant Parser as Prompt Parser
+    participant Resolver as Chain Resolver
+    participant StateMgr as State Manager
+    participant DB as SQLite DB
+    participant API as set-complexity API
+
+    User->>CC: 1. Submit prompt: "Implement REST API for auth"
+    activate CC
+    CC->>Hook: 2. UserPromptSubmit hook
+    activate Hook
+
+    Hook->>Parser: 3. Parse prompt
+    activate Parser
+    Parser-->>Hook: Intent: "backend implementation"
+    deactivate Parser
+
+    Hook->>Resolver: 4. Determine chain & draft complexity
+    activate Resolver
+    Note over Resolver: Analyze keywords:<br/>- "implement" + "API" = backend-development<br/>- Scope heuristic: moderate
+    Resolver-->>Hook: Chain: "backend-development"<br/>Draft complexity: "moderate"
+    deactivate Resolver
+
+    Hook->>StateMgr: 5. Create workflow
+    activate StateMgr
+    StateMgr->>DB: 5a. INSERT INTO workflows<br/>(status='PENDING_COMPLEXITY', currentStep=-1,<br/>draftComplexity='moderate')
+    activate DB
+    DB-->>StateMgr: workflow_id: "abc-123"
+    deactivate DB
+    StateMgr-->>Hook: Workflow created
+    deactivate StateMgr
+
+    Hook-->>CC: 6. Ask CC to analyze complexity:<br/>"Analyze task scope and call<br/>POST /api/workflows/abc-123/set-complexity"
+    deactivate Hook
+
+    Note over CC: CC analyzes user prompt,<br/>determines final complexity
+
+    CC->>API: 7. POST /api/workflows/abc-123/set-complexity<br/>{complexity: "moderate", reasoning: "..."}
+    activate API
+
+    API->>DB: 8a. UPDATE workflows<br/>SET complexity='moderate', status='ACTIVE', currentStep=0
+    activate DB
+    DB-->>API: OK
+    deactivate DB
+
+    API-->>CC: 8b. {success: true, nextInstructions: "Use backend-architect-moderate..."}
+    deactivate API
+
+    CC->>User: 9. Display agent prompt
+    deactivate CC
+```
+
+**Key Differences from Standard Flow**:
+1. Workflow created with `status=PENDING_COMPLEXITY` and `currentStep=-1`
+2. Hook response asks CC to analyze complexity (not immediate agent injection)
+3. CC makes API call to submit complexity determination
+4. API response contains `nextInstructions` for first agent
+5. Adds ~500ms latency but improves accuracy
 
 ---
 

@@ -713,6 +713,88 @@
   - ✓ All 9 workflow chains supported
   - Decision: Proceed to Phase 3
 
+### 4.11 CC-Assisted Complexity Determination (Optional Feature)
+- [x] **4.11.1 Add draftComplexity field to schema** ✅ COMPLETED
+  - File: `prisma/schema.prisma`
+  - Field: `draftComplexity String? @map("draft_complexity")` in Workflow model
+  - Migration: `pnpm prisma migrate dev --name add_draft_complexity`
+  - Acceptance: Migration applied, Prisma client regenerated
+
+- [x] **4.11.2 Create prompt-generator service** ✅ COMPLETED
+  - File: `src/services/prompt-generator.ts`
+  - Functions:
+    - `generateComplexityAnalysisPrompt(userPrompt, draftComplexity, workflowId, apiBaseUrl)`
+    - `generateAgentPrompt(chain, context?, workflowId?)`
+    - `generateCompletionMessage(chainName, agentSummaries)`
+  - Acceptance: Reusable prompt generation for CC and agents
+
+- [x] **4.11.3 Create complexity validator** ✅ COMPLETED
+  - File: `src/api/validators/complexity.validator.ts`
+  - Schemas: `SetComplexityRequestSchema`, `WorkflowIdParamSchema`, `SetComplexityResponseSchema`, `ErrorResponseSchema`
+  - Acceptance: Zod validation for set-complexity endpoint
+
+- [x] **4.11.4 Implement set-complexity API endpoint** ✅ COMPLETED
+  - File: `src/api/routes/complexity.ts`
+  - Route: `POST /api/workflows/:workflowId/set-complexity`
+  - Logic:
+    - Validate workflow exists and status is PENDING_COMPLEXITY
+    - Update workflow: complexity, status=ACTIVE, currentStep=0
+    - Generate first agent prompt using prompt-generator
+    - Return nextInstructions for CC to execute
+  - Acceptance: API endpoint functional, returns agent prompt
+
+- [x] **4.11.5 Update workflow repository** ✅ COMPLETED
+  - File: `src/models/workflow-repository.ts`
+  - Method: `updateComplexity(id, data: SetComplexityData)`
+  - Updates: complexity field, status to ACTIVE, currentStep to 0
+  - Acceptance: Method updates workflow and returns updated record
+
+- [x] **4.11.6 Add ENABLE_CC_COMPLEXITY env config** ✅ COMPLETED
+  - Files: `.env.example`, `src/config/env.ts`
+  - Config: `ENABLE_CC_COMPLEXITY=false` (default disabled)
+  - Validation: Zod transform string to boolean
+  - Acceptance: Feature flag available in env config
+
+- [x] **4.11.7 Update repository types** ✅ COMPLETED
+  - File: `src/types/repositories.ts`
+  - Types: Add `draftComplexity?: Complexity` to WorkflowCreateInput
+  - Interface: `SetComplexityData { complexity, reasoning? }`
+  - Status: Add `PENDING_COMPLEXITY` to WorkflowStatus enum
+  - Acceptance: Types support new workflow states and complexity flow
+
+- [ ] **4.11.8 Write unit tests for prompt-generator**
+  - File: `tests/unit/services/prompt-generator.test.ts`
+  - Test cases:
+    - `generateComplexityAnalysisPrompt()` includes all required fields
+    - `generateAgentPrompt()` varies by role (architect, developer, reviewer)
+    - `generateCompletionMessage()` formats agent summaries correctly
+  - Estimate: 0.5 days
+  - Acceptance: ≥90% coverage for prompt-generator service
+
+- [ ] **4.11.9 Write integration tests for set-complexity API**
+  - File: `tests/integration/api/complexity.test.ts`
+  - Test cases:
+    - POST with valid complexity → 200, workflow updated
+    - POST with invalid workflow ID → 404
+    - POST with wrong state (ACTIVE) → 409
+    - POST with invalid complexity value → 400
+  - Estimate: 0.5 days
+  - Acceptance: All success and error paths tested
+
+- [ ] **4.11.10 Write E2E complexity flow test**
+  - File: `tests/integration/hooks/complexity-flow.test.ts`
+  - Flow: UserPromptSubmit → CC calls set-complexity → agent injection
+  - Verify: Workflow transitions from PENDING_COMPLEXITY → ACTIVE
+  - Estimate: 0.5 days
+  - Acceptance: Full CC-assisted flow validated end-to-end
+
+- [x] **4.11.11 Update documentation** ✅ COMPLETED
+  - Files: `docs/PRD.md`, `docs/technical-spec.md`, `docs/architecture.md`, `docs/WBS.md`, `docs/development-plan.md`
+  - Updates: New API endpoint, workflow changes, sequence diagrams, feature flag
+  - Acceptance: All docs reflect CC-assisted complexity feature
+
+**Estimate**: 3-4 days total (1.5 days implementation ✅ DONE, 1.5 days testing PENDING, 1 day docs ✅ DONE)
+
 ---
 
 ## 5. Phase 3 – Hook Handler Integration (7-10 days)

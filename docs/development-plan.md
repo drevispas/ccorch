@@ -204,13 +204,27 @@
 ### 5.5 Phase 2 – Orchestration Core
 - Implement prompt parsing utility to extract intent, match backend/frontend keywords, and detect complexity per PRD §5.2 (tables and keyword modifiers).
 - Build chain resolver service that maps intents to chains, applies backend/frontend fallback, and logs ambiguous prompts with severity levels.
-- Develop state manager to create workflows, progress `current_step`, track statuses (`ACTIVE`, `COMPLETED`, `FAILED`), and enforce chain bounds.
+- **CC-Assisted Complexity Determination** (optional feature, feature-flagged):
+  - Add `draftComplexity` field to Workflow schema for storing initial keyword-based estimate
+  - Implement `prompt-generator` service for generating:
+    - Complexity analysis prompts (asking CC to analyze task and determine final complexity)
+    - Agent injection prompts (instructing CC to use specific subagents)
+    - Completion messages (workflow summary)
+  - Create `POST /api/workflows/:id/set-complexity` endpoint for CC to submit final complexity determination
+  - Add `ENABLE_CC_COMPLEXITY` feature flag to `.env.example` and `src/config/env.ts` (default: false)
+  - Support `PENDING_COMPLEXITY` workflow status for workflows awaiting CC analysis
+  - Update Stop hook to clean up workflows stuck in PENDING_COMPLEXITY >5min (timeout)
+  - Write unit tests for prompt-generator service (≥90% coverage)
+  - Write integration tests for set-complexity API endpoint (all success/error paths)
+  - Write E2E test for UserPromptSubmit → set-complexity → agent injection flow
+  - **Estimate**: +3-4 days (1.5 days implementation, 1.5 days testing, 1 day docs)
+- Develop state manager to create workflows, progress `current_step`, track statuses (`PENDING_COMPLEXITY`, `ACTIVE`, `COMPLETED`, `FAILED`), and enforce chain bounds.
 - Define workflow ID generation strategy (use UUID v4 for global uniqueness, no ordering leaks, and collision resistance).
 - Implement orchestrator coordinator orchestrating parser, resolver, and state manager interactions; ensure it produces agent prompt payloads per §6.
 - Design context serialization strategy for passing previous agent results to next agent (per PRD §6.2: "Review previous results: {summary}"); include result summary extraction and template variable substitution.
 - Add domain models/types for workflow context and agent tasks; validate using zod.
 - Cover each module with unit and contract tests using mocked repositories; include negative cases (invalid prompt, chain exhaustion, failed agent state).
-- **Exit Criteria**: Orchestrator service API stable with ≥80% coverage across modules, decision logging present.
+- **Exit Criteria**: Orchestrator service API stable with ≥80% coverage across modules, decision logging present, CC-assisted complexity feature functional (with tests).
 
 ### 5.6 Phase 3 – Hook Handler Integration
 - **Hook Adapters**: Create hook adapters in `src/hooks/` for `UserPromptSubmit`, `PostToolUse`, and `Stop` matching PRD §5.1 behavior matrix.

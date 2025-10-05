@@ -93,7 +93,13 @@ e2e-test-architect-{simple,moderate,complex}.md
 
 2. **Hook emission**: CC emits `UserPromptSubmit` hook → CCOrch receives and processes
 
-3. **Workflow planning**: CCOrch determines action chain and complexity level
+3. **Workflow planning**: CCOrch determines action chain and draft complexity level
+
+3a. **Complexity analysis** (optional, if `ENABLE_CC_COMPLEXITY=true`): CCOrch asks CC to analyze task and determine final complexity
+
+3b. **Complexity finalization**: CC analyzes task scope and calls `POST /api/workflows/{id}/set-complexity` with final determination
+
+3c. **Agent preparation**: CCOrch receives complexity, advances workflow to ACTIVE status
 
 4. **First agent injection**: CCOrch responds with injected prompt for first agent
 
@@ -166,7 +172,18 @@ When a chain offers both `backend-developer` and `frontend-developer` options (d
 - Map action to predefined chain (see [section 4.2](#42-workflow-chains))
 
 #### Step 3: Determine Complexity
-Analyze task scope, requirements, and constraints. Select: `simple`, `moderate`, or `complex`
+
+**Step 3a: Draft Complexity** (keyword-based heuristics):
+Analyze task scope, requirements, and constraints using keyword analysis. Determine draft complexity: `simple`, `moderate`, or `complex`
+
+**Step 3b: CC-Assisted Refinement** (optional, if `ENABLE_CC_COMPLEXITY=true`):
+Ask Claude Code to analyze the task and determine final complexity by calling `POST /api/workflows/{id}/set-complexity`
+
+**Step 3c: Final Complexity**:
+- If CC-assisted: Use complexity from API call
+- If keyword-only: Use draft complexity
+
+Select: `simple`, `moderate`, or `complex`
 
 **Complexity Scoring Rubric**:
 
@@ -225,8 +242,11 @@ CCOrch exposes two categories of endpoints:
    - `POST /hooks/post-tool-use` - Receives PostToolUse hook with agent results, returns next agent or completion
    - `POST /hooks/stop` - Receives Stop hook for cleanup, returns 200 OK
 
-2. **Monitoring/Admin API Endpoints** (optional):
+2. **Public API Endpoints**:
+   - `POST /api/workflows/{id}/set-complexity` - CC submits complexity determination (public)
    - `GET /api/workflows/{workflow_id}/status` - Query workflow progress (public, read-only)
+
+3. **Admin API Endpoints**:
    - `POST /api/workflows/{workflow_id}/transition` - Manual workflow control (admin only, API key required)
 
 **Flow**:
@@ -278,7 +298,61 @@ interface AgentResults {
 
 ---
 
-#### 5.4.2 GET /api/workflows/{workflow_id}/status (Optional Monitoring)
+#### 5.4.2 POST /api/workflows/{workflow_id}/set-complexity (CC Complexity Determination)
+
+**Purpose**: Receives final complexity determination from Claude Code after analyzing task scope
+
+**Access**: Public (no authentication required, called by Claude Code)
+
+**Request**:
+```json
+{
+  "complexity": "simple" | "moderate" | "complex",
+  "reasoning": "Brief explanation (optional, max 200 chars)"
+}
+```
+
+**Response (Success - 200)**:
+```json
+{
+  "success": true,
+  "workflowId": "abc-123",
+  "complexity": "moderate",
+  "nextInstructions": "Use the backend-architect-moderate subagent to:\n1. Design architecture..."
+}
+```
+
+**Response (Error - 404)**:
+```json
+{
+  "error": {
+    "code": "WORKFLOW_NOT_FOUND",
+    "message": "Workflow abc-123 does not exist"
+  }
+}
+```
+
+**Response (Error - 409)**:
+```json
+{
+  "error": {
+    "code": "INVALID_STATE",
+    "message": "Workflow status is ACTIVE, expected PENDING_COMPLEXITY"
+  }
+}
+```
+
+**Workflow**:
+1. UserPromptSubmit hook creates workflow with `status=PENDING_COMPLEXITY`, `currentStep=-1`
+2. CC analyzes user prompt and determines complexity
+3. CC calls this endpoint with complexity determination
+4. CCOrch updates workflow: `complexity=<determined>`, `status=ACTIVE`, `currentStep=0`
+5. CCOrch returns `nextInstructions` containing first agent prompt
+6. CC reads response and executes the instructions (launches first agent)
+
+---
+
+#### 5.4.3 GET /api/workflows/{workflow_id}/status (Optional Monitoring)
 
 **Purpose**: Query current workflow state and progress
 
@@ -312,7 +386,7 @@ interface AgentResults {
 
 ---
 
-#### 5.4.3 POST /api/workflows/{workflow_id}/transition (Admin Only)
+#### 5.4.4 POST /api/workflows/{workflow_id}/transition (Admin Only)
 
 **Purpose**: Administrative endpoint for manual workflow control (debugging, recovery, testing)
 

@@ -11,16 +11,17 @@ datasource db {
 }
 
 model Workflow {
-  id           String               @id
-  userPrompt   String               @map("user_prompt")
-  chainName    String               @map("chain_name")
-  complexity   String
-  currentStep  Int                  @default(0) @map("current_step")
-  status       String               @default("ACTIVE")
-  createdAt    BigInt               @map("created_at")
-  updatedAt    BigInt               @map("updated_at")
-  agentResults AgentResult[]
-  transitions  WorkflowTransition[]
+  id              String               @id
+  userPrompt      String               @map("user_prompt")
+  chainName       String               @map("chain_name")
+  complexity      String
+  draftComplexity String?              @map("draft_complexity")
+  currentStep     Int                  @default(0) @map("current_step")
+  status          String               @default("ACTIVE")
+  createdAt       BigInt               @map("created_at")
+  updatedAt       BigInt               @map("updated_at")
+  agentResults    AgentResult[]
+  transitions     WorkflowTransition[]
 
   @@index([status], name: "idx_workflows_status")
   @@index([createdAt], name: "idx_workflows_created")

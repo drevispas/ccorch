@@ -13,6 +13,7 @@ import {
   WorkflowFindByIdOptions,
   WorkflowStatus,
   WorkflowWithRelations,
+  SetComplexityData,
 } from '../types/repositories';
 
 export class WorkflowRepository implements IWorkflowRepository {
@@ -31,6 +32,7 @@ export class WorkflowRepository implements IWorkflowRepository {
         userPrompt: data.userPrompt,
         chainName: data.chainName,
         complexity: data.complexity,
+        draftComplexity: data.draftComplexity,
         currentStep: data.currentStep ?? 0,
         status: data.status ?? 'ACTIVE',
         createdAt: now,
@@ -100,6 +102,22 @@ export class WorkflowRepository implements IWorkflowRepository {
     return this.prisma.workflow.update({
       where: { id },
       data: updateData,
+    });
+  }
+
+  /**
+   * Update workflow complexity and advance to ACTIVE status
+   * Used when Claude Code determines final complexity
+   */
+  async updateComplexity(id: string, data: SetComplexityData): Promise<Workflow> {
+    return this.prisma.workflow.update({
+      where: { id },
+      data: {
+        complexity: data.complexity,
+        status: 'ACTIVE',
+        currentStep: 0,
+        updatedAt: BigInt(Date.now()),
+      },
     });
   }
 
