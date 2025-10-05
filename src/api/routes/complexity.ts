@@ -48,7 +48,57 @@ const CHAIN_DEFINITIONS: Record<string, ChainConfig> = {
       { role: 'reviewer', stepNumber: 2 },
     ],
   },
-  // Add other chains as needed
+  'debug': {
+    chainName: 'debug',
+    agents: [
+      { role: 'debugger', stepNumber: 0 },
+      { role: 'backend-developer', stepNumber: 1 },
+      { role: 'reviewer', stepNumber: 2 },
+    ],
+  },
+  'review': {
+    chainName: 'review',
+    agents: [
+      { role: 'reviewer', stepNumber: 0 },
+      { role: 'backend-developer', stepNumber: 1 },
+    ],
+  },
+  'backend-design-only': {
+    chainName: 'backend-design-only',
+    agents: [
+      { role: 'backend-architect', stepNumber: 0 },
+    ],
+  },
+  'frontend-design-only': {
+    chainName: 'frontend-design-only',
+    agents: [
+      { role: 'frontend-architect', stepNumber: 0 },
+    ],
+  },
+  'backend-only': {
+    chainName: 'backend-only',
+    agents: [
+      { role: 'backend-developer', stepNumber: 0 },
+    ],
+  },
+  'frontend-only': {
+    chainName: 'frontend-only',
+    agents: [
+      { role: 'frontend-developer', stepNumber: 0 },
+    ],
+  },
+  'review-only': {
+    chainName: 'review-only',
+    agents: [
+      { role: 'reviewer', stepNumber: 0 },
+    ],
+  },
+  'debug-only': {
+    chainName: 'debug-only',
+    agents: [
+      { role: 'debugger', stepNumber: 0 },
+    ],
+  },
 };
 
 /**

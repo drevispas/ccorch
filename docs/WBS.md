@@ -964,18 +964,32 @@
   - Coverage: 100% for prompt-generator service
   - Acceptance: All 21 tests passing ✅ VERIFIED
 
-- [ ] **5.11.6 Write integration tests for set-complexity API**
+- [x] **5.11.6 Write integration tests for set-complexity API** ✅ COMPLETED
   - **Purpose**: Test API endpoint with real database operations
   - File: `tests/integration/api/complexity.test.ts`
-  - Test cases:
-    - POST with valid complexity → 200, workflow updated, nextInstructions returned
-    - POST with invalid workflow ID → 404 error
-    - POST with wrong state (ACTIVE instead of PENDING_COMPLEXITY) → 409 conflict
-    - POST with invalid complexity value → 400 validation error
-    - POST without reasoning (optional field) → 200 success
-  - **Status**: Tests written, deferred to Phase 3/4 (requires Express app setup)
-  - Estimate: 0.5 days
-  - Acceptance: All success and error paths tested with real database
+  - Test cases (11 tests): ✅ VERIFIED
+    - **Success Cases (3 tests)**:
+      - POST with valid complexity → 200, workflow updated, nextInstructions returned
+      - POST without reasoning (optional field) → 200 success
+      - Handle all three complexity levels (simple, moderate, complex)
+    - **Validation Errors (3 tests)**:
+      - Reject invalid complexity value → 400 error
+      - Reject missing complexity field → 400 error
+      - Reject reasoning >200 characters → 400 error
+    - **Not Found Errors (1 test)**:
+      - Return 404 for non-existent workflow
+    - **State Conflicts (3 tests)**:
+      - Reject if workflow status is ACTIVE → 409 conflict
+      - Reject if workflow status is COMPLETED → 409 conflict
+      - Reject if workflow status is FAILED → 409 conflict
+    - **Idempotency (1 test)**:
+      - Multiple calls fail after first (state changes to ACTIVE)
+  - Results: All 11 tests passing ✅ VERIFIED
+  - Updates made:
+    - Removed `describe.skip` to enable tests
+    - Updated database setup to use test.db (matches other integration tests)
+    - Added all 10 workflow chains to CHAIN_DEFINITIONS in complexity.ts
+  - Acceptance: All success and error paths tested with real database ✅ VERIFIED
 
 - [ ] **5.11.7 Write E2E complexity flow test**
   - **Purpose**: Validate full flow from UserPromptSubmit hook to agent execution

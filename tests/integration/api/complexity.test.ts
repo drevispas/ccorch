@@ -12,40 +12,24 @@ import request from 'supertest';
 import { setComplexity } from '../../../src/api/routes/complexity.js';
 import { WorkflowRepository } from '../../../src/models/workflow-repository.js';
 
-// NOTE: These integration tests are deferred to Phase 3/4 when full Express app is set up
-// They require complete API infrastructure including route registration, middleware, etc.
-describe.skip('POST /api/workflows/:workflowId/set-complexity', () => {
+/**
+ * Integration tests for set-complexity API endpoint
+ * Tests with real database operations and Express app setup
+ */
+describe('POST /api/workflows/:workflowId/set-complexity', () => {
   let prisma: PrismaClient;
   let app: Express;
   let workflowRepo: WorkflowRepository;
 
   beforeAll(async () => {
-    // Use in-memory SQLite for tests
+    // Initialize Prisma with test database
     prisma = new PrismaClient({
       datasources: {
         db: {
-          url: 'file::memory:?cache=shared',
+          url: process.env.DATABASE_URL || 'file:./test.db',
         },
       },
     });
-
-    // Run migrations
-    await prisma.$executeRawUnsafe('PRAGMA foreign_keys = ON');
-
-    // Create tables manually (since we're using in-memory)
-    await prisma.$executeRaw`
-      CREATE TABLE workflows (
-        id TEXT PRIMARY KEY,
-        user_prompt TEXT NOT NULL,
-        chain_name TEXT NOT NULL,
-        complexity TEXT NOT NULL,
-        draft_complexity TEXT,
-        current_step INTEGER DEFAULT 0,
-        status TEXT DEFAULT 'ACTIVE',
-        created_at BIGINT NOT NULL,
-        updated_at BIGINT NOT NULL
-      )
-    `;
 
     workflowRepo = new WorkflowRepository(prisma);
 
