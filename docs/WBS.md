@@ -1024,13 +1024,26 @@
 
 - [x] **5.11.8 Update documentation** ✅ COMPLETED
   - **Purpose**: Document CC-assisted complexity feature across all docs
-  - Files updated:
-    - `docs/PRD.md` - New workflow steps 3a-3c, API section 5.4.2
-    - `docs/technical-spec.md` - Schema changes, API specs, project structure
-    - `docs/architecture.md` - Sequence diagram 2.1b for CC complexity flow
-    - `docs/WBS.md` - Section 4 (Phase 1.5) and section 5.11 (Phase 2)
-    - `docs/development-plan.md` - Phase 2 updates with +3-4 day estimate
-  - Acceptance: All documentation reflects new feature ✅ VERIFIED
+  - Files updated and verified:
+    - `docs/PRD.md` - New workflow steps 3a-3c, API section 5.4.2 ✅ VERIFIED
+      - Documents PENDING_COMPLEXITY state, set-complexity API endpoint
+      - Includes flow steps for CC complexity determination
+    - `docs/technical-spec.md` - Schema changes, API specs, project structure ✅ VERIFIED
+      - Documents draft_complexity field in schema
+      - Includes POST /api/workflows/{id}/set-complexity API specification
+      - Lists complexity.ts route in project structure
+    - `docs/architecture.md` - Sequence diagram 2.1b for CC complexity flow ✅ VERIFIED
+      - Diagram 2.1b shows UserPromptSubmit with CC complexity determination
+      - Documents workflow creation in PENDING_COMPLEXITY state
+      - Shows CC calling set-complexity API with reasoning
+    - `docs/WBS.md` - Section 4 (Phase 1.5) and section 5.11 (Phase 2) ✅ VERIFIED
+      - Phase 1.5: Database schema changes for CC-assisted complexity
+      - Section 5.11: All 8 tasks documented (5 implementation + 3 testing)
+    - `docs/development-plan.md` - Phase 2 updates with +3-4 day estimate ✅ VERIFIED
+      - Documents set-complexity endpoint requirement
+      - Includes PENDING_COMPLEXITY workflow status support
+  - Verification date: 2025-10-06 (post-completion of tasks 5.11.6-5.11.7)
+  - Acceptance: All documentation reflects new feature, including completed tests ✅ VERIFIED
 
 **Implementation Status**: ✅ 8/8 tasks complete (5 implementation + 3 testing)
 **Estimate**: 1.5 days implementation (DONE), 1 day testing (DONE), 1 day docs (DONE)
