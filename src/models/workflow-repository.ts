@@ -106,6 +106,19 @@ export class WorkflowRepository implements IWorkflowRepository {
   }
 
   /**
+   * Update workflow current step (convenience method for step advancement)
+   */
+  async updateCurrentStep(id: string, currentStep: number): Promise<Workflow> {
+    return this.prisma.workflow.update({
+      where: { id },
+      data: {
+        currentStep,
+        updatedAt: BigInt(Date.now()),
+      },
+    });
+  }
+
+  /**
    * Update workflow complexity and advance to ACTIVE status
    * Used when Claude Code determines final complexity
    */

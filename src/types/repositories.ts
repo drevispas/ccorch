@@ -9,6 +9,10 @@
  */
 
 import { Workflow, AgentResult, WorkflowTransition } from '@prisma/client';
+import { AgentRole } from './workflow';
+
+// Re-export AgentRole for convenience
+export { AgentRole };
 
 // ============================================================================
 // Workflow Repository Types
@@ -74,6 +78,11 @@ export interface IWorkflowRepository {
   updateStatus(id: string, status: WorkflowStatus, currentStep?: number): Promise<Workflow>;
 
   /**
+   * Update workflow current step (convenience method for step advancement)
+   */
+  updateCurrentStep(id: string, currentStep: number): Promise<Workflow>;
+
+  /**
    * Update workflow complexity and advance to ACTIVE status
    * Used when Claude Code determines final complexity
    */
@@ -89,7 +98,6 @@ export interface IWorkflowRepository {
 // Agent Result Repository Types
 // ============================================================================
 
-export type AgentRole = 'architect' | 'backend-developer' | 'frontend-developer' | 'reviewer' | 'debugger';
 export type AgentStatus = 'COMPLETED' | 'FAILED' | 'PARTIAL' | 'SKIPPED';
 
 export interface AgentResultCreateInput {
