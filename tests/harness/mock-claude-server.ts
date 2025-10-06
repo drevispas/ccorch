@@ -75,6 +75,7 @@ async function sendHookToCCOrch(
   payload: unknown
 ): Promise<{ status: number; data: unknown }> {
   try {
+    // eslint-disable-next-line no-undef
     const response = await fetch(`${CCORCH_URL}${hookEndpoint}`, {
       method: 'POST',
       headers: {

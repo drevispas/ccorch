@@ -73,6 +73,7 @@ async function sendPayload(
   console.log('\n');
 
   try {
+    // eslint-disable-next-line no-undef
     const response = await fetch(url, {
       method: 'POST',
       headers: {

@@ -39,9 +39,7 @@ export type StatusQuery = z.infer<typeof StatusQuerySchema>;
  */
 export const TransitionRequestSchema = z.object({
   action: z.enum(['advance', 'fail', 'retry', 'skip'], {
-    errorMap: () => ({
-      message: 'Action must be one of: advance, fail, retry, skip',
-    }),
+    message: 'Action must be one of: advance, fail, retry, skip',
   }),
   reason: z
     .string()

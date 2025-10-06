@@ -48,6 +48,7 @@ const envSchema = z.object({
 type TestEnv = z.infer<typeof envSchema>;
 
 describe('Environment Configuration', () => {
+  // eslint-disable-next-line no-undef
   let originalEnv: NodeJS.ProcessEnv;
 
   beforeEach(() => {
