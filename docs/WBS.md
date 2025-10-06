@@ -1861,17 +1861,42 @@ WorkflowTransitions:
 
   #### Prerequisites
 
-  1. **Set up environment variables**:
+  1. **Disable Claude Code hooks temporarily** (to prevent interference):
+  ```bash
+  # Disable hooks
+  mv .claude/settings.json .claude/settings.json.disabled
+
+  # Re-enable later when done testing
+  # mv .claude/settings.json.disabled .claude/settings.json
+  ```
+
+  2. **Install HTTPie** (cleaner HTTP client than curl):
+  ```bash
+  # macOS
+  brew install httpie
+
+  # Ubuntu/Debian
+  sudo apt install httpie
+
+  # Or using pip
+  pip install httpie
+
+  # Verify installation
+  http --version
+  ```
+
+  3. **Set up environment variables**:
   ```bash
   # Copy example env file if not already done
   cp .env.example .env
 
   # Ensure .env contains:
   # DATABASE_URL="file:./dev.db"
-  # API_KEY_ADMIN=your-secure-api-key-here
+  # API_KEY_ADMIN=secret
+  # HOOK_SECRET=secret
   ```
 
-  2. **Initialize database**:
+  4. **Initialize database**:
   ```bash
   # Generate Prisma client
   pnpm prisma generate
@@ -1898,52 +1923,69 @@ WorkflowTransitions:
 
   **Step 2: Create a workflow** (simulate UserPromptSubmit hook)
   ```bash
-  # Terminal 2 - Create workflow via orchestrator
-  curl -X POST http://localhost:3000/hooks/user-prompt-submit \
-    -H "Content-Type: application/json" \
-    -d '{
-      "userPrompt": "Implement REST API for user authentication"
-    }'
+  # Terminal 2 - Create workflow via UserPromptSubmit hook
+  #
+  # Note: Claude Code hook spec requires certain fields (session_id, transcript_path,
+  # cwd, hook_event_name) for validation. These are NOT used by CCOrch logic but must
+  # be present. Use placeholder values for manual testing.
+  #
+  # Fields actually processed by CCOrch: prompt
+
+  http POST :3000/hooks/user-prompt-submit \
+    X-Hook-Secret:secret \
+    session_id=test-session-123 \
+    transcript_path=/tmp/transcript.md \
+    cwd=$PWD \
+    hook_event_name=UserPromptSubmit \
+    prompt="Implement REST API for user authentication"
 
   # Expected response (200 OK):
   # {
-  #   "hookSpecificOutput": {
-  #     "additionalContext": "Use backend-architect-moderate subagent to:\n1. Design API..."
-  #   }
+  #   "message": "Use the backend-architect-moderate subagent to:\n
+  #               1. Design REST API endpoints...",
   # }
 
-  # Extract workflowId from logs or response for next steps
-  # Example: workflowId="a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  # Extract workflowId from server logs (Terminal 1)
+  # Look for: {"event":"workflow_created","workflowId":"a1b2c3d4-..."}
+  # Save this UUID for next steps
+  export WORKFLOW_ID="a1b2c3d4-e5f6-7890-abcd-ef1234567890"
   ```
 
   **Step 3: Submit agent results** (simulate PostToolUse hook)
   ```bash
-  # Replace {WORKFLOW_ID} with actual UUID from Step 2
-  export WORKFLOW_ID="a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  # Use the WORKFLOW_ID from Step 2
+  #
+  # Note: Claude Code hook spec requires certain fields for validation:
+  # - session_id, transcript_path, cwd, hook_event_name, tool_name: Required by spec but NOT used
+  # - workflow_id, agent_role, complexity, step_number, results: Actually processed by CCOrch
 
-  curl -X POST http://localhost:3000/hooks/post-tool-use \
-    -H "Content-Type: application/json" \
-    -d '{
-      "workflowId": "'$WORKFLOW_ID'",
-      "agentRole": "backend-architect",
-      "complexity": "moderate",
-      "stepNumber": 0,
-      "results": "{\"summary\":\"Designed REST API with JWT authentication\",\"design\":{\"endpoints\":[\"/auth/login\",\"/auth/register\"]}}",
-      "status": "COMPLETED"
-    }'
+  http POST :3000/hooks/post-tool-use \
+    X-Hook-Secret:secret \
+    session_id=test-session-123 \
+    transcript_path=/tmp/transcript.md \
+    cwd=$PWD \
+    hook_event_name=PostToolUse \
+    tool_name=Task \
+    workflow_id=$WORKFLOW_ID \
+    agent_role=backend-architect \
+    complexity=moderate \
+    step_number:=0 \
+    results:='{"summary":"Designed REST API with JWT authentication","design":{"endpoints":["/auth/login","/auth/register"]}}'
 
   # Expected response (200 OK):
   # {
-  #   "hookSpecificOutput": {
-  #     "additionalContext": "Use backend-developer-moderate subagent to:\n1. Implement..."
-  #   }
+  #   "message": "Use the backend-developer-moderate subagent to:\n
+  #               1. Implement the authentication endpoints...",
   # }
+
+  # Server logs should show:
+  # {"event":"agent_transition","workflowId":"...","fromAgent":"backend-architect","toAgent":"backend-developer","step":1}
   ```
 
   **Step 4: Query workflow status** (public endpoint - no auth required)
   ```bash
   # Get current workflow status
-  curl http://localhost:3000/api/workflows/$WORKFLOW_ID/status
+  http GET :3000/api/workflows/$WORKFLOW_ID/status
 
   # Expected response (200 OK):
   # {
@@ -1952,13 +1994,15 @@ WorkflowTransitions:
   #   "chain_name": "backend-development",
   #   "complexity": "moderate",
   #   "current_step": 1,
+  #   "total_steps": 3,
   #   "completed_agents": [
   #     {
   #       "agent_role": "backend-architect",
   #       "complexity": "moderate",
   #       "step_number": 0,
   #       "summary": "Designed REST API with JWT authentication",
-  #       "status": "COMPLETED"
+  #       "status": "COMPLETED",
+  #       "completed_at": "2025-10-06T20:15:30.123Z"
   #     }
   #   ],
   #   "summary": "Workflow 'backend-development' at step 1/3"
@@ -1967,33 +2011,26 @@ WorkflowTransitions:
 
   **Step 5: Manual transition** (admin endpoint - requires API key)
   ```bash
-  # Set API key from .env
-  export API_KEY_ADMIN="your-secure-api-key-here"
-
-  # Test 1: Advance workflow manually
-  curl -X POST http://localhost:3000/api/workflows/$WORKFLOW_ID/transition \
-    -H "Authorization: Bearer $API_KEY_ADMIN" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "action": "advance",
-      "reason": "Manual advancement for testing"
-    }'
+  # Test 1: Advance workflow manually (with valid API key)
+  http POST :3000/api/workflows/$WORKFLOW_ID/transition \
+    Authorization:"Bearer secret" \
+    action=advance \
+    reason="Manual advancement for testing"
 
   # Expected response (200 OK):
   # {
   #   "workflow_id": "a1b2c3d4-...",
-  #   "status": "ACTIVE",
+  #   "previous_step": 1,
   #   "current_step": 2,
+  #   "next_agent": "reviewer",
+  #   "status": "ACTIVE",
   #   "message": "Workflow advanced to step 2"
   # }
 
   # Test 2: Verify auth is enforced (should fail without API key)
-  curl -X POST http://localhost:3000/api/workflows/$WORKFLOW_ID/transition \
-    -H "Content-Type: application/json" \
-    -d '{
-      "action": "advance",
-      "reason": "Should fail - no auth"
-    }'
+  http POST :3000/api/workflows/$WORKFLOW_ID/transition \
+    action=advance \
+    reason="Should fail - no auth"
 
   # Expected response (401 Unauthorized):
   # {
@@ -2002,13 +2039,10 @@ WorkflowTransitions:
   # }
 
   # Test 3: Try with invalid API key (should fail)
-  curl -X POST http://localhost:3000/api/workflows/$WORKFLOW_ID/transition \
-    -H "Authorization: Bearer invalid-key-12345" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "action": "advance",
-      "reason": "Should fail - invalid key"
-    }'
+  http POST :3000/api/workflows/$WORKFLOW_ID/transition \
+    Authorization:"Bearer invalid-key-12345" \
+    action=advance \
+    reason="Should fail - invalid key"
 
   # Expected response (403 Forbidden):
   # {
@@ -2019,76 +2053,100 @@ WorkflowTransitions:
 
   **Step 6: Test other transition actions**
   ```bash
-  # Fail a workflow
-  curl -X POST http://localhost:3000/api/workflows/$WORKFLOW_ID/transition \
-    -H "Authorization: Bearer $API_KEY_ADMIN" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "action": "fail",
-      "reason": "Testing failure scenario"
-    }'
+  # Test 1: Fail a workflow
+  http POST :3000/api/workflows/$WORKFLOW_ID/transition \
+    Authorization:"Bearer secret" \
+    action=fail \
+    reason="Testing failure scenario"
 
   # Expected: status changes to "FAILED"
+  # {
+  #   "workflow_id": "...",
+  #   "status": "FAILED",
+  #   "message": "Workflow marked as failed"
+  # }
 
   # Create a new workflow for retry/skip testing
   # (Repeat Steps 2-3 to get a new WORKFLOW_ID)
 
-  # Skip a step
-  curl -X POST http://localhost:3000/api/workflows/$WORKFLOW_ID/transition \
-    -H "Authorization: Bearer $API_KEY_ADMIN" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "action": "skip",
-      "reason": "Skipping this step for testing"
-    }'
+  # Test 2: Skip a step
+  http POST :3000/api/workflows/$WORKFLOW_ID/transition \
+    Authorization:"Bearer secret" \
+    action=skip \
+    reason="Skipping this step for testing"
 
   # Expected: current_step increments, agent result marked as SKIPPED
+  # {
+  #   "current_step": 2,
+  #   "message": "Step skipped"
+  # }
 
-  # Retry current step
-  curl -X POST http://localhost:3000/api/workflows/$WORKFLOW_ID/transition \
-    -H "Authorization: Bearer $API_KEY_ADMIN" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "action": "retry",
-      "reason": "Retrying failed step"
-    }'
+  # Test 3: Retry current step
+  http POST :3000/api/workflows/$WORKFLOW_ID/transition \
+    Authorization:"Bearer secret" \
+    action=retry \
+    reason="Retrying failed step"
 
   # Expected: last agent result cleared, current_step unchanged
+  # {
+  #   "current_step": 1,
+  #   "message": "Step cleared for retry"
+  # }
   ```
 
   **Step 7: Test error handling**
   ```bash
   # Test 1: Invalid UUID format
-  curl http://localhost:3000/api/workflows/invalid-uuid/status
+  http GET :3000/api/workflows/invalid-uuid/status
 
   # Expected response (400 Bad Request):
   # {
   #   "error": "Bad Request",
-  #   "message": "Invalid workflow ID format"
+  #   "message": "Validation error",
+  #   "details": [
+  #     {
+  #       "field": "workflow_id",
+  #       "message": "Invalid uuid"
+  #     }
+  #   ]
   # }
 
   # Test 2: Non-existent workflow
-  curl http://localhost:3000/api/workflows/00000000-0000-0000-0000-000000000000/status
+  http GET :3000/api/workflows/00000000-0000-0000-0000-000000000000/status
 
   # Expected response (404 Not Found):
   # {
   #   "error": "Not Found",
-  #   "message": "Workflow not found"
+  #   "message": "Workflow not found: 00000000-0000-0000-0000-000000000000"
   # }
 
   # Test 3: Invalid transition action
-  curl -X POST http://localhost:3000/api/workflows/$WORKFLOW_ID/transition \
-    -H "Authorization: Bearer $API_KEY_ADMIN" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "action": "invalid-action",
-      "reason": "Testing validation"
-    }'
+  http POST :3000/api/workflows/$WORKFLOW_ID/transition \
+    Authorization:"Bearer secret" \
+    action=invalid-action \
+    reason="Testing validation"
 
   # Expected response (400 Bad Request):
   # {
   #   "error": "Bad Request",
-  #   "message": "Invalid action. Must be one of: advance, fail, retry, skip"
+  #   "message": "Validation error",
+  #   "details": [
+  #     {
+  #       "field": "action",
+  #       "message": "Invalid enum value. Expected 'advance' | 'fail' | 'retry' | 'skip'"
+  #     }
+  #   ]
+  # }
+
+  # Test 4: Missing X-Hook-Secret on hook endpoint
+  http POST :3000/hooks/user-prompt-submit \
+    session_id=test \
+    prompt="Test"
+
+  # Expected response (401 Unauthorized):
+  # {
+  #   "error": "Unauthorized",
+  #   "message": "Missing X-Hook-Secret header"
   # }
   ```
 
@@ -2107,19 +2165,34 @@ WorkflowTransitions:
 
   #### Troubleshooting
 
+  **Issue**: Hook errors (curl exit code 7, connection refused)
+  - **Solution**: Disable hooks temporarily as shown in Prerequisites step 1
+  - Hooks interfere with manual testing by trying to call CCOrch on every interaction
+  - Re-enable after manual testing: `mv .claude/settings.json.disabled .claude/settings.json`
+
+  **Issue**: 401 Unauthorized "Missing X-Hook-Secret header"
+  - **Cause**: Hook endpoints require `X-Hook-Secret` header for authentication
+  - **Solution**: Add header to request: `X-Hook-Secret:secret`
+  - Only affects `/hooks/*` endpoints (not `/api/*` endpoints)
+
   **Issue**: Server won't start
   - Check: `pnpm prisma generate` has been run
   - Check: Database file exists at `prisma/dev.db`
   - Check: Port 3000 is not already in use (`lsof -i :3000`)
 
   **Issue**: 403 Forbidden on transition endpoint
-  - Check: `API_KEY_ADMIN` is set in `.env` file
-  - Check: Using correct header format: `Authorization: Bearer YOUR_KEY`
+  - Check: `API_KEY_ADMIN` is set in `.env` file (should be `secret` for testing)
+  - Check: Using correct HTTPie syntax: `Authorization:"Bearer secret"`
   - Check: No extra spaces in the API key value
 
   **Issue**: Workflow not found after creation
-  - Check: Server logs for the created workflow ID
-  - Check: Database contains the workflow: `sqlite3 prisma/dev.db "SELECT * FROM workflows ORDER BY created_at DESC LIMIT 1;"`
+  - Check: Server logs (Terminal 1) for the created workflow ID
+  - Look for: `{"event":"workflow_created","workflowId":"..."}`
+  - Check database: `sqlite3 prisma/dev.db "SELECT id, status, chain_name FROM workflows ORDER BY created_at DESC LIMIT 1;"`
+
+  **Issue**: HTTPie command not found
+  - Install HTTPie: `pip install httpie` or `brew install httpie`
+  - Alternative: Use curl but add `X-Hook-Secret` header where needed
 
   - Verify: All endpoints work, auth enforced on transition
   - Acceptance: E2E API flow validated
