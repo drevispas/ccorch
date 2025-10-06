@@ -406,7 +406,9 @@ enum ChainName {
 
 **Authentication**:
 - Hook endpoints: Shared secret via `X-Hook-Secret` header (prevents unauthorized workflow creation)
-- Agent API endpoints: Public (POST /results, GET /status) | API key for admin endpoints (POST /transition)
+- Public API endpoints: No authentication (GET /status, POST /set-complexity)
+- Admin API endpoints: API key required (POST /transition)
+- **Note**: Agent results submitted via PostToolUse hook payload, not separate API endpoint
 
 **Content-Type**: `application/json`
 
@@ -778,9 +780,9 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../src/server';
 
-// Note: POST /api/workflows/:id/results is DEPRECATED in favor of PostToolUse hook (synchronous orchestration)
-// Agent results are now submitted via PostToolUse hook payload, not separate API call
-// This endpoint remains optional for backward compatibility or manual testing only
+// Note: Agent results are submitted via PostToolUse hook payload (not separate API endpoint)
+// POST /hooks/post-tool-use receives agent results in payload and processes them inline
+// This is the synchronous orchestration approach used in production
 
 describe('GET /api/workflows/:id/status', () => {
   let workflowId: string;
@@ -932,8 +934,7 @@ orchestrator-v3/
 │   │   ├── routes/
 │   │   │   ├── complexity.ts       # POST /workflows/:id/set-complexity
 │   │   │   ├── workflows.ts        # GET /workflows/:id/status
-│   │   │   ├── results.ts          # POST /workflows/:id/results
-│   │   │   └── transitions.ts      # POST /workflows/:id/transition
+│   │   │   └── transitions.ts      # POST /workflows/:id/transition (admin only)
 │   │   ├── middleware/
 │   │   │   ├── error-handler.ts    # Global error handler
 │   │   │   ├── request-logger.ts   # Pino HTTP logger
@@ -1396,10 +1397,12 @@ export async function saveAgentResult(data: AgentResultData): Promise<void> {
 
 | Operation | Target | Measurement |
 |-----------|--------|-------------|
-| **Hook Response** | <500ms | UserPromptSubmit hook → first response |
-| **Agent Transition** | <1s | SubagentStop hook → next agent prompt |
-| **API Result Submission** | <200ms | POST /results → 200 OK |
+| **Hook Response** | <500ms | UserPromptSubmit or PostToolUse hook → response |
+| **Agent Transition** | <1s | PostToolUse hook → next agent prompt injection |
+| **API Endpoints** | <200ms | GET /status, POST /set-complexity → 200 OK |
 | **DB Write** | <100ms | Single transaction with 3 writes (workflow + result + transition) |
+
+**Note**: Agent results submitted via PostToolUse hook payload, not separate API endpoint.
 
 ### 7.2 Throughput Targets
 

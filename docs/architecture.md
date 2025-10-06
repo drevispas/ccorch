@@ -104,15 +104,21 @@ graph TB
   - Workflow state transitions
 
 #### API Layer
-- **Purpose**: External interface for agents and clients
-- **Endpoints**:
-  - `POST /api/workflows/{workflow_id}/results`: Agent result submission
-  - `GET /api/workflows/{workflow_id}/status`: Workflow status query
-  - `POST /api/workflows/{workflow_id}/transition`: Admin workflow control
+- **Purpose**: External interface for monitoring and administration
+- **Public API Endpoints**:
+  - `GET /api/workflows/{workflow_id}/status`: Workflow status query (read-only)
+  - `POST /api/workflows/{workflow_id}/set-complexity`: CC complexity determination
+- **Admin API Endpoints**:
+  - `POST /api/workflows/{workflow_id}/transition`: Admin workflow control (API key required)
+- **Hook Endpoints** (called by Claude Code):
+  - `POST /hooks/user-prompt-submit`: Receives UserPromptSubmit hook, returns agent injection
+  - `POST /hooks/post-tool-use`: Receives PostToolUse hook with agent results in payload, returns next agent or completion
+  - `POST /hooks/stop`: Receives Stop hook for cleanup
 - **Responsibilities**:
   - Request validation (zod schemas)
-  - Authentication/authorization (future: API keys)
+  - Authentication (X-Hook-Secret for hooks, API key for admin endpoints)
   - Response formatting
+- **Note**: Agent results are NOT submitted via separate API endpoint. They are received via PostToolUse hook payload and processed inline.
 
 #### Data Persistence Layer
 - **Purpose**: Workflow state storage and audit logging
@@ -267,7 +273,7 @@ sequenceDiagram
     StateMgr-->>Hook: Workflow created: abc-123
     deactivate StateMgr
 
-    Hook-->>CC: 6. Inject prompt:<br/>"Use backend-architect-moderate to:<br/>- Design backend auth API architecture (design only, no implementation)<br/>- Send results to POST /api/workflows/abc-123/results"
+    Hook-->>CC: 6. Inject prompt:<br/>"Use backend-architect-moderate to:<br/>- Design backend auth API architecture (design only, no implementation)"
     deactivate Hook
     CC->>User: 7. Display injected prompt
     deactivate CC
@@ -279,10 +285,7 @@ sequenceDiagram
 3. **Chain resolution**: Map intent to workflow chain, determine complexity
 4. **Workflow creation**: Insert workflow record in DB with status=ACTIVE, current_step=0
 5. **Audit logging**: Record transition in workflow_transitions table
-6. **Prompt injection**: Return formatted prompt instructing CC to:
-   - Use the first agent (backend-architect-moderate in this example) for the assigned task
-   - POST results to `/api/workflows/{workflow_id}/results` after task completion
-   - This enables the agent to report back and trigger the next step in the chain
+6. **Prompt injection**: Return formatted prompt instructing CC to use the first agent (backend-architect-moderate in this example) for the assigned task. When the agent completes, Claude Code will fire PostToolUse hook with results in the payload, triggering the next step in the chain.
 
 **Database State After**:
 ```sql
@@ -370,7 +373,7 @@ sequenceDiagram
 
 ### 2.2 PostToolUse Hook Flow (Chain Continues)
 
-**Trigger**: Agent completes and Claude Code fires PostToolUse hook with results
+**Trigger**: Agent completes and Claude Code fires PostToolUse hook with results in payload
 
 ```mermaid
 ---
@@ -379,7 +382,7 @@ title: "Diagram 2.2: PostToolUse Hook Flow (Chain Continues)"
 sequenceDiagram
     actor Agent as Architect Agent
     participant CC as Claude Code
-    participant Hook as Hook Handler
+    participant Hook as POST /hooks/post-tool-use
     participant StateMgr as State Manager
     participant DB as SQLite DB
 
@@ -387,13 +390,12 @@ sequenceDiagram
 
     Agent->>CC: 1. Task complete (agent finishes)
     activate CC
-    CC->>Hook: 2. PostToolUse hook (payload includes agent results:<br/>{agent_role: 'backend-architect', complexity: 'moderate',<br/>results: {summary: '...', design: '...'}, status: 'COMPLETED'})
+    CC->>Hook: 2. POST /hooks/post-tool-use<br/>Payload: {workflow_id: 'abc-123', agent_role: 'backend-architect',<br/>complexity: 'moderate', step_number: 0,<br/>results: {summary: '...', design: '...'}}
     activate Hook
 
-    Hook->>StateMgr: 3. Extract & validate results from hook payload
+    Hook->>StateMgr: 3. handleAgentComplete(workflowId, agentResults)
     activate StateMgr
 
-    activate StateMgr
     StateMgr->>DB: 3a. SELECT * FROM workflows WHERE id='abc-123'
     activate DB
     DB-->>StateMgr: {current_step: 0, chain_name: 'backend-development', status: 'ACTIVE'}
@@ -416,10 +418,10 @@ sequenceDiagram
     DB-->>StateMgr: OK
     deactivate DB
 
-    StateMgr-->>Hook: 4. Results saved, next agent: backend-developer-moderate
+    StateMgr-->>Hook: 4. {status: 'continue', prompt: '...'}
     deactivate StateMgr
 
-    Hook-->>CC: 5. Inject prompt in hook response:<br/>"Use backend-developer-moderate to:<br/>- Review backend-architect results: {...}<br/>- Implement auth API endpoints, JWT logic, DB models"
+    Hook-->>CC: 5. Hook response {message: "Use backend-developer-moderate to:<br/>Review backend-architect results: {...}<br/>Implement auth API endpoints, JWT logic, DB models"}
     deactivate Hook
     CC->>Agent: 6. Display injected prompt
     deactivate CC
@@ -427,14 +429,14 @@ sequenceDiagram
 
 **Key Steps**:
 1. **Agent completion**: Agent finishes task, Claude Code fires PostToolUse hook
-2. **Hook payload**: Results included in PostToolUse hook payload (agent_role, complexity, results, status)
-3. **Inline processing**: CCOrch extracts results from payload, no separate API call
+2. **Hook request**: Claude Code sends POST request to `/hooks/post-tool-use` with results in payload (workflow_id, agent_role, complexity, step_number, results)
+3. **Inline processing**: Hook handler extracts results from payload and calls orchestrator.handleAgentComplete()
 4. **Validation**: Verify workflow exists, is ACTIVE, agent matches expected role
 5. **Idempotency check**: Unique constraint on `(workflow_id, step_number)` prevents duplicates
 6. **Result persistence**: Insert agent_results record with step_number
 7. **Workflow advancement**: Increment current_step, update timestamp
 8. **Audit logging**: Record transition with from_agent and to_agent
-9. **Next agent injection**: Generate prompt for next agent in hook response:
+9. **Next agent injection**: Orchestrator returns next agent prompt, hook handler returns it in hook response message field:
    - Use the next agent in the chain (backend-developer-moderate)
    - Review previous agent's results (backend-architect's design)
    - Execute the next task (implement auth API endpoints)
@@ -465,7 +467,7 @@ title: "Diagram 2.3: PostToolUse Hook Flow (Chain Complete)"
 sequenceDiagram
     actor Agent as Reviewer Agent
     participant CC as Claude Code
-    participant Hook as Hook Handler
+    participant Hook as POST /hooks/post-tool-use
     participant StateMgr as State Manager
     participant DB as SQLite DB
 
@@ -473,13 +475,12 @@ sequenceDiagram
 
     Agent->>CC: 1. Task complete
     activate CC
-    CC->>Hook: 2. PostToolUse hook (payload with reviewer results:<br/>{agent_role: 'reviewer', complexity: 'moderate',<br/>results: {summary: '...', issues_found: []}, status: 'COMPLETED'})
+    CC->>Hook: 2. POST /hooks/post-tool-use<br/>Payload: {workflow_id: 'abc-123', agent_role: 'reviewer',<br/>complexity: 'moderate', step_number: 2,<br/>results: {summary: '...', issues_found: []}}
     activate Hook
 
-    Hook->>StateMgr: 3. Extract & validate results
+    Hook->>StateMgr: 3. handleAgentComplete(workflowId, agentResults)
     activate StateMgr
 
-    activate StateMgr
     StateMgr->>DB: 3a. SELECT * FROM workflows WHERE id='abc-123'
     activate DB
     DB-->>StateMgr: {current_step: 2, chain_name: 'backend-development', status: 'ACTIVE'}
@@ -509,24 +510,25 @@ sequenceDiagram
     DB-->>StateMgr: [{backend-architect results}, {backend-dev results}, {reviewer results}]
     deactivate DB
 
-    StateMgr-->>Hook: 4. Workflow COMPLETED, all agents finished
+    StateMgr-->>Hook: 4. {status: 'completed', message: 'Workflow complete...'}
     deactivate StateMgr
 
-    Hook-->>CC: 5. Return completion summary in hook response:<br/>"Workflow complete. All agents finished successfully.<br/>- Architecture designed<br/>- Authentication API implemented<br/>- Code reviewed and approved"
+    Hook-->>CC: 5. Hook response {message: "Workflow complete. All agents finished successfully.<br/>- Architecture designed<br/>- Authentication API implemented<br/>- Code reviewed and approved"}
     deactivate Hook
     CC->>Agent: 6. Display completion summary
     deactivate CC
 ```
 
 **Key Steps**:
-1. **Final agent completion**: Last agent finishes, Claude Code fires PostToolUse hook with results
-2. **Result extraction**: CCOrch extracts results from PostToolUse hook payload
-3. **Result persistence**: Insert agent_results record
-4. **Chain completion detection**: Check if current_step equals chain length
-5. **Workflow finalization**: Update status to COMPLETED, increment current_step
-6. **Audit logging**: Record final transition with to_agent=NULL
-7. **Summary generation**: Aggregate results from all agents
-8. **Completion message**: Display workflow summary to user in hook response:
+1. **Final agent completion**: Last agent finishes, Claude Code fires PostToolUse hook
+2. **Hook request**: Claude Code sends POST to `/hooks/post-tool-use` with results in payload
+3. **Inline processing**: Hook handler calls orchestrator.handleAgentComplete()
+4. **Result persistence**: Insert agent_results record
+5. **Chain completion detection**: Check if current_step equals chain length
+6. **Workflow finalization**: Update status to COMPLETED, increment current_step
+7. **Audit logging**: Record final transition with to_agent=NULL
+8. **Summary generation**: Aggregate results from all agents
+9. **Completion message**: Orchestrator returns completion status, hook handler returns it in hook response message field:
    - Workflow completion status
    - Summary of each agent's contributions (architecture, implementation, review)
    - No further agent prompt injection (chain complete)
@@ -664,76 +666,73 @@ sequenceDiagram
     CC->>Arch: 6. Execute with injected prompt
     activate Arch
     Note over Arch: Design architecture:<br/>- RESTful endpoints (POST /login, /refresh, /logout)<br/>- JWT token strategy<br/>- Refresh token mechanism<br/>- Database schema for users/tokens
-    Arch->>API: 7. POST /api/workflows/wf-001/results<br/>{agent_role: 'backend-architect', results: {<br/>  summary: 'Designed JWT-based backend auth API',<br/>  design: 'Endpoints: POST /auth/login...',<br/>  recommendations: 'Use bcrypt for passwords'<br/>}}
+    Arch->>CC: 7. Agent completes
     deactivate Arch
 
-    API->>DB: 8a. INSERT agent_results (step=0, agent='backend-architect')
-    DB-->>API: OK
-    API->>DB: 8b. UPDATE workflows SET current_step=1
-    DB-->>API: OK
-    API->>DB: 8c. INSERT transition (from_step=0, to_step=1)
-    DB-->>API: OK
-    API-->>Arch: 9. {success: true}
-
-    Arch->>CC: 10. SubagentStop
-    CC->>Hook: 11. SubagentStop hook
-    Hook->>DB: 12a. Get workflow state (current_step=1)
-    DB-->>Hook: Next agent: backend-developer
-    Hook->>DB: 12b. Get backend-architect results
-    DB-->>Hook: {design: '...', recommendations: '...'}
-    Hook-->>CC: 13. "Use backend-developer-moderate to:<br/>- Review backend-architect design: {...}<br/>- Implement auth API endpoints, JWT logic, DB models<br/>- Send results to POST /api/workflows/wf-001/results"
+    CC->>Hook: 8. POST /hooks/post-tool-use<br/>Payload: {workflow_id: 'wf-001', agent_role: 'backend-architect',<br/>complexity: 'moderate', step_number: 0,<br/>results: {summary: 'Designed JWT-based backend auth API', design: '...', recommendations: '...'}}
+    activate Hook
+    Hook->>Orch: 9. handleAgentComplete()
+    activate Orch
+    Orch->>DB: 9a. INSERT agent_results (step=0, agent='backend-architect')
+    DB-->>Orch: OK
+    Orch->>DB: 9b. UPDATE workflows SET current_step=1
+    DB-->>Orch: OK
+    Orch->>DB: 9c. INSERT transition (from_step=0, to_step=1)
+    DB-->>Orch: OK
+    Orch-->>Hook: 10. {status: 'continue', prompt: 'Use backend-developer-moderate...'}
+    deactivate Orch
+    Hook-->>CC: 11. Hook response {message: "Use backend-developer-moderate to:<br/>Review backend-architect design: {...}<br/>Implement auth API endpoints, JWT logic, DB models"}
+    deactivate Hook
     CC->>User: Display prompt
 
     %% Step 2: Backend Developer agent
     Note over User,CC: [STEP 2] User approves, CC launches backend-developer-moderate
-    CC->>Backend: 14. Execute with context from backend-architect
+    CC->>Backend: 12. Execute with context from backend-architect
     activate Backend
     Note over Backend: Implement:<br/>- Create AuthController.java (login, refresh, logout endpoints)<br/>- JWT token generation/validation service<br/>- User & RefreshToken JPA entities<br/>- Password hashing with bcrypt<br/>- Unit tests
-    Backend->>API: 15. POST /api/workflows/wf-001/results<br/>{agent_role: 'backend-developer', results: {<br/>  summary: 'Implemented JWT auth API with 5 files',<br/>  files_modified: ['AuthController.java', 'JwtService.java', ...],<br/>  recommendations: 'Review security headers and error handling'<br/>}}
+    Backend->>CC: 13. Agent completes
     deactivate Backend
 
-    API->>DB: 16a. INSERT agent_results (step=1, agent='backend-developer')
-    DB-->>API: OK
-    API->>DB: 16b. UPDATE workflows SET current_step=2
-    DB-->>API: OK
-    API->>DB: 16c. INSERT transition (from_step=1, to_step=2)
-    DB-->>API: OK
-    API-->>Backend: 17. {success: true}
-
-    Backend->>CC: 18. SubagentStop
-    CC->>Hook: 19. SubagentStop hook
-    Hook->>DB: 20a. Get workflow state (current_step=2)
-    DB-->>Hook: Next agent: reviewer
-    Hook->>DB: 20b. Get backend-developer results
-    DB-->>Hook: {files_modified: [...], recommendations: '...'}
-    Hook-->>CC: 21. "Use reviewer-moderate to:<br/>- Review staged/unstaged changes<br/>- Check security, tests, error handling<br/>- Send results to POST /api/workflows/wf-001/results"
+    CC->>Hook: 14. POST /hooks/post-tool-use<br/>Payload: {workflow_id: 'wf-001', agent_role: 'backend-developer',<br/>complexity: 'moderate', step_number: 1,<br/>results: {summary: 'Implemented JWT auth API with 5 files', files_modified: [...], recommendations: '...'}}
+    activate Hook
+    Hook->>Orch: 15. handleAgentComplete()
+    activate Orch
+    Orch->>DB: 15a. INSERT agent_results (step=1, agent='backend-developer')
+    DB-->>Orch: OK
+    Orch->>DB: 15b. UPDATE workflows SET current_step=2
+    DB-->>Orch: OK
+    Orch->>DB: 15c. INSERT transition (from_step=1, to_step=2)
+    DB-->>Orch: OK
+    Orch-->>Hook: 16. {status: 'continue', prompt: 'Use reviewer-moderate...'}
+    deactivate Orch
+    Hook-->>CC: 17. Hook response {message: "Use reviewer-moderate to:<br/>Review staged/unstaged changes<br/>Check security, tests, error handling"}
+    deactivate Hook
     CC->>User: Display prompt
 
     %% Step 3: Reviewer agent
     Note over User,CC: [STEP 3] User approves, CC launches reviewer-moderate
-    CC->>Rev: 22. Execute with context from backend-developer
+    CC->>Rev: 18. Execute with context from backend-developer
     activate Rev
     Note over Rev: Review code:<br/>- Security: JWT secret storage, password hashing ✓<br/>- Tests: Unit tests present ✓<br/>- Error handling: Add 401 for invalid tokens<br/>- Recommendations: Add rate limiting
-    Rev->>API: 23. POST /api/workflows/wf-001/results<br/>{agent_role: 'reviewer', results: {<br/>  summary: 'Code review complete, minor improvements suggested',<br/>  issues_found: [{<br/>    file: 'AuthController.java', line: 42,<br/>    severity: 'warning', description: 'Consider 401 for invalid tokens'<br/>  }],<br/>  recommendations: 'Add rate limiting middleware'<br/>}}
+    Rev->>CC: 19. Agent completes
     deactivate Rev
 
-    API->>DB: 24a. INSERT agent_results (step=2, agent='reviewer')
-    DB-->>API: OK
-    Note over API: Detect chain completion (step 2 = last step)
-    API->>DB: 24b. UPDATE workflows SET status='COMPLETED', current_step=3
-    DB-->>API: OK
-    API->>DB: 24c. INSERT transition (from_step=2, to_step=3, to_agent=NULL, reason='completed')
-    DB-->>API: OK
-    API-->>Rev: 25. {success: true, status: 'COMPLETED'}
-
-    Rev->>CC: 26. SubagentStop
-    CC->>Hook: 27. SubagentStop hook
-    Hook->>DB: 28a. Get workflow state (status='COMPLETED')
-    DB-->>Hook: Workflow finished
-    Hook->>DB: 28b. SELECT all agent_results for wf-001
-    DB-->>Hook: [backend-architect, backend-dev, reviewer results]
-    Hook-->>CC: 29. "Workflow complete. All agents finished successfully.<br/><br/>✓ Architecture designed (JWT auth with refresh tokens)<br/>✓ Authentication API implemented (5 files)<br/>✓ Code reviewed (1 warning, consider rate limiting)"
-    CC->>User: 30. Display completion summary
+    CC->>Hook: 20. POST /hooks/post-tool-use<br/>Payload: {workflow_id: 'wf-001', agent_role: 'reviewer',<br/>complexity: 'moderate', step_number: 2,<br/>results: {summary: 'Code review complete', issues_found: [...], recommendations: '...'}}
+    activate Hook
+    Hook->>Orch: 21. handleAgentComplete()
+    activate Orch
+    Orch->>DB: 21a. INSERT agent_results (step=2, agent='reviewer')
+    DB-->>Orch: OK
+    Note over Orch: Detect chain completion (step 2 = last step)
+    Orch->>DB: 21b. UPDATE workflows SET status='COMPLETED', current_step=3
+    DB-->>Orch: OK
+    Orch->>DB: 21c. INSERT transition (from_step=2, to_step=3, to_agent=NULL, reason='completed')
+    DB-->>Orch: OK
+    Orch-->>Hook: 22. {status: 'completed', message: 'Workflow complete. All agents finished successfully...'}
+    deactivate Orch
+    Hook-->>CC: 23. Hook response {message: "Workflow complete. All agents finished successfully.<br/><br/>✓ Architecture designed (JWT auth with refresh tokens)<br/>✓ Authentication API implemented (5 files)<br/>✓ Code reviewed (1 warning, consider rate limiting)"}
+    deactivate Hook
+    CC->>User: 24. Display completion summary
 ```
 
 ### 3.2 Database State Progression
@@ -805,37 +804,46 @@ from_step=2, to_step=3, from_agent='reviewer', to_agent=NULL, reason='Workflow c
 
 ```mermaid
 ---
-title: "Diagram 4.1: Hook Retry Scenario (Idempotency)"
+title: "Diagram 4.1: PostToolUse Hook Retry Scenario (Idempotency)"
 ---
 sequenceDiagram
-    participant Agent
-    participant API as API Layer
+    participant CC as Claude Code
+    participant Hook as POST /hooks/post-tool-use
+    participant Orch as Orchestrator
     participant DB as SQLite DB
 
-    Agent->>API: POST /results (attempt 1)
-    activate API
-    API->>DB: INSERT agent_results (workflow_id, step_number)
+    CC->>Hook: POST /hooks/post-tool-use (attempt 1)<br/>Payload: {workflow_id, agent_role, step_number: 0, results}
+    activate Hook
+    Hook->>Orch: handleAgentComplete()
+    activate Orch
+    Orch->>DB: INSERT agent_results (workflow_id, step_number)
     activate DB
-    DB-->>API: OK
+    DB-->>Orch: OK
     deactivate DB
-    API-->>Agent: {success: true}
-    deactivate API
+    Orch-->>Hook: {status: 'continue', prompt: '...'}
+    deactivate Orch
+    Hook-->>CC: {message: 'Use next-agent...'}
+    deactivate Hook
 
-    Note over Agent,API: Network glitch: agent didn't receive response
+    Note over CC,Hook: Network glitch: Claude Code didn't receive response
 
-    Agent->>API: POST /results (retry attempt 2, same data)
-    activate API
-    API->>DB: INSERT agent_results (workflow_id, step_number)
+    CC->>Hook: POST /hooks/post-tool-use (retry attempt 2, same payload)
+    activate Hook
+    Hook->>Orch: handleAgentComplete()
+    activate Orch
+    Orch->>DB: INSERT agent_results (workflow_id, step_number: 0)
     activate DB
     Note over DB: UNIQUE constraint violation on<br/>(workflow_id, step_number)
-    DB-->>API: ERROR: duplicate key
+    DB-->>Orch: ERROR: duplicate key
     deactivate DB
-    Note over API: Idempotency: treat as success<br/>(result already persisted)
-    API-->>Agent: {success: true, message: 'Result already recorded'}
-    deactivate API
+    Note over Orch: Idempotency: treat as success<br/>(result already persisted)
+    Orch-->>Hook: {status: 'continue', prompt: '...'}
+    deactivate Orch
+    Hook-->>CC: {message: 'Use next-agent...'}
+    deactivate Hook
 ```
 
-**Idempotency Guarantee**: Unique constraint on `(workflow_id, step_number)` prevents duplicate agent results.
+**Idempotency Guarantee**: Unique constraint on `(workflow_id, step_number)` prevents duplicate agent results. Hook retries return the same response as the original request.
 
 ### 4.2 Agent Failure Scenario
 
@@ -844,31 +852,43 @@ sequenceDiagram
 title: "Diagram 4.2: Agent Failure Scenario (Recovery)"
 ---
 sequenceDiagram
-    participant Agent
-    participant API
+    participant CC as Claude Code
+    participant Hook as POST /hooks/post-tool-use
+    participant Orch as Orchestrator
     participant DB
     participant Admin
+    participant API as GET /status, POST /transition
 
-    Agent->>API: POST /results {status: 'FAILED', results: {error: 'Timeout'}}
-    activate API
-    API->>DB: INSERT agent_results (status='FAILED')
-    DB-->>API: OK
-    API->>DB: UPDATE workflows SET status='FAILED'
-    DB-->>API: OK
-    API-->>Agent: {success: true}
-    deactivate API
+    Note over CC: Agent encounters error during execution
+
+    CC->>Hook: POST /hooks/post-tool-use<br/>Payload: {workflow_id, agent_role, step_number,<br/>results: {error: 'Timeout'}, status: 'FAILED'}
+    activate Hook
+    Hook->>Orch: handleAgentComplete()
+    activate Orch
+    Orch->>DB: INSERT agent_results (status='FAILED')
+    DB-->>Orch: OK
+    Orch->>DB: UPDATE workflows SET status='FAILED'
+    DB-->>Orch: OK
+    Orch-->>Hook: {status: 'failed', message: 'Workflow failed due to agent error'}
+    deactivate Orch
+    Hook-->>CC: {message: 'Workflow failed due to agent error'}
+    deactivate Hook
 
     Note over Admin: Admin investigates via GET /status
     Admin->>API: GET /workflows/{id}/status
+    activate API
     API->>DB: SELECT workflow state
     DB-->>API: {status: 'FAILED', last_agent: 'backend-developer'}
     API-->>Admin: Workflow failed at backend-developer step
+    deactivate API
 
     Note over Admin: Admin decides to retry
     Admin->>API: POST /workflows/{id}/transition {action: 'retry'}
+    activate API
     API->>DB: DELETE FROM agent_results WHERE step_number=current_step
     DB-->>API: OK
     API-->>Admin: Ready to retry backend-developer step
+    deactivate API
 ```
 
 ---

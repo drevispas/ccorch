@@ -128,9 +128,10 @@
   - **Hook Response Format**: All hook endpoints must return JSON response with `message` field per Claude Code hooks spec:
     ```json
     {
-      "message": "Use the backend-architect-moderate subagent to:\n1. Design backend system architecture\n2. Send results to: POST /api/workflows/{workflow_id}/results"
+      "message": "Use the backend-architect-moderate subagent to:\n1. Design backend system architecture"
     }
     ```
+    Note: Agent results are submitted via PostToolUse hook payload, not separate API calls.
 - **Hook Configuration**: Configure `.claude/settings.json` to call hook endpoints via `command` field using curl (see [Hook Guide](https://docs.claude.com/en/docs/claude-code/hooks-guide.md)).
 - **Hook Capture**: Capture real `UserPromptSubmit` and `PostToolUse` payloads from Claude Code to understand actual request structure using one of these portable approaches:
   - **Method 1 (Recommended)**: Create a TypeScript script that reads stdin and logs the full JSON payload:

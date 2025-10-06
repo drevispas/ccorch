@@ -44,10 +44,11 @@
     - `POST /hooks/subagent-stop` - receives SubagentStop hook payloads (kept for logging/monitoring only)
     - `POST /hooks/post-tool-use` - **receives PostToolUse hook payloads (with agent results embedded), returns next agent injection** (synchronous orchestration - Option 2)
     - `POST /hooks/stop` - receives Stop hook payloads, marks orphaned workflows as FAILED
-  - **Agent API endpoints** (called by agents during execution):
-    - `POST /api/workflows/:id/results` - agents submit execution results (JSON payload with agent_role, complexity, results, status)
+  - **Monitoring API endpoints**:
     - `GET /api/workflows/:id/status` - query workflow status, returns mock status with completed_agents array
-  - **Hook Response Format**: Returns `{hookSpecificOutput: {hookEventName, additionalContext: "Use {agent}-{complexity} subagent to:\n1. Task...\n2. Send results to: POST /api/workflows/{id}/results"}}`
+    - `POST /api/workflows/:id/set-complexity` - CC submits complexity determination (public endpoint)
+  - **Hook Response Format**: Returns `{message: "Use {agent}-{complexity} subagent to:\n1. Task..."}`
+  - **Note**: Agent results are submitted via PostToolUse hook payload (not separate API endpoint - embedded in hook payload)
   - Storage: In-memory Map with TypeScript interfaces (WorkflowState, AgentResult)
   - Test: Run `tsx poc/stub-server.ts` or `npm start`, verify server starts on port 3000 ✅ VALIDATED
   - Acceptance: All endpoints respond with correct format, hook endpoints return agent injection messages ✅ PASSED
@@ -1837,8 +1838,8 @@
 - [ ] **Write performance tests**
   - File: `tests/performance/latency.test.ts`
   - Test cases:
-    - Hook response time < 500ms (measure handleUserPromptSubmit)
-    - API response time < 1s (measure POST /results)
+    - Hook response time < 500ms (measure handleUserPromptSubmit and PostToolUse hook handlers)
+    - API response time < 1s (measure GET /status, POST /set-complexity)
     - Concurrent workflows (10 parallel) complete without errors
   - Use: Vitest with timing assertions
   - Expected: Tests fail if latency exceeds targets
@@ -1846,7 +1847,8 @@
 
 - [ ] **Run load test with autocannon**
   - Package: `autocannon` (already installed in Phase 0)
-  - Test: `autocannon -c 10 -d 30 http://localhost:3000/api/workflows/test-id/results` (10 connections, 30 seconds)
+  - Test: `autocannon -c 10 -d 30 http://localhost:3000/hooks/post-tool-use` (10 connections, 30 seconds)
+  - Note: PostToolUse hook receives agent results in payload, not via separate API endpoint
   - Measure: Requests/sec, average latency, 99th percentile
   - Acceptance: No 500 errors, average latency < 500ms
 
