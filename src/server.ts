@@ -12,8 +12,11 @@ import { logger } from './utils/logger.js';
 import { env } from './config/env.js';
 import { createHookRouter } from './api/hooks.js';
 import { createWorkflowsRouter } from './api/workflows.js';
+import { createHealthRouter } from './api/health.js';
 import { authenticateHook } from './middleware/auth.js';
 import { errorHandler } from './middleware/error-handler.js';
+import { requestIdMiddleware } from './api/middleware/request-id.js';
+import { requestLoggerMiddleware } from './api/middleware/request-logger.js';
 import { Orchestrator } from './services/orchestrator.js';
 import { StateManager } from './services/state-manager.js';
 import { WorkflowRepository } from './models/workflow-repository.js';
@@ -65,7 +68,12 @@ export async function startServer(): Promise<Express> {
   // Create Express app
   const app = express();
 
-  // Middleware
+  // Middleware (order matters!)
+  // 1. Request ID must come first to ensure all logs have request IDs
+  app.use(requestIdMiddleware);
+  // 2. Request logger must come after request ID
+  app.use(requestLoggerMiddleware);
+  // 3. JSON body parser
   app.use(express.json());
 
   // Error handling for invalid JSON
@@ -75,6 +83,10 @@ export async function startServer(): Promise<Express> {
     }
     next(err); // Pass error to next error handler
   });
+
+  // Register health check endpoint (WBS 8.2)
+  const healthRouter = createHealthRouter(prisma);
+  app.use('/health', healthRouter);
 
   // Register hook routes with authentication middleware
   const hookRouter = createHookRouter(orchestrator, workflowRepo);

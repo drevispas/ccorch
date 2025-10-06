@@ -149,4 +149,65 @@ export class WorkflowRepository implements IWorkflowRepository {
       return false;
     }
   }
+
+  /**
+   * Find ACTIVE workflows that haven't been updated within threshold
+   * Used for stale workflow cleanup
+   */
+  async findActiveStaleWorkflows(
+    staleThresholdMs: number
+  ): Promise<Array<{ id: string; updatedAt: Date }>> {
+    const cutoffTime = BigInt(Date.now() - staleThresholdMs);
+
+    const workflows = await this.prisma.workflow.findMany({
+      where: {
+        status: 'ACTIVE',
+        updatedAt: {
+          lt: cutoffTime,
+        },
+      },
+      select: {
+        id: true,
+        updatedAt: true,
+      },
+    });
+
+    // Convert BigInt updatedAt to Date for easier handling
+    return workflows.map((w) => ({
+      id: w.id,
+      updatedAt: new Date(Number(w.updatedAt)),
+    }));
+  }
+
+  /**
+   * Find workflows older than specified days with given status
+   * Used for workflow archival
+   */
+  async findOldWorkflows(
+    status: 'COMPLETED' | 'FAILED',
+    ageDays: number
+  ): Promise<Array<{ id: string; status: string; updatedAt: Date }>> {
+    const cutoffTime = BigInt(Date.now() - ageDays * 24 * 60 * 60 * 1000);
+
+    const workflows = await this.prisma.workflow.findMany({
+      where: {
+        status,
+        updatedAt: {
+          lt: cutoffTime,
+        },
+      },
+      select: {
+        id: true,
+        status: true,
+        updatedAt: true,
+      },
+    });
+
+    // Convert BigInt updatedAt to Date for easier handling
+    return workflows.map((w) => ({
+      id: w.id,
+      status: w.status,
+      updatedAt: new Date(Number(w.updatedAt)),
+    }));
+  }
 }

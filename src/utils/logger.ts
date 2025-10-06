@@ -1,48 +1,88 @@
 /**
  * Logger Utility
  *
- * Purpose: Simple logging wrapper (stub for now, will be expanded with pino in Phase 5)
- * TODO: Implement full structured logging with pino in Phase 5 (Observability)
+ * Purpose: Structured logging with pino
+ * Features:
+ * - JSON output in production, pretty-print in development
+ * - Request ID and workflow ID context support
+ * - Configurable log level via LOG_LEVEL env var
  */
+
+import pino from 'pino';
 
 interface LogContext {
   [key: string]: unknown;
 }
 
 /**
- * Simple logger implementation
- * TODO: Replace with pino logger in Phase 5
+ * Create pino logger instance with environment-specific configuration
+ */
+const createLogger = () => {
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const logLevel = process.env.LOG_LEVEL || 'info';
+
+  return pino({
+    level: logLevel,
+    // Pretty print in development, JSON in production
+    transport: isDevelopment
+      ? {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'HH:MM:ss Z',
+            ignore: 'pid,hostname'
+          }
+        }
+      : undefined,
+    // Serialize errors properly
+    serializers: {
+      err: pino.stdSerializers.err,
+      error: pino.stdSerializers.err
+    }
+  });
+};
+
+const pinoLogger = createLogger();
+
+/**
+ * Logger interface matching existing usage patterns
+ * Supports both string messages and context objects
  */
 export const logger = {
   info(contextOrMessage: LogContext | string, message?: string): void {
     if (typeof contextOrMessage === 'string') {
-      console.log(`[INFO] ${contextOrMessage}`);
+      pinoLogger.info(contextOrMessage);
     } else {
-      console.log(`[INFO] ${message}`, JSON.stringify(contextOrMessage));
+      pinoLogger.info(contextOrMessage, message);
     }
   },
 
   error(contextOrMessage: LogContext | string, message?: string): void {
     if (typeof contextOrMessage === 'string') {
-      console.error(`[ERROR] ${contextOrMessage}`);
+      pinoLogger.error(contextOrMessage);
     } else {
-      console.error(`[ERROR] ${message}`, JSON.stringify(contextOrMessage));
+      pinoLogger.error(contextOrMessage, message);
     }
   },
 
   warn(contextOrMessage: LogContext | string, message?: string): void {
     if (typeof contextOrMessage === 'string') {
-      console.warn(`[WARN] ${contextOrMessage}`);
+      pinoLogger.warn(contextOrMessage);
     } else {
-      console.warn(`[WARN] ${message}`, JSON.stringify(contextOrMessage));
+      pinoLogger.warn(contextOrMessage, message);
     }
   },
 
   debug(contextOrMessage: LogContext | string, message?: string): void {
     if (typeof contextOrMessage === 'string') {
-      console.debug(`[DEBUG] ${contextOrMessage}`);
+      pinoLogger.debug(contextOrMessage);
     } else {
-      console.debug(`[DEBUG] ${message}`, JSON.stringify(contextOrMessage));
+      pinoLogger.debug(contextOrMessage, message);
     }
-  },
+  }
 };
+
+/**
+ * Export raw pino logger for advanced use cases
+ */
+export const rawLogger = pinoLogger;
