@@ -11,7 +11,9 @@ import { validateAgentConfig } from './config/validator.js';
 import { logger } from './utils/logger.js';
 import { env } from './config/env.js';
 import { createHookRouter } from './api/hooks.js';
+import { createWorkflowsRouter } from './api/workflows.js';
 import { authenticateHook } from './middleware/auth.js';
+import { errorHandler } from './middleware/error-handler.js';
 import { Orchestrator } from './services/orchestrator.js';
 import { StateManager } from './services/state-manager.js';
 import { WorkflowRepository } from './models/workflow-repository.js';
@@ -71,12 +73,19 @@ export async function startServer(): Promise<Express> {
     if (err instanceof SyntaxError && 'body' in err) {
       return res.status(400).json({ error: 'Invalid JSON' });
     }
-    next();
+    next(err); // Pass error to next error handler
   });
 
   // Register hook routes with authentication middleware
   const hookRouter = createHookRouter(orchestrator, workflowRepo);
   app.use('/hooks', authenticateHook, hookRouter);
+
+  // Register API routes (WBS 7.1)
+  const workflowsRouter = createWorkflowsRouter(orchestrator, workflowRepo);
+  app.use('/api/workflows', workflowsRouter);
+
+  // Global error handler (must be last middleware - WBS 7.5)
+  app.use(errorHandler);
 
   logger.info('Server startup complete');
 
