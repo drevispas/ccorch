@@ -1,0 +1,20 @@
+{
+  "session_id": "test-session-004",
+  "transcript_path": "/tmp/claude-code-session-test.json",
+  "cwd": "/home/user/project",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Task",
+  "workflow_id": "test-workflow-123",
+  "agent_role": "backend-architect",
+  "complexity": "moderate",
+  "step_number": 0,
+  "results": {
+    "summary": "Designed JWT-based authentication system with refresh tokens",
+    "design": "RESTful endpoints: POST /auth/login, POST /auth/refresh, POST /auth/logout. JWT tokens with 15min expiry. Refresh tokens stored in database with 7-day expiry. Bcrypt for password hashing.",
+    "recommendations": [
+      "Implement rate limiting on login endpoint",
+      "Add email verification before allowing login",
+      "Consider adding OAuth2 support for social login"
+    ]
+  }
+}

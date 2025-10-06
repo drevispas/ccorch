@@ -75,7 +75,7 @@ describe('State Manager - Workflow Creation', () => {
     // Dynamically import to get fresh instance
     const module = await import('../../../src/services/state-manager');
     StateManager = module.StateManager;
-    stateManager = new StateManager(workflowRepo, transitionRepo, agentResultRepo);
+    stateManager = new StateManager(workflowRepo, transitionRepo);
   });
 
   it('should create workflow with UUID and ACTIVE status', async () => {
@@ -161,7 +161,7 @@ describe('State Manager - Step Advancement', () => {
 
     const module = await import('../../../src/services/state-manager');
     StateManager = module.StateManager;
-    stateManager = new StateManager(workflowRepo, transitionRepo, agentResultRepo);
+    stateManager = new StateManager(workflowRepo, transitionRepo);
   });
 
   it('should advance workflow to next step', async () => {
@@ -274,7 +274,7 @@ describe('State Manager - Workflow Completion', () => {
 
     const module = await import('../../../src/services/state-manager');
     StateManager = module.StateManager;
-    stateManager = new StateManager(workflowRepo, transitionRepo, agentResultRepo);
+    stateManager = new StateManager(workflowRepo, transitionRepo);
   });
 
   it('should complete workflow and set COMPLETED status', async () => {
@@ -330,7 +330,7 @@ describe('State Manager - Workflow Failure', () => {
 
     const module = await import('../../../src/services/state-manager');
     StateManager = module.StateManager;
-    stateManager = new StateManager(workflowRepo, transitionRepo, agentResultRepo);
+    stateManager = new StateManager(workflowRepo, transitionRepo);
   });
 
   it('should fail workflow and set FAILED status', async () => {
@@ -386,7 +386,7 @@ describe('State Manager - Get Workflow State', () => {
 
     const module = await import('../../../src/services/state-manager');
     StateManager = module.StateManager;
-    stateManager = new StateManager(workflowRepo, transitionRepo, agentResultRepo);
+    stateManager = new StateManager(workflowRepo, transitionRepo);
   });
 
   it('should retrieve workflow state by ID', async () => {
@@ -454,7 +454,7 @@ describe('State Manager - Edge Cases', () => {
 
     const module = await import('../../../src/services/state-manager');
     StateManager = module.StateManager;
-    stateManager = new StateManager(workflowRepo, transitionRepo, agentResultRepo);
+    stateManager = new StateManager(workflowRepo, transitionRepo);
   });
 
   it('should handle single-agent chains correctly', async () => {

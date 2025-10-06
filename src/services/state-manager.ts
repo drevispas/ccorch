@@ -12,7 +12,6 @@ import type { Workflow } from '@prisma/client';
 import type {
   IWorkflowRepository,
   ITransitionRepository,
-  IAgentResultRepository,
   WorkflowCreateInput,
   WorkflowFindByIdOptions,
   WorkflowWithRelations,
@@ -69,8 +68,7 @@ const CHAIN_SEQUENCES: Record<ChainName, AgentRole[]> = {
 export class StateManager {
   constructor(
     private readonly workflowRepo: IWorkflowRepository,
-    private readonly transitionRepo: ITransitionRepository,
-    private readonly agentResultRepo: IAgentResultRepository
+    private readonly transitionRepo: ITransitionRepository
   ) {}
 
   /**

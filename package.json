@@ -18,7 +18,10 @@
     "postinstall": "test -f prisma/schema.prisma && prisma generate || echo 'Prisma schema not found, skipping generate'",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "harness:mock": "tsx tests/harness/mock-claude-server.ts",
+    "harness:send": "tsx tests/harness/send-payload.ts",
+    "harness:validate": "tsx tests/harness/validate-response.ts"
   },
   "keywords": [
     "claude-code",

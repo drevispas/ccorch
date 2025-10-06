@@ -1,0 +1,3 @@
+{
+  "message": "Use the backend-architect-moderate subagent to:\n1. Design REST API architecture for user authentication\n2. Define JWT token strategy and refresh token mechanism\n3. Plan database schema for users and tokens\n4. Document security considerations and best practices"
+}

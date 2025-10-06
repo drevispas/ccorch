@@ -1,0 +1,7 @@
+{
+  "session_id": "test-session-001",
+  "transcript_path": "/tmp/claude-code-session-test.json",
+  "cwd": "/home/user/project",
+  "hook_event_name": "UserPromptSubmit",
+  "prompt": "Implement REST API for user authentication with JWT tokens"
+}

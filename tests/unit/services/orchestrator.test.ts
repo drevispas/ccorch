@@ -63,8 +63,7 @@ describe('Orchestrator Coordinator', () => {
     // Create state manager with mocked repos
     mockStateManager = new StateManager(
       mockWorkflowRepo,
-      mockTransitionRepo,
-      mockAgentResultRepo
+      mockTransitionRepo
     );
 
     // Create orchestrator

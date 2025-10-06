@@ -40,7 +40,7 @@ describe('Orchestrator Integration - E2E Flow', () => {
     transitionRepo = new TransitionRepository(prisma);
 
     // Initialize state manager
-    stateManager = new StateManager(workflowRepo, transitionRepo, agentResultRepo);
+    stateManager = new StateManager(workflowRepo, transitionRepo);
 
     // Initialize orchestrator
     orchestrator = new Orchestrator(stateManager, agentResultRepo);
