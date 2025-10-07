@@ -27,8 +27,15 @@ export function createHookRouter(
    */
   router.post('/user-prompt-submit', async (req: Request, res: Response) => {
     try {
-      const response = await handleUserPromptSubmit(req.body, orchestrator);
-      res.status(200).json(response);
+      const result = await handleUserPromptSubmit(req.body, orchestrator);
+
+      // Attach workflowId to request for distributed tracing in logs
+      if (result.workflowId) {
+        (req as any).workflowId = result.workflowId;
+      }
+
+      // Return only the hook response (not the workflowId)
+      res.status(200).json(result.hookResponse);
     } catch (error) {
       console.error('Error in user-prompt-submit endpoint:', error);
       res.status(500).json({

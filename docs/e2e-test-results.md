@@ -171,9 +171,16 @@ Validate CCOrch with actual Claude Code hooks to verify:
 
 ### Open Questions ❓
 1. What does Task tool `tool_response` structure look like with agent results?
-2. Does message injection display correctly in Claude Code UI?
+2. Does message injection display correctly in Claude Code UI? ✅ **RESOLVED**: Yes, automatic Task tool invocation working!
 3. How do error responses display in Claude Code?
 4. Does Stop hook fire after every response or only session end?
+
+### TODOs 📝
+1. **Optimize prompt verbosity**: Current agent injection prompt is ~660 chars. Consider shortening while maintaining clarity:
+   - Current: Full instructions + task list + step-by-step guide
+   - Possible optimization: Shorter format like "IMPORTANT: Invoke Task tool (subagent_type: {agent}) to: {tasks}"
+   - Trade-off: Verbosity ensures automatic invocation works, but adds token cost
+   - Priority: LOW (current format working, optimize after more testing)
 
 ### Risk Assessment
 - **Risk Level**: 🟢 LOW

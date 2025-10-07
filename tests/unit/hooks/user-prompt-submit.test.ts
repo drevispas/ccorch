@@ -43,16 +43,16 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: 'Implement REST API for user authentication',
+        prompt: '/cco Implement REST API for user authentication',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
 
       expect(response).toBeDefined();
-      expect(response.message).toBeDefined();
-      expect(response.message).toContain('subagent');
-      expect(response.message).toMatch(/backend-architect-(simple|moderate|complex)/);
-      expect(response.message).toContain('Implement REST API for user authentication');
+      expect(response.hookResponse).toBeDefined();
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toBeDefined();
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toContain('backend-architect');
+      expect(response.workflowId).toBeDefined();
     });
 
     it('should return agent injection response for valid frontend prompt', async () => {
@@ -61,16 +61,16 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: 'Create React component for user profile page',
+        prompt: '/cco Create React component for user profile page',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
 
       expect(response).toBeDefined();
-      expect(response.message).toBeDefined();
-      expect(response.message).toContain('subagent');
-      expect(response.message).toMatch(/frontend-architect-(simple|moderate|complex)/);
-      expect(response.message).toContain('Create React component for user profile page');
+      expect(response.hookResponse).toBeDefined();
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toBeDefined();
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toContain('frontend-architect');
+      expect(response.workflowId).toBeDefined();
     });
 
     it('should return agent injection response for debug prompt', async () => {
@@ -79,31 +79,31 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: 'Fix NullPointerException in authentication service',
+        prompt: '/cco Fix NullPointerException in authentication service',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
 
       expect(response).toBeDefined();
-      expect(response.message).toBeDefined();
-      expect(response.message).toContain('subagent');
-      expect(response.message).toMatch(/debugger-(simple|moderate|complex)/);
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toBeDefined();
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toContain('debugger');
+      expect(response.workflowId).toBeDefined();
     });
 
-    it('should return response in PRD §6.1 format', async () => {
+    it('should return response with Task tool invocation format', async () => {
       const payload = {
         session_id: 'test-session-004',
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: 'Add logging to payment service',
+        prompt: '/cco Add logging to payment service',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
 
-      // PRD §6.1: "Use the {agent-role}-{complexity} subagent to:\n{userPrompt}"
-      expect(response.message).toMatch(/^Use the \w+-\w+-(simple|moderate|complex) subagent to:/);
-      expect(response.message).toContain('Add logging to payment service');
+      const context = response.hookResponse.hookSpecificOutput?.additionalContext || '';
+      expect(context).toContain('Task tool');
+      expect(context).toContain('subagent_type');
     });
 
     it('should not include API submission reminder in response', async () => {
@@ -112,15 +112,13 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: 'Refactor user repository',
+        prompt: '/cco Refactor user repository',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
 
-      // Should NOT mention API submission (that's handled by PostToolUse hook)
-      expect(response.message).not.toContain('submit');
-      expect(response.message).not.toContain('POST /api');
-      expect(response.message).not.toContain('API endpoint');
+      const context = response.hookResponse.hookSpecificOutput?.additionalContext || '';
+      expect(context).not.toContain('POST /api');
     });
   });
 
@@ -137,8 +135,8 @@ describe('UserPromptSubmit Hook Handler', () => {
       const response = await handleUserPromptSubmit(payload as any, orchestrator);
 
       expect(response).toBeDefined();
-      expect(response.message).toBeDefined();
-      expect(response.message?.toLowerCase()).toContain('error');
+      expect(response.hookResponse.message).toBeDefined();
+      expect(response.hookResponse.message?.toLowerCase()).toContain('error');
     });
 
     it('should return error response for empty prompt', async () => {
@@ -153,11 +151,11 @@ describe('UserPromptSubmit Hook Handler', () => {
       const response = await handleUserPromptSubmit(payload, orchestrator);
 
       expect(response).toBeDefined();
-      expect(response.message).toBeDefined();
-      expect(response.message?.toLowerCase()).toContain('error');
+      expect(response.hookResponse.message).toBeDefined();
+      expect(response.hookResponse.message?.toLowerCase()).toContain('error');
     });
 
-    it('should return error response for whitespace-only prompt', async () => {
+    it('should skip orchestration for whitespace-only prompt without trigger', async () => {
       const payload = {
         session_id: 'test-session-008',
         transcript_path: '/tmp/transcript.json',
@@ -169,8 +167,9 @@ describe('UserPromptSubmit Hook Handler', () => {
       const response = await handleUserPromptSubmit(payload, orchestrator);
 
       expect(response).toBeDefined();
-      expect(response.message).toBeDefined();
-      expect(response.message?.toLowerCase()).toContain('error');
+      expect(response.hookResponse.continue).toBe(true);
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toBeUndefined();
+      expect(response.workflowId).toBeUndefined();
     });
   });
 
@@ -181,7 +180,7 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: 'Valid prompt',
+        prompt: '/cco Valid prompt',
       };
 
       // Create a failing orchestrator by passing invalid dependencies
@@ -190,9 +189,9 @@ describe('UserPromptSubmit Hook Handler', () => {
       const response = await handleUserPromptSubmit(payload, failingOrchestrator);
 
       expect(response).toBeDefined();
-      expect(response.message).toBeDefined();
-      expect(response.message?.toLowerCase()).toContain('error');
-      expect(response.message).toContain('Failed to process');
+      expect(response.hookResponse.message).toBeDefined();
+      expect(response.hookResponse.message?.toLowerCase()).toContain('error');
+      expect(response.hookResponse.message).toContain('Failed to process');
     });
   });
 
@@ -203,24 +202,169 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: 'Implement user service',
+        prompt: '/cco Implement user service',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
 
-      // Hook response should have optional fields: message, decision, hookSpecificOutput
-      expect(response).toHaveProperty('message');
-      expect(typeof response.message).toBe('string');
+      // Handler returns HandlerResponse with hookResponse and workflowId
+      expect(response).toHaveProperty('hookResponse');
+      expect(response.hookResponse).toBeDefined();
+      expect(response.hookResponse.continue).toBe(true);
+      expect(response.hookResponse.hookSpecificOutput).toBeDefined();
+      expect(response.hookResponse.hookSpecificOutput?.hookEventName).toBe('UserPromptSubmit');
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toBeDefined();
+      expect(response.workflowId).toBeDefined();
+    });
+  });
 
-      // decision is optional, but if present should be 'allow' or 'block'
-      if ('decision' in response) {
-        expect(['allow', 'block']).toContain(response.decision);
-      }
+  describe('Trigger detection (/cco and /c2o prefixes)', () => {
+    it('should trigger orchestration with /cco prefix', async () => {
+      const payload = {
+        session_id: 'test-session-trigger-001',
+        transcript_path: '/tmp/transcript.json',
+        cwd: '/home/user/project',
+        hook_event_name: 'UserPromptSubmit',
+        prompt: '/cco Design a REST API for user management',
+      };
 
-      // hookSpecificOutput is optional
-      if ('hookSpecificOutput' in response) {
-        expect(typeof response.hookSpecificOutput).toBe('object');
-      }
+      const response = await handleUserPromptSubmit(payload, orchestrator);
+
+      expect(response).toBeDefined();
+      expect(response.hookResponse).toBeDefined();
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toBeDefined();
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toContain('backend-architect');
+      expect(response.workflowId).toBeDefined();
+    });
+
+    it('should trigger orchestration with /c2o prefix (alias)', async () => {
+      const payload = {
+        session_id: 'test-session-trigger-002',
+        transcript_path: '/tmp/transcript.json',
+        cwd: '/home/user/project',
+        hook_event_name: 'UserPromptSubmit',
+        prompt: '/c2o Implement authentication system',
+      };
+
+      const response = await handleUserPromptSubmit(payload, orchestrator);
+
+      expect(response).toBeDefined();
+      expect(response.hookResponse).toBeDefined();
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toBeDefined();
+      expect(response.workflowId).toBeDefined();
+    });
+
+    it('should work with case-insensitive trigger (/CCO)', async () => {
+      const payload = {
+        session_id: 'test-session-trigger-003',
+        transcript_path: '/tmp/transcript.json',
+        cwd: '/home/user/project',
+        hook_event_name: 'UserPromptSubmit',
+        prompt: '/CCO Design a frontend component',
+      };
+
+      const response = await handleUserPromptSubmit(payload, orchestrator);
+
+      expect(response).toBeDefined();
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toBeDefined();
+      expect(response.workflowId).toBeDefined();
+    });
+
+    it('should work with case-insensitive trigger (/C2O)', async () => {
+      const payload = {
+        session_id: 'test-session-trigger-004',
+        transcript_path: '/tmp/transcript.json',
+        cwd: '/home/user/project',
+        hook_event_name: 'UserPromptSubmit',
+        prompt: '/C2O Fix memory leak',
+      };
+
+      const response = await handleUserPromptSubmit(payload, orchestrator);
+
+      expect(response).toBeDefined();
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toBeDefined();
+      expect(response.workflowId).toBeDefined();
+    });
+
+    it('should handle extra whitespace after trigger', async () => {
+      const payload = {
+        session_id: 'test-session-trigger-005',
+        transcript_path: '/tmp/transcript.json',
+        cwd: '/home/user/project',
+        hook_event_name: 'UserPromptSubmit',
+        prompt: '/cco    Design with extra spaces',
+      };
+
+      const response = await handleUserPromptSubmit(payload, orchestrator);
+
+      expect(response).toBeDefined();
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toBeDefined();
+      expect(response.workflowId).toBeDefined();
+    });
+
+    it('should skip orchestration when no trigger present', async () => {
+      const payload = {
+        session_id: 'test-session-trigger-006',
+        transcript_path: '/tmp/transcript.json',
+        cwd: '/home/user/project',
+        hook_event_name: 'UserPromptSubmit',
+        prompt: 'Normal conversation without trigger',
+      };
+
+      const response = await handleUserPromptSubmit(payload, orchestrator);
+
+      expect(response).toBeDefined();
+      expect(response.hookResponse).toBeDefined();
+      expect(response.hookResponse.continue).toBe(true);
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toBeUndefined();
+      expect(response.workflowId).toBeUndefined();
+    });
+
+    it('should skip orchestration for prompts mentioning trigger in text', async () => {
+      const payload = {
+        session_id: 'test-session-trigger-007',
+        transcript_path: '/tmp/transcript.json',
+        cwd: '/home/user/project',
+        hook_event_name: 'UserPromptSubmit',
+        prompt: 'Let me tell you about /cco syntax',
+      };
+
+      const response = await handleUserPromptSubmit(payload, orchestrator);
+
+      expect(response).toBeDefined();
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toBeUndefined();
+      expect(response.workflowId).toBeUndefined();
+    });
+
+    it('should skip orchestration for trigger without space', async () => {
+      const payload = {
+        session_id: 'test-session-trigger-008',
+        transcript_path: '/tmp/transcript.json',
+        cwd: '/home/user/project',
+        hook_event_name: 'UserPromptSubmit',
+        prompt: '/ccoDesign something',
+      };
+
+      const response = await handleUserPromptSubmit(payload, orchestrator);
+
+      expect(response).toBeDefined();
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toBeUndefined();
+      expect(response.workflowId).toBeUndefined();
+    });
+
+    it('should extract clean prompt without trigger', async () => {
+      const payload = {
+        session_id: 'test-session-trigger-009',
+        transcript_path: '/tmp/transcript.json',
+        cwd: '/home/user/project',
+        hook_event_name: 'UserPromptSubmit',
+        prompt: '/cco Design a REST API',
+      };
+
+      const response = await handleUserPromptSubmit(payload, orchestrator);
+
+      // The orchestrator should receive "Design a REST API" without the "/cco" prefix
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).not.toContain('/cco');
     });
   });
 });

@@ -159,9 +159,9 @@ describe('Orchestrator Coordinator', () => {
 
       const result = await orchestrator.handleUserPrompt(userPrompt);
 
-      // Verify prompt format matches PRD §6.1
-      expect(result.prompt).toContain('Use the backend-architect-complex subagent');
-      expect(result.prompt).toContain(userPrompt);
+      // Verify prompt format includes agent and task invocation instructions
+      expect(result.prompt).toContain('backend-architect-complex');
+      expect(result.prompt).toContain('Task tool');
     });
 
     it('should handle frontend workflow correctly', async () => {
@@ -333,9 +333,9 @@ describe('Orchestrator Coordinator', () => {
 
       const result = await orchestrator.handleAgentComplete(workflowId, agentResults);
 
-      // Verify prompt format matches PRD §6.2
-      expect(result.prompt).toContain('Use the backend-developer-moderate subagent');
-      expect(result.prompt).toContain('Review previous results');
+      // Verify prompt format includes agent and context
+      expect(result.prompt).toContain('backend-developer-moderate');
+      expect(result.prompt).toContain('Task tool');
       expect(result.previousContext).toContain('Architecture design complete');
     });
 

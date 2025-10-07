@@ -133,14 +133,25 @@ export function generateAgentPrompt(
   // Format tasks as numbered list
   const taskList = tasks.map((task, index) => `${index + 1}. ${task}`).join('\n');
 
-  return `Use the **${agentName}** subagent to complete the following tasks:
+  return `IMPORTANT: You must invoke the Task tool to complete this workflow step.
+
+**Required Tool Invocation**:
+- Tool: Task
+- subagent_type: ${agentName}
+- description: ${chain.agentRole} (step ${chain.stepNumber})
 
 ${taskPrefix}
 
-**Tasks**:
+**Tasks to complete**:
 ${taskList}
 
-Execute these tasks and provide results when complete.`;
+**Instructions**:
+1. Invoke the Task tool with subagent_type="${agentName}"
+2. Include all task details in the prompt parameter
+3. Wait for the subagent to complete and return results
+${context ? '4. Consider the previous agent context when formulating your task prompt' : ''}
+
+Execute the Task tool now to proceed with the workflow.`;
 }
 
 /**

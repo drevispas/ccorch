@@ -214,7 +214,7 @@ describe('Prompt Generator Service', () => {
 
       expect(prompt).toMatch(/1\./);
       expect(prompt).toMatch(/2\./);
-      expect(prompt).toContain('**Tasks**:');
+      expect(prompt).toContain('**Tasks to complete**:');
     });
 
     it('should handle all complexity levels consistently', () => {

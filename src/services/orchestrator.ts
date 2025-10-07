@@ -11,6 +11,7 @@ import { parseIntent } from './prompt-parser';
 import { analyzeComplexity } from './complexity-analyzer';
 import { resolveChain } from './chain-resolver';
 import { buildContextForAgent } from './context-serializer';
+import { generateAgentPrompt } from './prompt-generator';
 import type { StateManager } from './state-manager';
 import type { IAgentResultRepository, AgentResultCreateInput } from '../types/repositories';
 import { ChainName, AgentRole } from '../types/workflow';
@@ -122,7 +123,7 @@ export class Orchestrator {
     const firstAgent = agentSequence[0];
 
     // 6. Generate first agent prompt (PRD §6.1 format)
-    const prompt = this.generateFirstAgentPrompt(firstAgent, complexity, userPrompt);
+    const prompt = this.generateFirstAgentPrompt(firstAgent, complexity, chainName);
 
     // 7. Log workflow creation decision
     console.log(JSON.stringify({
@@ -222,8 +223,9 @@ export class Orchestrator {
     const prompt = this.generateNextAgentPrompt(
       nextAgent,
       workflow.complexity,
-      previousContext,
-      workflow.userPrompt
+      workflow.chainName as ChainName,
+      updatedWorkflow.currentStep,
+      previousContext
     );
 
     // 9. Log agent transition
@@ -248,48 +250,55 @@ export class Orchestrator {
   /**
    * Generate first agent prompt (PRD §6.1 format)
    *
-   * Format: "Use the {agent-role}-{complexity} subagent to:\n{userPrompt}"
+   * Uses prompt-generator service to create actionable Task tool invocation prompts
    *
    * @param agentRole - Agent role
    * @param complexity - Complexity level
-   * @param userPrompt - User's original prompt
+   * @param chainName - Workflow chain name
    * @returns Formatted prompt for first agent
    */
   private generateFirstAgentPrompt(
     agentRole: AgentRole,
     complexity: string,
-    userPrompt: string
+    chainName: string
   ): string {
-    return `Use the ${agentRole}-${complexity} subagent to:\n${userPrompt}`;
+    return generateAgentPrompt({
+      chainName,
+      agentRole,
+      complexity,
+      stepNumber: 1,
+    });
   }
 
   /**
    * Generate next agent prompt with context (PRD §6.2 format)
    *
-   * Format: "Use the {agent-role}-{complexity} subagent to:\n
-   *          Review previous results:\n{context}\n\n{userPrompt}"
+   * Uses prompt-generator service to create actionable Task tool invocation prompts
+   * with context from previous agents
    *
    * @param agentRole - Next agent role
    * @param complexity - Complexity level
+   * @param chainName - Workflow chain name
+   * @param stepNumber - Current step in workflow (1-indexed)
    * @param previousContext - Context from previous agents
-   * @param userPrompt - User's original prompt
    * @returns Formatted prompt for next agent
    */
   private generateNextAgentPrompt(
     agentRole: AgentRole,
     complexity: string,
-    previousContext: string,
-    userPrompt: string
+    chainName: ChainName,
+    stepNumber: number,
+    previousContext?: string
   ): string {
-    let prompt = `Use the ${agentRole}-${complexity} subagent to:\n`;
-
-    if (previousContext) {
-      prompt += `Review previous results:\n${previousContext}\n\n`;
-    }
-
-    prompt += `Continue with: ${userPrompt}`;
-
-    return prompt;
+    return generateAgentPrompt(
+      {
+        chainName,
+        agentRole,
+        complexity,
+        stepNumber,
+      },
+      previousContext
+    );
   }
 
   /**

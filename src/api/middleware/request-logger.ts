@@ -19,14 +19,12 @@ export const requestLoggerMiddleware = (
 ): void => {
   const startTime = Date.now();
 
-  // Log incoming request
+  // Log incoming request (concise - only essential fields)
   logger.info(
     {
       requestId: req.id,
       method: req.method,
       path: req.path,
-      query: req.query,
-      ip: req.ip
     },
     'Incoming request'
   );
@@ -39,16 +37,21 @@ export const requestLoggerMiddleware = (
   res.end = function (chunk?: any, encoding?: any, callback?: any): any {
     const duration = Date.now() - startTime;
 
-    logger.info(
-      {
-        requestId: req.id,
-        method: req.method,
-        path: req.path,
-        statusCode: res.statusCode,
-        duration: `${duration}ms`
-      },
-      'Request completed'
-    );
+    // Include workflowId if available (set by hook handlers for tracing)
+    const logData: Record<string, any> = {
+      requestId: req.id,
+      method: req.method,
+      path: req.path,
+      statusCode: res.statusCode,
+      duration: `${duration}ms`,
+    };
+
+    // Add workflowId if present (distributed tracing)
+    if ((req as any).workflowId) {
+      logData.workflowId = (req as any).workflowId;
+    }
+
+    logger.info(logData, 'Request completed');
 
     // Call original end function
     return originalEnd.call(this, chunk, encoding, callback);
