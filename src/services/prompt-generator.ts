@@ -103,13 +103,13 @@ export function generateAgentPrompt(
       tasks.push('Document key design decisions and component interactions');
       break;
 
-    case 'backend-developer':
+    case 'java-backend-developer':
       tasks.push('Implement the backend functionality according to design');
       tasks.push('Write unit tests for new code');
       tasks.push('Ensure proper error handling and logging');
       break;
 
-    case 'frontend-developer':
+    case 'nextjs-react-developer':
       tasks.push('Implement the frontend components and UI');
       tasks.push('Ensure responsive design and accessibility');
       tasks.push('Write component tests');

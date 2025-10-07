@@ -113,7 +113,7 @@ describe('Prompt Generator Service', () => {
       const prompt = generateAgentPrompt(
         {
           chainName: 'backend-development',
-          agentRole: 'backend-developer',
+          agentRole: 'java-backend-developer',
           complexity: 'moderate',
           stepNumber: 1,
         },
@@ -152,7 +152,7 @@ describe('Prompt Generator Service', () => {
     it('should generate backend-developer-specific tasks', () => {
       const prompt = generateAgentPrompt({
         chainName: 'backend-development',
-        agentRole: 'backend-developer',
+        agentRole: 'java-backend-developer',
         complexity: 'moderate',
         stepNumber: 1,
       });
@@ -166,7 +166,7 @@ describe('Prompt Generator Service', () => {
     it('should generate frontend-developer-specific tasks', () => {
       const prompt = generateAgentPrompt({
         chainName: 'frontend-development',
-        agentRole: 'frontend-developer',
+        agentRole: 'nextjs-react-developer',
         complexity: 'moderate',
         stepNumber: 1,
       });
@@ -207,7 +207,7 @@ describe('Prompt Generator Service', () => {
     it('should format tasks as numbered list', () => {
       const prompt = generateAgentPrompt({
         chainName: 'backend-development',
-        agentRole: 'backend-developer',
+        agentRole: 'java-backend-developer',
         complexity: 'simple',
         stepNumber: 1,
       });
@@ -227,12 +227,12 @@ describe('Prompt Generator Service', () => {
       complexities.forEach((complexity) => {
         const prompt = generateAgentPrompt({
           chainName: 'backend-development',
-          agentRole: 'backend-developer',
+          agentRole: 'java-backend-developer',
           complexity,
           stepNumber: 1,
         });
 
-        expect(prompt).toContain(`backend-developer-${complexity}`);
+        expect(prompt).toContain(`java-backend-developer-${complexity}`);
         expect(prompt).toContain('Tasks');
       });
     });

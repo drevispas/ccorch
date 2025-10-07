@@ -37,7 +37,7 @@ describe('Context Serializer', () => {
       const agentResult: AgentResult = {
         id: 2,
         workflowId: 'wf-123',
-        agentRole: 'backend-developer',
+        agentRole: 'java-backend-developer',
         complexity: 'moderate',
         stepNumber: 1,
         results: JSON.stringify({
@@ -56,7 +56,7 @@ describe('Context Serializer', () => {
       const agentResult: AgentResult = {
         id: 3,
         workflowId: 'wf-123',
-        agentRole: 'backend-developer',
+        agentRole: 'java-backend-developer',
         complexity: 'moderate',
         stepNumber: 1,
         results: 'not valid json {',
@@ -148,7 +148,7 @@ describe('Context Serializer', () => {
         {
           id: 2,
           workflowId: 'wf-123',
-          agentRole: 'backend-developer',
+          agentRole: 'java-backend-developer',
           complexity: 'moderate',
           stepNumber: 1,
           results: JSON.stringify({
@@ -164,7 +164,7 @@ describe('Context Serializer', () => {
       expect(context).toBe(
         'Previous agent results:\n' +
           '1. [backend-architect]: Designed REST API with authentication\n' +
-          '2. [backend-developer]: Implemented authentication endpoints'
+          '2. [java-backend-developer]: Implemented authentication endpoints'
       );
     });
 
@@ -193,7 +193,7 @@ describe('Context Serializer', () => {
         {
           id: 2,
           workflowId: 'wf-123',
-          agentRole: 'backend-developer',
+          agentRole: 'java-backend-developer',
           complexity: 'moderate',
           stepNumber: 1,
           results: JSON.stringify({
@@ -240,7 +240,7 @@ describe('Context Serializer', () => {
         {
           id: 2,
           workflowId: 'wf-123',
-          agentRole: 'backend-developer',
+          agentRole: 'java-backend-developer',
           complexity: 'moderate',
           stepNumber: 1,
           results: JSON.stringify({
@@ -253,7 +253,7 @@ describe('Context Serializer', () => {
 
       const context = buildContextForAgent(agentResults);
 
-      expect(context).toBe('Previous agent results:\n1. [backend-developer]: Implemented endpoints');
+      expect(context).toBe('Previous agent results:\n1. [java-backend-developer]: Implemented endpoints');
     });
 
     it('should maintain agent order based on array order', () => {
@@ -285,7 +285,7 @@ describe('Context Serializer', () => {
         {
           id: 2,
           workflowId: 'wf-123',
-          agentRole: 'backend-developer',
+          agentRole: 'java-backend-developer',
           complexity: 'moderate',
           stepNumber: 1,
           results: JSON.stringify({
@@ -302,7 +302,7 @@ describe('Context Serializer', () => {
         'Previous agent results:\n' +
           '1. [reviewer]: Third step\n' +
           '2. [backend-architect]: First step\n' +
-          '3. [backend-developer]: Second step'
+          '3. [java-backend-developer]: Second step'
       );
     });
 
@@ -333,7 +333,7 @@ describe('Context Serializer', () => {
         {
           id: 1,
           workflowId: 'wf-123',
-          agentRole: 'backend-developer',
+          agentRole: 'java-backend-developer',
           complexity: 'complex',
           stepNumber: 0,
           results: JSON.stringify({
@@ -346,7 +346,7 @@ describe('Context Serializer', () => {
 
       const context = buildContextForAgent(agentResults);
 
-      expect(context).toBe(`Previous agent results:\n1. [backend-developer]: ${longSummary}`);
+      expect(context).toBe(`Previous agent results:\n1. [java-backend-developer]: ${longSummary}`);
     });
   });
 });

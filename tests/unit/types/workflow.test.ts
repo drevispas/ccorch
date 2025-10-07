@@ -87,8 +87,8 @@ describe('AgentRole Enum', () => {
     const expectedRoles = [
       'backend-architect',
       'frontend-architect',
-      'backend-developer',
-      'frontend-developer',
+      'java-backend-developer',
+      'nextjs-react-developer',
       'reviewer',
       'debugger',
       'e2e-test-architect',
@@ -104,7 +104,8 @@ describe('AgentRole Enum', () => {
   it('should use kebab-case values', () => {
     expect(AgentRole.BACKEND_ARCHITECT).toBe('backend-architect');
     expect(AgentRole.FRONTEND_ARCHITECT).toBe('frontend-architect');
-    expect(AgentRole.BACKEND_DEVELOPER).toBe('backend-developer');
+    expect(AgentRole.BACKEND_DEVELOPER).toBe('java-backend-developer');
+    expect(AgentRole.FRONTEND_DEVELOPER).toBe('nextjs-react-developer');
     expect(AgentRole.E2E_TEST_ARCHITECT).toBe('e2e-test-architect');
   });
 });
@@ -197,7 +198,7 @@ describe('AgentRoleSchema', () => {
   it('should accept valid agent roles', () => {
     const validRoles = [
       'backend-architect',
-      'frontend-developer',
+      'nextjs-react-developer',
       'reviewer',
       'debugger',
     ];
@@ -247,7 +248,7 @@ describe('WorkflowStatusSchema', () => {
 describe('IntentSchema', () => {
   it('should accept valid intent with roles and keywords', () => {
     const validIntent = {
-      roles: ['backend-architect', 'backend-developer'],
+      roles: ['backend-architect', 'java-backend-developer'],
       keywords: ['api', 'database', 'rest'],
     };
 
@@ -389,7 +390,7 @@ describe('AgentTaskSchema', () => {
 
   it('should reject task with empty instructions', () => {
     const invalidTask = {
-      role: 'backend-developer',
+      role: 'java-backend-developer',
       complexity: 'simple',
       stepNumber: 1,
       instructions: '',
@@ -507,7 +508,7 @@ describe('isComplexity Type Guard', () => {
 describe('isAgentRole Type Guard', () => {
   it('should return true for valid agent roles', () => {
     expect(isAgentRole('backend-architect')).toBe(true);
-    expect(isAgentRole('frontend-developer')).toBe(true);
+    expect(isAgentRole('nextjs-react-developer')).toBe(true);
     expect(isAgentRole('reviewer')).toBe(true);
     expect(isAgentRole('debugger')).toBe(true);
     expect(isAgentRole('e2e-test-architect')).toBe(true);

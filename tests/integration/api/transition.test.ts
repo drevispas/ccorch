@@ -339,7 +339,7 @@ describe('POST /api/workflows/:id/transition', () => {
         current_step: 1,
         status: 'ACTIVE',
       });
-      expect(response.body.next_agent).toContain('backend-developer');
+      expect(response.body.next_agent).toContain('java-backend-developer');
 
       // Verify current step unchanged
       const updated = await workflowRepo.findById(workflow.id);
@@ -378,7 +378,7 @@ describe('POST /api/workflows/:id/transition', () => {
         current_step: 1,
         status: 'ACTIVE',
       });
-      expect(response.body.next_agent).toContain('backend-developer');
+      expect(response.body.next_agent).toContain('java-backend-developer');
 
       // Verify step incremented
       const updated = await workflowRepo.findById(workflow.id);

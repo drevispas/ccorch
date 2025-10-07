@@ -144,7 +144,7 @@ describe('Prompt Template Integration Tests', () => {
       );
 
       // Verify PRD §6.2 format
-      expect(prompt).toContain('Use the backend-developer-moderate subagent to:');
+      expect(prompt).toContain('Use the java-backend-developer-moderate subagent to:');
       expect(prompt).toContain('Review previous results:');
       expect(prompt).toContain('Backend architect designed JWT-based auth system');
       expect(prompt).toContain('Continue with: Implement the authentication system');
@@ -191,7 +191,7 @@ describe('Prompt Template Integration Tests', () => {
     it('should handle multiple previous agents in context', () => {
       const multiContext = `Previous agent results:
 1. [backend-architect]: Designed API with JWT auth
-2. [backend-developer]: Implemented authentication endpoints`;
+2. [java-backend-developer]: Implemented authentication endpoints`;
 
       const prompt = generateNextAgentPrompt(
         AgentRole.REVIEWER,
@@ -325,7 +325,7 @@ describe('Prompt Template Integration Tests', () => {
         step2Context
       );
 
-      expect(step2Prompt).toContain('backend-developer-moderate');
+      expect(step2Prompt).toContain('java-backend-developer-moderate');
       expect(step2Prompt).toContain('Review previous results:');
       expect(step2Prompt).toContain('Designed RESTful API for user CRUD operations');
 
@@ -343,7 +343,7 @@ describe('Prompt Template Integration Tests', () => {
 
       // Step 3: Reviewer (final agent)
       const step3Context = `1. [backend-architect]: Designed RESTful API for user CRUD operations
-2. [backend-developer]: Implemented all user CRUD endpoints with validation`;
+2. [java-backend-developer]: Implemented all user CRUD endpoints with validation`;
       const step3Prompt = generateNextAgentPrompt(
         AgentRole.REVIEWER,
         Complexity.MODERATE,
@@ -396,7 +396,7 @@ describe('Prompt Template Integration Tests', () => {
         'Design: React component with avatar, name, email fields'
       );
 
-      expect(step2).toContain('frontend-developer-simple');
+      expect(step2).toContain('nextjs-react-developer-simple');
       expect(step2).toContain('React component with avatar');
 
       // Step 3: Reviewer
@@ -440,7 +440,7 @@ describe('Prompt Template Integration Tests', () => {
         'Root cause: Token expiry set to 5 minutes, should be 15 minutes'
       );
 
-      expect(step2).toContain('backend-developer-moderate');
+      expect(step2).toContain('java-backend-developer-moderate');
       expect(step2).toContain('Token expiry set to 5 minutes');
     });
   });
@@ -468,7 +468,7 @@ describe('Prompt Template Integration Tests', () => {
       const prompt = generateAgentPrompt(
         {
           chainName: 'backend-development',
-          agentRole: 'backend-developer',
+          agentRole: 'java-backend-developer',
           complexity: Complexity.MODERATE,
           stepNumber: 1,
         },
@@ -476,7 +476,7 @@ describe('Prompt Template Integration Tests', () => {
         'wf-with-context'
       );
 
-      expect(prompt).toContain('backend-developer-moderate');
+      expect(prompt).toContain('java-backend-developer-moderate');
       expect(prompt).toContain('previous');
     });
   });

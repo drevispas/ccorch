@@ -45,8 +45,8 @@ export enum Complexity {
 export enum AgentRole {
   BACKEND_ARCHITECT = 'backend-architect',
   FRONTEND_ARCHITECT = 'frontend-architect',
-  BACKEND_DEVELOPER = 'backend-developer',
-  FRONTEND_DEVELOPER = 'frontend-developer',
+  BACKEND_DEVELOPER = 'java-backend-developer',
+  FRONTEND_DEVELOPER = 'nextjs-react-developer',
   REVIEWER = 'reviewer',
   DEBUGGER = 'debugger',
   E2E_TEST_ARCHITECT = 'e2e-test-architect',

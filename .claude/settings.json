@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "curl -X POST -H 'X-Hook-Secret: secret' -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/user-prompt-submit"
+            "command": "bash .claude/hooks/user-prompt-submit.sh"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "curl -X POST -H 'X-Hook-Secret: secret' -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/post-tool-use"
+            "command": "bash .claude/hooks/post-tool-use.sh"
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "curl -X POST -H 'X-Hook-Secret: secret' -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/stop"
+            "command": "bash .claude/hooks/stop.sh"
           }
         ]
       }

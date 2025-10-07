@@ -91,8 +91,8 @@ export function validateHookResponse(response: unknown): ValidationResult {
       const agentRoles = [
         'backend-architect',
         'frontend-architect',
-        'backend-developer',
-        'frontend-developer',
+        'java-backend-developer',
+        'nextjs-react-developer',
         'reviewer',
         'debugger',
         'e2e-test-architect',

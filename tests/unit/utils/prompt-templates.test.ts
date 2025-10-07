@@ -67,7 +67,7 @@ describe('Prompt Templates', () => {
       );
 
       expect(simplePrompt).toContain('reviewer-simple');
-      expect(complexPrompt).toContain('backend-developer-complex');
+      expect(complexPrompt).toContain('java-backend-developer-complex');
     });
 
     it('should not have undefined placeholders', () => {
@@ -110,7 +110,7 @@ describe('Prompt Templates', () => {
         previousContext
       );
 
-      expect(prompt).toContain('Use the backend-developer-moderate subagent to:');
+      expect(prompt).toContain('Use the java-backend-developer-moderate subagent to:');
       expect(prompt).toContain('Review previous results:');
       expect(prompt).toContain('Designed API with JWT auth');
       expect(prompt).toContain('Implement the designed API');
@@ -137,7 +137,7 @@ describe('Prompt Templates', () => {
         ''
       );
 
-      expect(prompt).toContain('backend-developer-moderate');
+      expect(prompt).toContain('java-backend-developer-moderate');
       expect(prompt).toContain('Continue implementation');
       expect(prompt).not.toContain('Review previous results:');
     });
@@ -293,7 +293,7 @@ describe('Prompt Templates', () => {
 
       // Step 3: Final agent with accumulated context
       const context2 =
-        'Previous agent results:\n1. [backend-architect]: Designed JWT-based auth\n2. [backend-developer]: Implemented auth endpoints';
+        'Previous agent results:\n1. [backend-architect]: Designed JWT-based auth\n2. [java-backend-developer]: Implemented auth endpoints';
       const step3 = generateNextAgentPrompt(
         AgentRole.REVIEWER,
         Complexity.MODERATE,
@@ -310,7 +310,7 @@ describe('Prompt Templates', () => {
 
       // Verify progression
       expect(step1).toContain('backend-architect-moderate');
-      expect(step2).toContain('backend-developer-moderate');
+      expect(step2).toContain('java-backend-developer-moderate');
       expect(step2).toContain('Designed JWT-based auth');
       expect(step3).toContain('reviewer-moderate');
       expect(step3).toContain('Implemented auth endpoints');

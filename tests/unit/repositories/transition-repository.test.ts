@@ -36,7 +36,7 @@ describe('TransitionRepository', () => {
       fromStep: 0,
       toStep: 1,
       fromAgent: 'architect',
-      toAgent: 'backend-developer',
+      toAgent: 'java-backend-developer',
       reason: 'Architecture design completed successfully',
       createdAt: BigInt(Date.now()),
     };
@@ -49,7 +49,7 @@ describe('TransitionRepository', () => {
         fromStep: 0,
         toStep: 1,
         fromAgent: 'architect',
-        toAgent: 'backend-developer',
+        toAgent: 'java-backend-developer',
         reason: 'Design approved',
       };
 
@@ -77,7 +77,7 @@ describe('TransitionRepository', () => {
         fromStep: 0,
         toStep: 1,
         fromAgent: 'architect',
-        toAgent: 'backend-developer',
+        toAgent: 'java-backend-developer',
       };
 
       const defaultReasonTransition = {
@@ -155,7 +155,7 @@ describe('TransitionRepository', () => {
         fromStep: 2,
         toStep: 1,
         fromAgent: 'reviewer',
-        toAgent: 'backend-developer',
+        toAgent: 'java-backend-developer',
         reason: 'Issues found, returning to developer',
       };
 
@@ -181,7 +181,7 @@ describe('TransitionRepository', () => {
         workflowId: 'test-workflow-id',
         fromStep: 1,
         toStep: 3,
-        fromAgent: 'backend-developer',
+        fromAgent: 'java-backend-developer',
         toAgent: 'reviewer',
         reason: detailedReason,
       };
@@ -316,7 +316,7 @@ describe('TransitionRepository', () => {
           fromStep: 1,
           toStep: 2,
           fromAgent: 'architect',
-          toAgent: 'backend-developer',
+          toAgent: 'java-backend-developer',
           reason: 'Design approved',
           createdAt: BigInt(2000),
         },
@@ -325,7 +325,7 @@ describe('TransitionRepository', () => {
           id: 3,
           fromStep: 2,
           toStep: 3,
-          fromAgent: 'backend-developer',
+          fromAgent: 'java-backend-developer',
           toAgent: 'reviewer',
           reason: 'Implementation complete',
           createdAt: BigInt(3000),
@@ -336,7 +336,7 @@ describe('TransitionRepository', () => {
           fromStep: 3,
           toStep: 2,
           fromAgent: 'reviewer',
-          toAgent: 'backend-developer',
+          toAgent: 'java-backend-developer',
           reason: 'Issues found in error handling',
           createdAt: BigInt(4000),
         },
@@ -345,7 +345,7 @@ describe('TransitionRepository', () => {
           id: 5,
           fromStep: 2,
           toStep: 3,
-          fromAgent: 'backend-developer',
+          fromAgent: 'java-backend-developer',
           toAgent: 'reviewer',
           reason: 'Issues fixed',
           createdAt: BigInt(5000),
@@ -382,7 +382,7 @@ describe('TransitionRepository', () => {
         fromStep: 1,
         toStep: 2,
         fromAgent: 'architect',
-        toAgent: 'backend-developer',
+        toAgent: 'java-backend-developer',
         reason: 'Design approved after review',
       };
 
@@ -411,8 +411,8 @@ describe('TransitionRepository', () => {
         workflowId: 'test-workflow-id',
         fromStep: 1,
         toStep: 1,
-        fromAgent: 'backend-developer',
-        toAgent: 'backend-developer',
+        fromAgent: 'java-backend-developer',
+        toAgent: 'java-backend-developer',
         reason: 'Switching complexity from simple to moderate',
       };
 
@@ -435,7 +435,7 @@ describe('TransitionRepository', () => {
         fromStep: 1,
         toStep: 2,
         fromAgent: 'architect',
-        toAgent: 'backend-developer',
+        toAgent: 'java-backend-developer',
         reason: longReason,
       };
 
@@ -455,7 +455,7 @@ describe('TransitionRepository', () => {
         workflowId: 'test-workflow-id',
         fromStep: 1,
         toStep: 1,
-        fromAgent: 'backend-developer',
+        fromAgent: 'java-backend-developer',
         toAgent: null,
         reason: 'Build failed: compilation errors in auth module',
       };

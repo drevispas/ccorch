@@ -104,7 +104,7 @@ describe('Orchestrator Integration - E2E Flow', () => {
 
       expect(architectResponse.status).toBe('continue');
       expect(architectResponse.agentRole).toBe(AgentRole.BACKEND_DEVELOPER);
-      expect(architectResponse.prompt).toContain('backend-developer-moderate');
+      expect(architectResponse.prompt).toContain('java-backend-developer-moderate');
       expect(architectResponse.prompt).toContain('Review previous results');
       expect(architectResponse.prompt).toContain(
         'Designed REST API with JWT authentication endpoints'

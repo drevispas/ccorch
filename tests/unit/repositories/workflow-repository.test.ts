@@ -157,7 +157,7 @@ describe('WorkflowRepository', () => {
             fromStep: 0,
             toStep: 1,
             fromAgent: 'architect',
-            toAgent: 'backend-developer',
+            toAgent: 'java-backend-developer',
             reason: 'Design complete',
             createdAt: BigInt(Date.now()),
           },

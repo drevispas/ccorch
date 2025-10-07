@@ -279,7 +279,7 @@ describe('Orchestrator Coordinator', () => {
 
       expect(result).toEqual({
         workflowId,
-        prompt: expect.stringContaining('backend-developer-moderate'),
+        prompt: expect.stringContaining('java-backend-developer-moderate'),
         agentRole: AgentRole.BACKEND_DEVELOPER,
         complexity: 'moderate',
         previousContext: expect.stringContaining('Designed REST API'),
@@ -340,7 +340,7 @@ describe('Orchestrator Coordinator', () => {
       const result = await orchestrator.handleAgentComplete(workflowId, agentResults);
 
       // Verify prompt format includes agent and context
-      expect(result.prompt).toContain('backend-developer-moderate');
+      expect(result.prompt).toContain('java-backend-developer-moderate');
       expect(result.prompt).toContain('Task tool');
       expect(result.previousContext).toContain('Architecture design complete');
     });

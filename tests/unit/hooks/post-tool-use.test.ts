@@ -130,7 +130,7 @@ describe('PostToolUse Hook Handler', () => {
       const response = await handlePostToolUse(payload, orchestrator, workflowRepo);
 
       // PRD §6.2: Format includes agent type and previous context
-      expect(response.hookSpecificOutput?.additionalContext).toContain('backend-developer-simple');
+      expect(response.hookSpecificOutput?.additionalContext).toContain('java-backend-developer-simple');
       expect(response.hookSpecificOutput?.additionalContext).toContain('Review previous agent results');
       expect(response.hookSpecificOutput?.additionalContext).toContain('Service architecture complete');
     });
@@ -199,7 +199,7 @@ describe('PostToolUse Hook Handler', () => {
 
       // Should return next agent prompt (not completion)
       expect(response.continue).toBe(true);
-      expect(response.hookSpecificOutput?.additionalContext).toContain('backend-developer');
+      expect(response.hookSpecificOutput?.additionalContext).toContain('java-backend-developer');
     });
   });
 
