@@ -18,6 +18,7 @@ import { setComplexity } from '../../../src/api/routes/complexity.js';
 import { WorkflowRepository } from '../../../src/models/workflow-repository.js';
 import { TransitionRepository } from '../../../src/models/transition-repository.js';
 import { generateComplexityAnalysisPrompt } from '../../../src/services/prompt-generator.js';
+import { Complexity } from '../../../src/types/workflow.js';
 
 describe('E2E Complexity Flow', () => {
   let prisma: PrismaClient;
@@ -64,6 +65,7 @@ describe('E2E Complexity Flow', () => {
       const draftComplexity = 'moderate'; // Initial guess
 
       const workflow = await workflowRepo.createWorkflow({
+        sessionId: 'test-session-complexity-001',
         userPrompt,
         chainName: 'backend-development',
         complexity: draftComplexity,
@@ -140,6 +142,7 @@ describe('E2E Complexity Flow', () => {
       const draftComplexity = 'simple';
 
       const workflow = await workflowRepo.createWorkflow({
+        sessionId: 'test-session-complexity-002',
         userPrompt,
         chainName: 'frontend-development',
         complexity: draftComplexity,
@@ -170,6 +173,7 @@ describe('E2E Complexity Flow', () => {
       const draftComplexity = 'complex'; // Initial guess is high
 
       const workflow = await workflowRepo.createWorkflow({
+        sessionId: 'test-session-complexity-003',
         userPrompt,
         chainName: 'debug',
         complexity: draftComplexity,
@@ -200,6 +204,7 @@ describe('E2E Complexity Flow', () => {
       const draftComplexity = 'simple'; // Initial guess is low
 
       const workflow = await workflowRepo.createWorkflow({
+        sessionId: 'test-session-complexity-004',
         userPrompt,
         chainName: 'backend-development',
         complexity: draftComplexity,
@@ -229,6 +234,7 @@ describe('E2E Complexity Flow', () => {
   describe('Different Workflow Chains', () => {
     it('should handle backend-development chain with complexity', async () => {
       const workflow = await workflowRepo.createWorkflow({
+        sessionId: 'test-session-complexity-005',
         userPrompt: 'Implement payment processing',
         chainName: 'backend-development',
         complexity: 'moderate',
@@ -251,6 +257,7 @@ describe('E2E Complexity Flow', () => {
 
     it('should handle frontend-development chain with complexity', async () => {
       const workflow = await workflowRepo.createWorkflow({
+        sessionId: 'test-session-complexity-006',
         userPrompt: 'Create dashboard component',
         chainName: 'frontend-development',
         complexity: 'simple',
@@ -273,6 +280,7 @@ describe('E2E Complexity Flow', () => {
 
     it('should handle debug chain with complexity', async () => {
       const workflow = await workflowRepo.createWorkflow({
+        sessionId: 'test-session-complexity-007',
         userPrompt: 'Debug memory leak issue',
         chainName: 'debug',
         complexity: 'moderate',
@@ -294,6 +302,7 @@ describe('E2E Complexity Flow', () => {
 
     it('should handle single-agent chains with complexity', async () => {
       const workflow = await workflowRepo.createWorkflow({
+        sessionId: 'test-session-complexity-008',
         userPrompt: 'Review code quality',
         chainName: 'review-only',
         complexity: 'simple',
@@ -320,6 +329,7 @@ describe('E2E Complexity Flow', () => {
       const userPrompt = 'Build complex microservices architecture with event sourcing';
 
       const workflow = await workflowRepo.createWorkflow({
+        sessionId: 'test-session-complexity-009',
         userPrompt,
         chainName: 'backend-development',
         complexity: 'moderate',
@@ -338,6 +348,7 @@ describe('E2E Complexity Flow', () => {
 
     it('should record complexity reasoning in transitions', async () => {
       const workflow = await workflowRepo.createWorkflow({
+        sessionId: 'test-session-complexity-010',
         userPrompt: 'Test task',
         chainName: 'backend-development',
         complexity: 'moderate',
@@ -360,6 +371,7 @@ describe('E2E Complexity Flow', () => {
 
     it('should handle workflow already in ACTIVE state (409)', async () => {
       const workflow = await workflowRepo.createWorkflow({
+        sessionId: 'test-session-complexity-011',
         userPrompt: 'Task',
         chainName: 'backend-development',
         complexity: 'moderate',
@@ -417,7 +429,7 @@ describe('E2E Complexity Flow', () => {
       for (const testCase of testCases) {
         const prompt = generateComplexityAnalysisPrompt(
           testCase.userPrompt,
-          testCase.expectedDraft,
+          testCase.expectedDraft as Complexity,
           'wf-test',
           'http://localhost:3000'
         );

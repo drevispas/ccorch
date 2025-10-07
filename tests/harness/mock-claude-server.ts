@@ -11,7 +11,7 @@
 import express, { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 
-const app = express();
+const app: express.Express = express();
 const PORT = 4000;
 const CCORCH_URL = process.env.CCORCH_URL || 'http://localhost:3000';
 const HOOK_SECRET = process.env.HOOK_SECRET || 'test-hook-secret';

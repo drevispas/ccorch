@@ -121,7 +121,7 @@ describe('Concurrent Workflow Isolation', () => {
         orchestrator.handleAgentComplete(workflow1.workflowId, {
           workflowId: workflow1.workflowId,
           agentRole: AgentRole.BACKEND_ARCHITECT,
-          complexity: workflow1.complexity,
+          complexity: workflow1.complexity as Complexity,
           stepNumber: 0,
           results: JSON.stringify({
             summary: 'Backend API design complete',
@@ -132,7 +132,7 @@ describe('Concurrent Workflow Isolation', () => {
         orchestrator.handleAgentComplete(workflow2.workflowId, {
           workflowId: workflow2.workflowId,
           agentRole: AgentRole.FRONTEND_ARCHITECT,
-          complexity: workflow2.complexity,
+          complexity: workflow2.complexity as Complexity,
           stepNumber: 0,
           results: JSON.stringify({
             summary: 'Frontend component design complete',
@@ -143,7 +143,7 @@ describe('Concurrent Workflow Isolation', () => {
         orchestrator.handleAgentComplete(workflow3.workflowId, {
           workflowId: workflow3.workflowId,
           agentRole: AgentRole.DEBUGGER,
-          complexity: workflow3.complexity,
+          complexity: workflow3.complexity as Complexity,
           stepNumber: 0,
           results: JSON.stringify({
             summary: 'Root cause identified: CORS misconfiguration',
@@ -213,7 +213,7 @@ describe('Concurrent Workflow Isolation', () => {
           orchestrator.handleAgentComplete(wf.workflowId, {
             workflowId: wf.workflowId,
             agentRole: wf.agentRole as AgentRole,
-            complexity: wf.complexity,
+            complexity: wf.complexity as Complexity,
             stepNumber: 0,
             results: JSON.stringify({ summary: `Step 0 complete for workflow ${idx}` }),
             status: 'COMPLETED',
@@ -233,7 +233,7 @@ describe('Concurrent Workflow Isolation', () => {
           orchestrator.handleAgentComplete(wf.workflowId, {
             workflowId: wf.workflowId,
             agentRole: step0Responses[idx].agentRole as AgentRole,
-            complexity: step0Responses[idx].complexity,
+            complexity: step0Responses[idx].complexity as Complexity,
             stepNumber: 1,
             results: JSON.stringify({ summary: `Step 1 complete for workflow ${idx}` }),
             status: 'COMPLETED',
@@ -287,7 +287,7 @@ describe('Concurrent Workflow Isolation', () => {
       await orchestrator.handleAgentComplete(wf1.workflowId, {
         workflowId: wf1.workflowId,
         agentRole: wf1.agentRole as AgentRole,
-        complexity: wf1.complexity,
+        complexity: wf1.complexity as Complexity,
         stepNumber: 0,
         results: JSON.stringify({ summary: 'WF1 step 0 complete' }),
         status: 'COMPLETED',
@@ -297,7 +297,7 @@ describe('Concurrent Workflow Isolation', () => {
       const wf2Step0 = await orchestrator.handleAgentComplete(wf2.workflowId, {
         workflowId: wf2.workflowId,
         agentRole: wf2.agentRole as AgentRole,
-        complexity: wf2.complexity,
+        complexity: wf2.complexity as Complexity,
         stepNumber: 0,
         results: JSON.stringify({ summary: 'WF2 step 0 complete' }),
         status: 'COMPLETED',
@@ -311,7 +311,7 @@ describe('Concurrent Workflow Isolation', () => {
       await orchestrator.handleAgentComplete(wf2.workflowId, {
         workflowId: wf2.workflowId,
         agentRole: wf2Step0.agentRole,
-        complexity: wf2Step0.complexity || wf2.complexity,
+        complexity: (wf2Step0.complexity || wf2.complexity) as Complexity,
         stepNumber: 1,
         results: JSON.stringify({ summary: 'WF2 step 1 complete' }),
         status: 'COMPLETED',
@@ -321,7 +321,7 @@ describe('Concurrent Workflow Isolation', () => {
       await orchestrator.handleAgentComplete(wf3.workflowId, {
         workflowId: wf3.workflowId,
         agentRole: wf3.agentRole as AgentRole,
-        complexity: wf3.complexity,
+        complexity: wf3.complexity as Complexity,
         stepNumber: 0,
         results: JSON.stringify({ summary: 'WF3 review complete' }),
         status: 'COMPLETED',
@@ -389,7 +389,7 @@ describe('Concurrent Workflow Isolation', () => {
       const duplicateResults = {
         workflowId: wf.workflowId,
         agentRole: wf.agentRole as AgentRole,
-        complexity: wf.complexity,
+        complexity: wf.complexity as Complexity,
         stepNumber: 0,
         results: JSON.stringify({ summary: 'Step complete' }),
         status: 'COMPLETED' as const,
@@ -416,7 +416,7 @@ describe('Concurrent Workflow Isolation', () => {
       await orchestrator.handleAgentComplete(wf.workflowId, {
         workflowId: wf.workflowId,
         agentRole: AgentRole.BACKEND_ARCHITECT,
-        complexity: wf.complexity,
+        complexity: wf.complexity as Complexity,
         stepNumber: 0,
         results: JSON.stringify({ summary: 'Step 0 complete' }),
         status: 'COMPLETED',
@@ -426,7 +426,7 @@ describe('Concurrent Workflow Isolation', () => {
       await orchestrator.handleAgentComplete(wf.workflowId, {
         workflowId: wf.workflowId,
         agentRole: AgentRole.BACKEND_DEVELOPER,
-        complexity: wf.complexity,
+        complexity: wf.complexity as Complexity,
         stepNumber: 1,
         results: JSON.stringify({ summary: 'Step 1 complete' }),
         status: 'COMPLETED',
@@ -467,7 +467,7 @@ describe('Concurrent Workflow Isolation', () => {
           orchestrator.handleAgentComplete(wf.workflowId, {
             workflowId: wf.workflowId,
             agentRole: wf.agentRole as AgentRole,
-            complexity: wf.complexity,
+            complexity: wf.complexity as Complexity,
             stepNumber: 0,
             results: JSON.stringify({
               summary: `Feature ${idx} designed`,

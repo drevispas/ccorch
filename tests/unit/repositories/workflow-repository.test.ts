@@ -41,6 +41,7 @@ describe('WorkflowRepository', () => {
       draftComplexity: null,
       currentStep: 0,
       status: 'ACTIVE',
+      sessionId: null,
       createdAt: BigInt(Date.now()),
       updatedAt: BigInt(Date.now()),
     };

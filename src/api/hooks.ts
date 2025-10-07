@@ -47,11 +47,11 @@ export function createHookRouter(
   /**
    * POST /hooks/post-tool-use
    * Handles PostToolUse hook events from Claude Code
-   * Extracts agent results from payload and orchestrates next step
+   * Filters by tool_name and session, then orchestrates next step
    */
   router.post('/post-tool-use', async (req: Request, res: Response) => {
     try {
-      const response = await handlePostToolUse(req.body, orchestrator);
+      const response = await handlePostToolUse(req.body, orchestrator, workflowRepo);
       res.status(200).json(response);
     } catch (error) {
       console.error('Error in post-tool-use endpoint:', error);
@@ -68,7 +68,7 @@ export function createHookRouter(
    */
   router.post('/stop', async (req: Request, res: Response) => {
     try {
-      await handleStop(workflowRepo);
+      await handleStop(req.body, workflowRepo);
       // Stop hook doesn't return a message (PRD §5.1)
       res.status(200).send();
     } catch (error) {

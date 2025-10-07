@@ -24,6 +24,7 @@ import { ChainName, AgentRole } from '../types/workflow';
  * Input for creating a workflow
  */
 export interface CreateWorkflowInput {
+  sessionId?: string;
   userPrompt: string;
   chainName: ChainName;
   complexity: Complexity;
@@ -80,6 +81,7 @@ export class StateManager {
   async createWorkflow(input: CreateWorkflowInput): Promise<Workflow> {
     // Create workflow with UUID
     const workflowData: WorkflowCreateInput = {
+      sessionId: input.sessionId,
       userPrompt: input.userPrompt,
       chainName: input.chainName,
       complexity: input.complexity,

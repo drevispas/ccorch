@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PrismaClient, AgentResult } from '@prisma/client';
 import { AgentResultRepository } from '../../../src/models/agent-result-repository';
+import { AgentRole, Complexity } from '../../../src/types/workflow';
 
 /**
  * Unit tests for AgentResultRepository
@@ -34,8 +35,8 @@ describe('AgentResultRepository', () => {
     mockAgentResult = {
       id: 1,
       workflowId: 'test-workflow-id',
-      agentRole: 'architect',
-      complexity: 'moderate',
+      agentRole: AgentRole.BACKEND_ARCHITECT,
+      complexity: Complexity.MODERATE,
       stepNumber: 0,
       results: JSON.stringify({
         summary: 'Architecture design completed',
@@ -50,8 +51,8 @@ describe('AgentResultRepository', () => {
     it('should create agent result with timestamp', async () => {
       const createData = {
         workflowId: 'test-workflow-id',
-        agentRole: 'architect' as const,
-        complexity: 'moderate' as const,
+        agentRole: AgentRole.BACKEND_ARCHITECT,
+        complexity: Complexity.MODERATE,
         stepNumber: 0,
         results: JSON.stringify({ summary: 'Done' }),
       };
@@ -77,8 +78,8 @@ describe('AgentResultRepository', () => {
     it('should use provided status when specified', async () => {
       const createData = {
         workflowId: 'test-workflow-id',
-        agentRole: 'debugger' as const,
-        complexity: 'complex' as const,
+        agentRole: AgentRole.DEBUGGER,
+        complexity: Complexity.COMPLEX,
         stepNumber: 1,
         results: JSON.stringify({ summary: 'Failed' }),
         status: 'FAILED' as const,
@@ -104,8 +105,8 @@ describe('AgentResultRepository', () => {
     it('should throw error when duplicate (workflowId, stepNumber) exists', async () => {
       const createData = {
         workflowId: 'test-workflow-id',
-        agentRole: 'architect' as const,
-        complexity: 'moderate' as const,
+        agentRole: AgentRole.BACKEND_ARCHITECT,
+        complexity: Complexity.MODERATE,
         stepNumber: 0,
         results: JSON.stringify({ summary: 'Duplicate' }),
       };
@@ -124,13 +125,13 @@ describe('AgentResultRepository', () => {
     });
 
     it('should handle all agent roles', async () => {
-      const roles = ['architect', 'backend-developer', 'frontend-developer', 'reviewer', 'debugger'] as const;
+      const roles = [AgentRole.BACKEND_ARCHITECT, AgentRole.BACKEND_DEVELOPER, AgentRole.FRONTEND_DEVELOPER, AgentRole.REVIEWER, AgentRole.DEBUGGER] as const;
 
       for (const role of roles) {
         const createData = {
           workflowId: 'test-workflow-id',
           agentRole: role,
-          complexity: 'moderate' as const,
+          complexity: Complexity.MODERATE,
           stepNumber: 0,
           results: JSON.stringify({ summary: 'Done' }),
         };
@@ -146,12 +147,12 @@ describe('AgentResultRepository', () => {
     });
 
     it('should handle all complexity levels', async () => {
-      const complexities = ['simple', 'moderate', 'complex'] as const;
+      const complexities = [Complexity.SIMPLE, Complexity.MODERATE, Complexity.COMPLEX] as const;
 
       for (const complexity of complexities) {
         const createData = {
           workflowId: 'test-workflow-id',
-          agentRole: 'architect' as const,
+          agentRole: AgentRole.BACKEND_ARCHITECT,
           complexity,
           stepNumber: 0,
           results: JSON.stringify({ summary: 'Done' }),
@@ -260,8 +261,8 @@ describe('AgentResultRepository', () => {
     it('should enforce idempotency by preventing duplicate submissions', async () => {
       const createData = {
         workflowId: 'test-workflow-id',
-        agentRole: 'architect' as const,
-        complexity: 'moderate' as const,
+        agentRole: AgentRole.BACKEND_ARCHITECT,
+        complexity: Complexity.MODERATE,
         stepNumber: 0,
         results: JSON.stringify({ summary: 'First submission' }),
       };
@@ -288,16 +289,16 @@ describe('AgentResultRepository', () => {
     it('should allow same stepNumber for different workflows', async () => {
       const workflow1Data = {
         workflowId: 'workflow-1',
-        agentRole: 'architect' as const,
-        complexity: 'moderate' as const,
+        agentRole: AgentRole.BACKEND_ARCHITECT,
+        complexity: Complexity.MODERATE,
         stepNumber: 0,
         results: JSON.stringify({ summary: 'Workflow 1' }),
       };
 
       const workflow2Data = {
         workflowId: 'workflow-2',
-        agentRole: 'architect' as const,
-        complexity: 'moderate' as const,
+        agentRole: AgentRole.BACKEND_ARCHITECT,
+        complexity: Complexity.MODERATE,
         stepNumber: 0,
         results: JSON.stringify({ summary: 'Workflow 2' }),
       };
@@ -325,8 +326,8 @@ describe('AgentResultRepository', () => {
     it('should allow different stepNumbers for same workflow', async () => {
       const baseData = {
         workflowId: 'test-workflow-id',
-        agentRole: 'architect' as const,
-        complexity: 'moderate' as const,
+        agentRole: AgentRole.BACKEND_ARCHITECT,
+        complexity: Complexity.MODERATE,
         results: JSON.stringify({ summary: 'Done' }),
       };
 
@@ -368,8 +369,8 @@ describe('AgentResultRepository', () => {
 
       const createData = {
         workflowId: 'test-workflow-id',
-        agentRole: 'backend-developer' as const,
-        complexity: 'complex' as const,
+        agentRole: AgentRole.BACKEND_DEVELOPER,
+        complexity: Complexity.COMPLEX,
         stepNumber: 0,
         results: JSON.stringify(largeResults),
       };
@@ -387,8 +388,8 @@ describe('AgentResultRepository', () => {
     it('should handle empty results JSON', async () => {
       const createData = {
         workflowId: 'test-workflow-id',
-        agentRole: 'reviewer' as const,
-        complexity: 'simple' as const,
+        agentRole: AgentRole.REVIEWER,
+        complexity: Complexity.SIMPLE,
         stepNumber: 0,
         results: '{}',
       };
@@ -409,8 +410,8 @@ describe('AgentResultRepository', () => {
       for (const status of statuses) {
         const createData = {
           workflowId: 'test-workflow-id',
-          agentRole: 'architect' as const,
-          complexity: 'moderate' as const,
+          agentRole: AgentRole.BACKEND_ARCHITECT,
+          complexity: Complexity.MODERATE,
           stepNumber: 0,
           results: JSON.stringify({ summary: 'Done' }),
           status,

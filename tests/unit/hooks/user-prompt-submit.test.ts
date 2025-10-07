@@ -43,7 +43,7 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: '/cco Implement REST API for user authentication',
+        prompt: '\\cco Implement REST API for user authentication',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
@@ -61,7 +61,7 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: '/cco Create React component for user profile page',
+        prompt: '\\cco Create React component for user profile page',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
@@ -79,7 +79,7 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: '/cco Fix NullPointerException in authentication service',
+        prompt: '\\cco Fix NullPointerException in authentication service',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
@@ -96,7 +96,7 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: '/cco Add logging to payment service',
+        prompt: '\\cco Add logging to payment service',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
@@ -112,7 +112,7 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: '/cco Refactor user repository',
+        prompt: '\\cco Refactor user repository',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
@@ -180,7 +180,7 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: '/cco Valid prompt',
+        prompt: '\\cco Valid prompt',
       };
 
       // Create a failing orchestrator by passing invalid dependencies
@@ -202,7 +202,7 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: '/cco Implement user service',
+        prompt: '\\cco Implement user service',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
@@ -218,14 +218,14 @@ describe('UserPromptSubmit Hook Handler', () => {
     });
   });
 
-  describe('Trigger detection (/cco and /c2o prefixes)', () => {
-    it('should trigger orchestration with /cco prefix', async () => {
+  describe('Trigger detection (\\cco and \\c2o prefixes)', () => {
+    it('should trigger orchestration with \\cco prefix', async () => {
       const payload = {
         session_id: 'test-session-trigger-001',
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: '/cco Design a REST API for user management',
+        prompt: '\\cco Design a REST API for user management',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
@@ -237,13 +237,13 @@ describe('UserPromptSubmit Hook Handler', () => {
       expect(response.workflowId).toBeDefined();
     });
 
-    it('should trigger orchestration with /c2o prefix (alias)', async () => {
+    it('should trigger orchestration with \\c2o prefix (alias)', async () => {
       const payload = {
         session_id: 'test-session-trigger-002',
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: '/c2o Implement authentication system',
+        prompt: '\\c2o Implement authentication system',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
@@ -254,13 +254,13 @@ describe('UserPromptSubmit Hook Handler', () => {
       expect(response.workflowId).toBeDefined();
     });
 
-    it('should work with case-insensitive trigger (/CCO)', async () => {
+    it('should work with case-insensitive trigger (\\CCO)', async () => {
       const payload = {
         session_id: 'test-session-trigger-003',
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: '/CCO Design a frontend component',
+        prompt: '\\CCO Design a frontend component',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
@@ -270,13 +270,13 @@ describe('UserPromptSubmit Hook Handler', () => {
       expect(response.workflowId).toBeDefined();
     });
 
-    it('should work with case-insensitive trigger (/C2O)', async () => {
+    it('should work with case-insensitive trigger (\\C2O)', async () => {
       const payload = {
         session_id: 'test-session-trigger-004',
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: '/C2O Fix memory leak',
+        prompt: '\\C2O Fix memory leak',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
@@ -292,7 +292,7 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: '/cco    Design with extra spaces',
+        prompt: '\\cco    Design with extra spaces',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
@@ -326,7 +326,7 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: 'Let me tell you about /cco syntax',
+        prompt: 'Let me tell you about \\cco syntax',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
@@ -342,7 +342,7 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: '/ccoDesign something',
+        prompt: '\\ccoDesign something',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
@@ -358,13 +358,14 @@ describe('UserPromptSubmit Hook Handler', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: '/cco Design a REST API',
+        prompt: '\\cco Design a REST API',
       };
 
       const response = await handleUserPromptSubmit(payload, orchestrator);
 
-      // The orchestrator should receive "Design a REST API" without the "/cco" prefix
-      expect(response.hookResponse.hookSpecificOutput?.additionalContext).not.toContain('/cco');
+      // The orchestrator should receive "Design a REST API" without the "\cco" prefix
+      const context = response.hookResponse.hookSpecificOutput?.additionalContext || '';
+      expect(context).not.toContain('\\cco');
     });
   });
 });

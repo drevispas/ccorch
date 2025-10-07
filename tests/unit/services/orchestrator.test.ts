@@ -42,6 +42,7 @@ describe('Orchestrator Coordinator', () => {
       findById: vi.fn(),
       findByStatus: vi.fn(),
       findActive: vi.fn(),
+      findActiveBySession: vi.fn(),
       updateStatus: vi.fn(),
       updateCurrentStep: vi.fn(),
       updateComplexity: vi.fn(),
@@ -102,6 +103,7 @@ describe('Orchestrator Coordinator', () => {
         draftComplexity: null,
         currentStep: 0,
         status: 'ACTIVE',
+        sessionId: null,
         createdAt: BigInt(Date.now()),
         updatedAt: BigInt(Date.now()),
       };
@@ -152,6 +154,7 @@ describe('Orchestrator Coordinator', () => {
         draftComplexity: null,
         currentStep: 0,
         status: 'ACTIVE',
+        sessionId: null,
         createdAt: BigInt(Date.now()),
         updatedAt: BigInt(Date.now()),
       };
@@ -191,6 +194,7 @@ describe('Orchestrator Coordinator', () => {
         draftComplexity: null,
         currentStep: 0,
         status: 'ACTIVE',
+        sessionId: null,
         createdAt: BigInt(Date.now()),
         updatedAt: BigInt(Date.now()),
       };
@@ -227,6 +231,7 @@ describe('Orchestrator Coordinator', () => {
         draftComplexity: null,
         currentStep: 0,
         status: 'ACTIVE',
+        sessionId: null,
         createdAt: BigInt(Date.now()),
         updatedAt: BigInt(Date.now()),
       };
@@ -303,6 +308,7 @@ describe('Orchestrator Coordinator', () => {
         draftComplexity: null,
         currentStep: 0,
         status: 'ACTIVE',
+        sessionId: null,
         createdAt: BigInt(Date.now()),
         updatedAt: BigInt(Date.now()),
       };
@@ -360,6 +366,7 @@ describe('Orchestrator Coordinator', () => {
         draftComplexity: null,
         currentStep: 2,
         status: 'ACTIVE',
+        sessionId: null,
         createdAt: BigInt(Date.now()),
         updatedAt: BigInt(Date.now()),
       };
@@ -422,6 +429,7 @@ describe('Orchestrator Coordinator', () => {
         draftComplexity: null,
         currentStep: 1,
         status: 'ACTIVE',
+        sessionId: null,
         createdAt: BigInt(Date.now()),
         updatedAt: BigInt(Date.now()),
       };
@@ -508,6 +516,7 @@ describe('Orchestrator Coordinator', () => {
         draftComplexity: null,
         currentStep: 0,
         status: 'ACTIVE',
+        sessionId: null,
         createdAt: BigInt(Date.now()),
         updatedAt: BigInt(Date.now()),
       };
@@ -542,6 +551,7 @@ describe('Orchestrator Coordinator', () => {
         draftComplexity: null,
         currentStep: 0,
         status: 'ACTIVE',
+        sessionId: null,
         createdAt: BigInt(Date.now()),
         updatedAt: BigInt(Date.now()),
       };

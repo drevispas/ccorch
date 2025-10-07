@@ -1,20 +1,20 @@
 # CCOrch - Claude Code Orchestrator
 
-Trigger multi-agent workflows by prefixing your prompt with `/cco` or `/c2o`.
+Trigger multi-agent workflows by prefixing your prompt with `\cco` or `\c2o`.
 
 ## Usage
 
 ```
-/cco <your development task>
+\cco <your development task>
 ```
 
 ## Examples
 
-- `/cco Design a REST API for user management`
-- `/cco Implement authentication with JWT tokens`
-- `/cco Fix the bug in the login endpoint`
-- `/cco Review the changes in src/api/`
-- `/c2o Refactor the database layer for better performance`
+- `\cco Design a REST API for user management`
+- `\cco Implement authentication with JWT tokens`
+- `\cco Fix the bug in the login endpoint`
+- `\cco Review the changes in src/api/`
+- `\c2o Refactor the database layer for better performance`
 
 ## Available Workflows
 
@@ -47,7 +47,7 @@ Everything else - standard feature implementation
 
 ## How It Works
 
-1. **You type**: `/cco Design a REST API`
+1. **You type**: `\cco Design a REST API`
 2. **CCOrch analyzes**: Intent → complexity → workflow chain
 3. **Agent injection**: CCOrch injects appropriate subagent prompt
 4. **Automatic execution**: Claude Code automatically invokes the Task tool
@@ -65,31 +65,31 @@ CCOrch is configured via `.claude/settings.json` hooks:
 
 ### Backend Development
 ```
-/cco Implement user authentication API with JWT tokens
+\cco Implement user authentication API with JWT tokens
 ```
 → Triggers: backend-architect-moderate → backend-developer-moderate → reviewer-moderate
 
 ### Frontend Development
 ```
-/cco Create a dashboard component with charts and filters
+\cco Create a dashboard component with charts and filters
 ```
 → Triggers: frontend-architect-moderate → frontend-developer-moderate → reviewer-moderate
 
 ### Debug Workflow
 ```
-/cco Fix the memory leak in the data processing service
+\cco Fix the memory leak in the data processing service
 ```
 → Triggers: debugger-moderate → backend-developer-moderate → reviewer-moderate
 
 ### Design Only
 ```
-/cco Design the architecture for a multi-tenant system
+\cco Design the architecture for a multi-tenant system
 ```
 → Triggers: backend-architect-complex (single agent, no implementation)
 
 ### Review Only
 ```
-/cco Review the changes in src/api/workflows.ts
+\cco Review the changes in src/api/workflows.ts
 ```
 → Triggers: reviewer-moderate (single agent, review only)
 
@@ -98,13 +98,13 @@ CCOrch is configured via `.claude/settings.json` hooks:
 - **Be specific**: Instead of "Fix bug", say "Fix authentication bug in login endpoint"
 - **Use keywords**: Include context like "backend", "frontend", "API", "UI" to help chain resolution
 - **Complexity hints**: Use "simple", "complex", or "enterprise" to influence complexity detection
-- **Normal conversation**: Omit `/cco` prefix for regular Claude responses (no orchestration)
+- **Normal conversation**: Omit `\cco` prefix for regular Claude responses (no orchestration)
 
 ## Troubleshooting
 
 ### Orchestration not triggering?
-- Check that you're using `/cco` or `/c2o` prefix (case insensitive)
-- Ensure there's a space after the trigger: `/cco Design...` not `/ccoDesign...`
+- Check that you're using `\cco` or `\c2o` prefix (case insensitive)
+- Ensure there's a space after the trigger: `\cco Design...` not `\ccoDesign...`
 - Verify CCOrch server is running on port 3000
 
 ### Wrong workflow selected?

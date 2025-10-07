@@ -29,6 +29,7 @@ export class WorkflowRepository implements IWorkflowRepository {
     return this.prisma.workflow.create({
       data: {
         id,
+        sessionId: data.sessionId,
         userPrompt: data.userPrompt,
         chainName: data.chainName,
         complexity: data.complexity,
@@ -80,6 +81,22 @@ export class WorkflowRepository implements IWorkflowRepository {
    */
   async findActive(): Promise<Workflow[]> {
     return this.findByStatus('ACTIVE');
+  }
+
+  /**
+   * Find active workflow by session ID
+   * Returns most recent if multiple workflows exist for session
+   */
+  async findActiveBySession(sessionId: string): Promise<Workflow | null> {
+    return this.prisma.workflow.findFirst({
+      where: {
+        sessionId,
+        status: 'ACTIVE',
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 
   /**

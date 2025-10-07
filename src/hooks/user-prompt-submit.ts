@@ -27,10 +27,10 @@ export type UserPromptSubmitPayload = z.infer<typeof UserPromptSubmitPayloadSche
 
 /**
  * Trigger patterns for orchestration opt-in
- * Supports: /cco, /c2o (case insensitive, requires whitespace after)
+ * Supports: \cco, \c2o (case insensitive, requires whitespace after)
  */
 const TRIGGER_PATTERNS = [
-  /^\/(cco|c2o)\s+/i, // Case insensitive, requires space after trigger
+  /^\\(cco|c2o)\s+/i, // Case insensitive, requires space after trigger
 ];
 
 /**
@@ -57,7 +57,9 @@ function extractTriggerFromPrompt(prompt: string): string | null {
 export interface HookResponse {
   message?: string;
   decision?: 'allow' | 'block';
+  continue?: boolean;
   hookSpecificOutput?: {
+    hookEventName?: string;
     additionalContext?: string;
   };
 }
@@ -101,7 +103,7 @@ export async function handleUserPromptSubmit(
 
     const validatedPayload = validationResult.data;
 
-    // 2. Check for orchestration trigger (/cco or /c2o)
+    // 2. Check for orchestration trigger (\cco or \c2o)
     const cleanPrompt = extractTriggerFromPrompt(validatedPayload.prompt);
 
     if (!cleanPrompt) {
@@ -121,8 +123,8 @@ export async function handleUserPromptSubmit(
       };
     }
 
-    // 3. Call orchestrator to process user prompt (with cleaned prompt)
-    const result = await orchestrator.handleUserPrompt(cleanPrompt);
+    // 3. Call orchestrator to process user prompt (with cleaned prompt and sessionId)
+    const result = await orchestrator.handleUserPrompt(cleanPrompt, validatedPayload.session_id);
 
     // 4. Format response per Claude Code hooks spec (complete structure)
     // Include all required fields per hooks documentation

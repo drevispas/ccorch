@@ -10,22 +10,27 @@
 
 import { z } from 'zod';
 import type { Orchestrator } from '../services/orchestrator';
-import { AgentRole, AgentRoleSchema, ComplexitySchema } from '../types/workflow';
+import type { IWorkflowRepository, AgentResultCreateInput, Complexity } from '../types/repositories';
+import { AgentRole } from '../types/workflow';
 
 /**
- * PostToolUse payload schema (Claude Code hook spec + CCOrch extensions)
+ * PostToolUse payload schema (Claude Code hook spec)
+ * Real payloads from Claude Code only include these fields
  */
 const PostToolUsePayloadSchema = z.object({
   session_id: z.string(),
-  transcript_path: z.string(),
+  transcript_path: z.string().optional(),
   cwd: z.string(),
-  hook_event_name: z.literal('PostToolUse'),
+  permission_mode: z.string().optional(),
+  hook_event_name: z.literal('PostToolUse').optional(),
   tool_name: z.string(),
-  workflow_id: z.string().min(1, 'Workflow ID cannot be empty'),
-  agent_role: AgentRoleSchema,
-  complexity: ComplexitySchema,
-  step_number: z.number().int().nonnegative(),
-  results: z.record(z.string(), z.unknown()),
+  tool_input: z.record(z.string(), z.unknown()).optional(),
+  tool_response: z.object({
+    stdout: z.string().optional(),
+    stderr: z.string().optional(),
+    interrupted: z.boolean().optional(),
+    isImage: z.boolean().optional(),
+  }).optional(),
 });
 
 export type PostToolUsePayload = z.infer<typeof PostToolUsePayloadSchema>;
@@ -36,7 +41,9 @@ export type PostToolUsePayload = z.infer<typeof PostToolUsePayloadSchema>;
 export interface HookResponse {
   message?: string;
   decision?: 'allow' | 'block';
+  continue?: boolean;
   hookSpecificOutput?: {
+    hookEventName?: string;
     additionalContext?: string;
   };
 }
@@ -44,15 +51,17 @@ export interface HookResponse {
 /**
  * Handle PostToolUse hook event
  *
- * Extracts agent results from payload and orchestrates next workflow step.
+ * Filters by tool_name and session correlation, then advances workflow.
  *
  * @param payload - Hook payload from Claude Code
  * @param orchestrator - Orchestrator service instance
+ * @param workflowRepo - Workflow repository for session lookup
  * @returns Hook response with next agent prompt or completion message
  */
 export async function handlePostToolUse(
   payload: unknown,
-  orchestrator: Orchestrator
+  orchestrator: Orchestrator,
+  workflowRepo: IWorkflowRepository
 ): Promise<HookResponse> {
   try {
     // 1. Validate payload
@@ -70,23 +79,63 @@ export async function handlePostToolUse(
 
     const validatedPayload = validationResult.data;
 
-    // 2. Extract agent results from payload
-    const agentResults = {
-      workflowId: validatedPayload.workflow_id,
-      agentRole: validatedPayload.agent_role,
-      complexity: validatedPayload.complexity,
-      stepNumber: validatedPayload.step_number,
-      status: 'COMPLETED' as const,
-      results: JSON.stringify(validatedPayload.results), // Convert to JSON string
+    // 2. Filter Level 1: Only process Task tool
+    if (validatedPayload.tool_name !== 'Task') {
+      console.log(JSON.stringify({
+        event: 'post_tool_use_skipped',
+        reason: 'not_task_tool',
+        toolName: validatedPayload.tool_name,
+        sessionId: validatedPayload.session_id,
+      }));
+
+      return {
+        continue: true,
+        // No message injection - this is not an orchestrated task
+      };
+    }
+
+    // 3. Filter Level 2: Find active workflow for this session
+    const workflow = await workflowRepo.findActiveBySession(validatedPayload.session_id);
+
+    if (!workflow) {
+      console.log(JSON.stringify({
+        event: 'post_tool_use_skipped',
+        reason: 'no_active_workflow',
+        sessionId: validatedPayload.session_id,
+      }));
+
+      return {
+        continue: true,
+        // No active workflow - this Task is not CCOrch-managed
+      };
+    }
+
+    // 4. Parse agent results from Task tool output
+    // For MVP: Use entire stdout as results (no special parsing)
+    const agentOutput = validatedPayload.tool_response?.stdout || '';
+
+    // Build agent results for orchestrator
+    const agentResults: AgentResultCreateInput = {
+      workflowId: workflow.id,
+      agentRole: (workflow.chainName.includes('backend') ? 'backend-architect' : 'frontend-architect') as AgentRole, // Simplified for MVP
+      complexity: workflow.complexity as Complexity,
+      stepNumber: workflow.currentStep,
+      status: 'COMPLETED',
+      results: agentOutput,
     };
 
-    // 3. Call orchestrator to process agent completion
-    const result = await orchestrator.handleAgentComplete(
-      validatedPayload.workflow_id,
-      agentResults
-    );
+    console.log(JSON.stringify({
+      event: 'post_tool_use_processing',
+      workflowId: workflow.id,
+      sessionId: validatedPayload.session_id,
+      currentStep: workflow.currentStep,
+      outputLength: agentOutput.length,
+    }));
 
-    // 4. Format response based on workflow status
+    // 5. Call orchestrator to process agent completion
+    const result = await orchestrator.handleAgentComplete(workflow.id, agentResults);
+
+    // 6. Format response based on workflow status
     if (result.status === 'completed') {
       // Workflow complete - return completion message
       return {
@@ -98,9 +147,13 @@ export async function handlePostToolUse(
         message: result.message || 'Workflow failed due to agent error.',
       };
     } else if (result.status === 'continue') {
-      // Workflow continues - return next agent prompt (PRD §6.2 format)
+      // Workflow continues - inject next agent prompt
       return {
-        message: result.prompt,
+        continue: true,
+        hookSpecificOutput: {
+          hookEventName: 'PostToolUse',
+          additionalContext: result.prompt,
+        },
       };
     }
 
@@ -109,9 +162,11 @@ export async function handlePostToolUse(
       message: 'Error: Unknown workflow status',
     };
   } catch (error) {
-    // 5. Handle orchestrator errors with fallback message
+    // 7. Handle orchestrator errors with fallback message
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error occurred';
+
+    console.error('Error in PostToolUse handler:', error);
 
     return {
       message: `Error: Failed to process agent completion - ${errorMessage}`,

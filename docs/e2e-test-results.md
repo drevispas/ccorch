@@ -10,6 +10,8 @@ Validate CCOrch with actual Claude Code hooks to verify:
 3. Full workflow chains execute end-to-end
 4. Error handling works as expected
 
+**Note**: CCOrch trigger prefix changed from `/cco` and `/c2o` to `\cco` and `\c2o` to avoid conflicts with slash commands.
+
 ---
 
 ## Phase 1: Real Hook Payload Capture

@@ -12,6 +12,7 @@ datasource db {
 
 model Workflow {
   id              String               @id
+  sessionId       String?              @map("session_id")
   userPrompt      String               @map("user_prompt")
   chainName       String               @map("chain_name")
   complexity      String
@@ -25,6 +26,7 @@ model Workflow {
 
   @@index([status], name: "idx_workflows_status")
   @@index([createdAt], name: "idx_workflows_created")
+  @@index([sessionId, status], name: "idx_workflows_session_status")
   @@map("workflows")
 }
 

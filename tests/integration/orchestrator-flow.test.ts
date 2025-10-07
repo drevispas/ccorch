@@ -94,7 +94,7 @@ describe('Orchestrator Integration - E2E Flow', () => {
             security: 'JWT with refresh tokens',
           },
         }),
-        status: 'COMPLETED',
+        status: 'COMPLETED' as const,
       };
 
       const architectResponse = await orchestrator.handleAgentComplete(
@@ -134,7 +134,7 @@ describe('Orchestrator Integration - E2E Flow', () => {
             'src/services/token.ts',
           ],
         }),
-        status: 'COMPLETED',
+        status: 'COMPLETED' as const,
       };
 
       const developerResponse = await orchestrator.handleAgentComplete(
@@ -172,7 +172,7 @@ describe('Orchestrator Integration - E2E Flow', () => {
           issuesFound: [],
           recommendations: ['Add rate limiting to login endpoint'],
         }),
-        status: 'COMPLETED',
+        status: 'COMPLETED' as const,
       };
 
       const reviewerResponse = await orchestrator.handleAgentComplete(
@@ -224,7 +224,7 @@ describe('Orchestrator Integration - E2E Flow', () => {
         results: JSON.stringify({
           summary: 'Designed login form component with form validation',
         }),
-        status: 'COMPLETED',
+        status: 'COMPLETED' as const,
       };
 
       const architectResponse = await orchestrator.handleAgentComplete(
@@ -243,7 +243,7 @@ describe('Orchestrator Integration - E2E Flow', () => {
         results: JSON.stringify({
           summary: 'Implemented LoginForm component with validation',
         }),
-        status: 'COMPLETED',
+        status: 'COMPLETED' as const,
       };
 
       const developerResponse = await orchestrator.handleAgentComplete(
@@ -262,7 +262,7 @@ describe('Orchestrator Integration - E2E Flow', () => {
         results: JSON.stringify({
           summary: 'Code review complete. Component implementation approved.',
         }),
-        status: 'COMPLETED',
+        status: 'COMPLETED' as const,
       };
 
       const reviewerResponse = await orchestrator.handleAgentComplete(
@@ -293,12 +293,12 @@ describe('Orchestrator Integration - E2E Flow', () => {
       const debuggerResults = {
         workflowId,
         agentRole: AgentRole.DEBUGGER,
-        complexity: initialResponse.complexity,
+        complexity: initialResponse.complexity as Complexity,
         stepNumber: 0,
         results: JSON.stringify({
           summary: 'Root cause: JWT secret mismatch between services',
         }),
-        status: 'COMPLETED',
+        status: 'COMPLETED' as const,
       };
 
       const debuggerResponse = await orchestrator.handleAgentComplete(
@@ -313,12 +313,12 @@ describe('Orchestrator Integration - E2E Flow', () => {
       const developerResults = {
         workflowId,
         agentRole: AgentRole.BACKEND_DEVELOPER,
-        complexity: initialResponse.complexity,
+        complexity: initialResponse.complexity as Complexity,
         stepNumber: 1,
         results: JSON.stringify({
           summary: 'Fixed JWT secret configuration',
         }),
-        status: 'COMPLETED',
+        status: 'COMPLETED' as const,
       };
 
       const developerResponse = await orchestrator.handleAgentComplete(
@@ -332,12 +332,12 @@ describe('Orchestrator Integration - E2E Flow', () => {
       const reviewerResults = {
         workflowId,
         agentRole: AgentRole.REVIEWER,
-        complexity: initialResponse.complexity,
+        complexity: initialResponse.complexity as Complexity,
         stepNumber: 2,
         results: JSON.stringify({
           summary: 'Fix verified. Authentication working correctly.',
         }),
-        status: 'COMPLETED',
+        status: 'COMPLETED' as const,
       };
 
       const reviewerResponse = await orchestrator.handleAgentComplete(
@@ -366,12 +366,12 @@ describe('Orchestrator Integration - E2E Flow', () => {
       const architectResults = {
         workflowId,
         agentRole: AgentRole.BACKEND_ARCHITECT,
-        complexity: initialResponse.complexity,
+        complexity: initialResponse.complexity as Complexity,
         stepNumber: 0,
         results: JSON.stringify({
           summary: 'Designed documentation approach',
         }),
-        status: 'COMPLETED',
+        status: 'COMPLETED' as const,
       };
 
       const architectResponse = await orchestrator.handleAgentComplete(
@@ -385,12 +385,12 @@ describe('Orchestrator Integration - E2E Flow', () => {
       const developerResults = {
         workflowId,
         agentRole: AgentRole.BACKEND_DEVELOPER,
-        complexity: initialResponse.complexity,
+        complexity: initialResponse.complexity as Complexity,
         stepNumber: 1,
         results: JSON.stringify({
           summary: 'Added documentation comment to function',
         }),
-        status: 'COMPLETED',
+        status: 'COMPLETED' as const,
       };
 
       const developerResponse = await orchestrator.handleAgentComplete(
@@ -404,12 +404,12 @@ describe('Orchestrator Integration - E2E Flow', () => {
       const reviewerResults = {
         workflowId,
         agentRole: AgentRole.REVIEWER,
-        complexity: initialResponse.complexity,
+        complexity: initialResponse.complexity as Complexity,
         stepNumber: 2,
         results: JSON.stringify({
           summary: 'Documentation approved',
         }),
-        status: 'COMPLETED',
+        status: 'COMPLETED' as const,
       };
 
       const reviewerResponse = await orchestrator.handleAgentComplete(
@@ -437,12 +437,12 @@ describe('Orchestrator Integration - E2E Flow', () => {
       const reviewerResults = {
         workflowId,
         agentRole: AgentRole.REVIEWER,
-        complexity: initialResponse.complexity,
+        complexity: initialResponse.complexity as Complexity,
         stepNumber: 0,
         results: JSON.stringify({
           summary: 'Security review complete',
         }),
-        status: 'COMPLETED',
+        status: 'COMPLETED' as const,
       };
 
       const reviewerResponse = await orchestrator.handleAgentComplete(
@@ -470,13 +470,13 @@ describe('Orchestrator Integration - E2E Flow', () => {
       const failedResults = {
         workflowId,
         agentRole: AgentRole.BACKEND_ARCHITECT,
-        complexity: initialResponse.complexity,
+        complexity: initialResponse.complexity as Complexity,
         stepNumber: 0,
         results: JSON.stringify({
           summary: 'Failed to design API',
           error: 'Insufficient requirements',
         }),
-        status: 'FAILED',
+        status: 'FAILED' as const,
       };
 
       const failedResponse = await orchestrator.handleAgentComplete(
@@ -502,10 +502,10 @@ describe('Orchestrator Integration - E2E Flow', () => {
       const results = {
         workflowId,
         agentRole: AgentRole.BACKEND_ARCHITECT,
-        complexity: initialResponse.complexity,
+        complexity: initialResponse.complexity as Complexity,
         stepNumber: 0,
         results: JSON.stringify({ summary: 'Design complete' }),
-        status: 'COMPLETED',
+        status: 'COMPLETED' as const,
       };
 
       await orchestrator.handleAgentComplete(workflowId, results);
@@ -528,12 +528,12 @@ describe('Orchestrator Integration - E2E Flow', () => {
       const architectResults = {
         workflowId,
         agentRole: AgentRole.BACKEND_ARCHITECT,
-        complexity: initialResponse.complexity,
+        complexity: initialResponse.complexity as Complexity,
         stepNumber: 0,
         results: JSON.stringify({
           summary: 'ARCHITECT SUMMARY: Designed user profile endpoints',
         }),
-        status: 'COMPLETED',
+        status: 'COMPLETED' as const,
       };
 
       const architectResponse = await orchestrator.handleAgentComplete(
@@ -550,12 +550,12 @@ describe('Orchestrator Integration - E2E Flow', () => {
       const developerResults = {
         workflowId,
         agentRole: AgentRole.BACKEND_DEVELOPER,
-        complexity: initialResponse.complexity,
+        complexity: initialResponse.complexity as Complexity,
         stepNumber: 1,
         results: JSON.stringify({
           summary: 'DEVELOPER SUMMARY: Implemented profile CRUD operations',
         }),
-        status: 'COMPLETED',
+        status: 'COMPLETED' as const,
       };
 
       const developerResponse = await orchestrator.handleAgentComplete(

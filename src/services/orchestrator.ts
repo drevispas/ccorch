@@ -89,9 +89,10 @@ export class Orchestrator {
    * and returns first agent prompt.
    *
    * @param userPrompt - User's task description
+   * @param sessionId - Claude Code session ID for correlation
    * @returns First agent prompt and workflow ID
    */
-  async handleUserPrompt(userPrompt: string): Promise<UserPromptResponse> {
+  async handleUserPrompt(userPrompt: string, sessionId?: string): Promise<UserPromptResponse> {
     // Validate prompt
     if (!userPrompt || userPrompt.trim() === '') {
       throw new Error('User prompt cannot be empty');
@@ -113,6 +114,7 @@ export class Orchestrator {
 
     // 4. Create workflow
     const workflow = await this.stateManager.createWorkflow({
+      sessionId,
       userPrompt,
       chainName,
       complexity,
@@ -265,7 +267,7 @@ export class Orchestrator {
     return generateAgentPrompt({
       chainName,
       agentRole,
-      complexity,
+      complexity: complexity as import('../types/repositories').Complexity,
       stepNumber: 1,
     });
   }
@@ -294,7 +296,7 @@ export class Orchestrator {
       {
         chainName,
         agentRole,
-        complexity,
+        complexity: complexity as import('../types/repositories').Complexity,
         stepNumber,
       },
       previousContext

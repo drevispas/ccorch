@@ -22,6 +22,7 @@ export type WorkflowStatus = 'PENDING_COMPLEXITY' | 'ACTIVE' | 'COMPLETED' | 'FA
 export type Complexity = 'simple' | 'moderate' | 'complex';
 
 export interface WorkflowCreateInput {
+  sessionId?: string;
   userPrompt: string;
   chainName: string;
   complexity: Complexity;
@@ -71,6 +72,12 @@ export interface IWorkflowRepository {
    * Find all active workflows (convenience method)
    */
   findActive(): Promise<Workflow[]>;
+
+  /**
+   * Find active workflow by session ID
+   * Returns most recent if multiple workflows exist for session
+   */
+  findActiveBySession(sessionId: string): Promise<Workflow | null>;
 
   /**
    * Update workflow status and optionally current step

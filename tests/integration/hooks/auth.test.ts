@@ -53,17 +53,16 @@ describe('Hook Authentication', () => {
     });
 
     it('should return 401 for post-tool-use without auth header', async () => {
+      // Real Claude Code PostToolUse payload structure
       const payload = {
         session_id: 'test-session-002',
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'PostToolUse',
         tool_name: 'Task',
-        workflow_id: 'test-workflow-001',
-        agent_role: 'backend-architect',
-        complexity: 'moderate',
-        step_number: 0,
-        results: { summary: 'Done' },
+        tool_response: {
+          stdout: 'Task output',
+        },
       };
 
       await request(app)
@@ -75,7 +74,11 @@ describe('Hook Authentication', () => {
     it('should return 401 for stop without auth header', async () => {
       await request(app)
         .post('/hooks/stop')
-        .send({ session_id: 'test-session-003', hook_event_name: 'Stop' })
+        .send({
+          session_id: 'test-session-003',
+          cwd: '/home/user/project',
+          hook_event_name: 'Stop',
+        })
         .expect(401);
     });
   });
@@ -121,7 +124,7 @@ describe('Hook Authentication', () => {
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'UserPromptSubmit',
-        prompt: 'Implement authentication',
+        prompt: '\\cco Implement authentication',
       };
 
       const response = await request(app)
@@ -131,15 +134,20 @@ describe('Hook Authentication', () => {
         .expect(200);
 
       expect(response.body).toBeDefined();
-      expect(response.body.message).toBeDefined();
-      expect(response.body.message).toContain('subagent');
+      expect(response.body.continue).toBe(true);
+      expect(response.body.hookSpecificOutput).toBeDefined();
+      expect(response.body.hookSpecificOutput.additionalContext).toContain('subagent');
     });
 
     it('should allow post-tool-use with valid X-Hook-Secret', async () => {
-      // Create workflow first
+      const sessionId = 'test-session-007';
+
+      // Create workflow with sessionId first
+      // Note: The workflow needs proper chain config with at least 2 steps for PostToolUse to work
       await prisma.workflow.create({
         data: {
           id: 'test-workflow-auth-001',
+          sessionId,
           userPrompt: 'Test task',
           chainName: 'backend-development',
           complexity: 'moderate',
@@ -150,17 +158,16 @@ describe('Hook Authentication', () => {
         },
       });
 
+      // Real Claude Code PostToolUse payload structure
       const payload = {
-        session_id: 'test-session-007',
+        session_id: sessionId,
         transcript_path: '/tmp/transcript.json',
         cwd: '/home/user/project',
         hook_event_name: 'PostToolUse',
         tool_name: 'Task',
-        workflow_id: 'test-workflow-auth-001',
-        agent_role: 'backend-architect',
-        complexity: 'moderate',
-        step_number: 0,
-        results: { summary: 'Architecture designed' },
+        tool_response: {
+          stdout: 'Architecture designed',
+        },
       };
 
       const response = await request(app)
@@ -170,39 +177,62 @@ describe('Hook Authentication', () => {
         .expect(200);
 
       expect(response.body).toBeDefined();
-      expect(response.body.message).toBeDefined();
+      // Response could be either continue (next step) or message (workflow complete/failed)
+      // Just check that we got a valid response structure
+      expect(response.body.continue !== undefined || response.body.message !== undefined).toBe(true);
     });
 
     it('should allow stop with valid X-Hook-Secret', async () => {
       await request(app)
         .post('/hooks/stop')
         .set('X-Hook-Secret', VALID_SECRET)
-        .send({ session_id: 'test-session-008', hook_event_name: 'Stop' })
+        .send({
+          session_id: 'test-session-008',
+          cwd: '/home/user/project',
+          hook_event_name: 'Stop',
+        })
         .expect(200);
     });
   });
 
   describe('Environment configuration', () => {
+    // This test needs its own beforeEach to override the parent describe's beforeEach
     it('should allow all requests when HOOK_SECRET is not set (dev mode)', async () => {
-      // Restart server without HOOK_SECRET
+      // Clean up database first
+      await prisma.agentResult.deleteMany();
+      await prisma.workflowTransition.deleteMany();
+      await prisma.workflow.deleteMany();
+
+      // Remove HOOK_SECRET before starting server
+      const originalSecret = process.env.HOOK_SECRET;
       delete process.env.HOOK_SECRET;
-      app = await startServer();
 
-      const payload = {
-        session_id: 'test-session-009',
-        transcript_path: '/tmp/transcript.json',
-        cwd: '/home/user/project',
-        hook_event_name: 'UserPromptSubmit',
-        prompt: 'Test without auth',
-      };
+      try {
+        // Start server without HOOK_SECRET
+        app = await startServer();
 
-      // Should work without auth header when HOOK_SECRET is not set
-      const response = await request(app)
-        .post('/hooks/user-prompt-submit')
-        .send(payload)
-        .expect(200);
+        const payload = {
+          session_id: 'test-session-009',
+          transcript_path: '/tmp/transcript.json',
+          cwd: '/home/user/project',
+          hook_event_name: 'UserPromptSubmit',
+          prompt: '\\cco Test without auth',
+        };
 
-      expect(response.body.message).toBeDefined();
+        // Should work without auth header when HOOK_SECRET is not set
+        const response = await request(app)
+          .post('/hooks/user-prompt-submit')
+          .send(payload)
+          .expect(200);
+
+        expect(response.body.continue).toBe(true);
+        expect(response.body.hookSpecificOutput).toBeDefined();
+      } finally {
+        // Restore original HOOK_SECRET for other tests
+        if (originalSecret) {
+          process.env.HOOK_SECRET = originalSecret;
+        }
+      }
     });
   });
 });
