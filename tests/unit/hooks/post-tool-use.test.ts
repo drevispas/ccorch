@@ -56,6 +56,11 @@ describe('PostToolUse Hook Handler', () => {
         cwd: '/home/user/project',
         hook_event_name: 'PostToolUse' as const,
         tool_name: 'Task',
+        tool_input: {
+          subagent_type: 'backend-architect-moderate',
+          description: 'backend-architect (step 1)',
+          prompt: 'Design the architecture and technical approach',
+        },
         tool_response: {
           stdout: JSON.stringify({
             summary: 'Designed authentication API',
@@ -89,6 +94,11 @@ describe('PostToolUse Hook Handler', () => {
         cwd: '/home/user/project',
         hook_event_name: 'PostToolUse' as const,
         tool_name: 'Task',
+        tool_input: {
+          subagent_type: 'backend-architect-moderate',
+          description: 'backend-architect (step 1)',
+          prompt: 'Design the architecture and technical approach',
+        },
         tool_response: {
           stdout: JSON.stringify({
             summary: 'Architecture designed',
@@ -120,6 +130,11 @@ describe('PostToolUse Hook Handler', () => {
         cwd: '/home/user/project',
         hook_event_name: 'PostToolUse' as const,
         tool_name: 'Task',
+        tool_input: {
+          subagent_type: 'backend-architect-simple',
+          description: 'backend-architect (step 1)',
+          prompt: 'Design the architecture and technical approach',
+        },
         tool_response: {
           stdout: JSON.stringify({
             summary: 'Service architecture complete',
@@ -155,6 +170,11 @@ describe('PostToolUse Hook Handler', () => {
         cwd: '/home/user/project',
         hook_event_name: 'PostToolUse' as const,
         tool_name: 'Task',
+        tool_input: {
+          subagent_type: 'backend-architect-simple',
+          description: 'backend-architect (step 1)',
+          prompt: 'Design the architecture and technical approach',
+        },
         tool_response: {
           stdout: JSON.stringify({
             summary: 'Design complete',
@@ -188,6 +208,11 @@ describe('PostToolUse Hook Handler', () => {
         cwd: '/home/user/project',
         hook_event_name: 'PostToolUse' as const,
         tool_name: 'Task',
+        tool_input: {
+          subagent_type: 'backend-architect-moderate',
+          description: 'backend-architect (step 1)',
+          prompt: 'Design the architecture and technical approach',
+        },
         tool_response: {
           stdout: JSON.stringify({
             summary: 'Architecture designed',
@@ -230,6 +255,11 @@ describe('PostToolUse Hook Handler', () => {
         cwd: '/home/user/project',
         hook_event_name: 'PostToolUse' as const,
         tool_name: 'Task',
+        tool_input: {
+          subagent_type: 'backend-architect-moderate',
+          description: 'backend-architect (step 1)',
+          prompt: 'Design the architecture',
+        },
         tool_response: {
           stdout: JSON.stringify({ summary: 'Done' }),
         },
@@ -296,6 +326,11 @@ describe('PostToolUse Hook Handler', () => {
         cwd: '/home/user/project',
         hook_event_name: 'PostToolUse' as const,
         tool_name: 'Task',
+        tool_input: {
+          subagent_type: 'backend-architect-moderate',
+          description: 'backend-architect (step 1)',
+          prompt: 'Design the architecture',
+        },
         tool_response: {
           stdout: JSON.stringify({
             summary: 'First submission',
@@ -330,6 +365,11 @@ describe('PostToolUse Hook Handler', () => {
         cwd: '/home/user/project',
         hook_event_name: 'PostToolUse' as const,
         tool_name: 'Task',
+        tool_input: {
+          subagent_type: 'backend-architect-moderate',
+          description: 'backend-architect (step 1)',
+          prompt: 'Design the architecture',
+        },
         tool_response: {
           stdout: JSON.stringify({
             summary: 'Done',

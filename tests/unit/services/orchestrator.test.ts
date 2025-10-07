@@ -525,7 +525,7 @@ describe('Orchestrator Coordinator', () => {
       const result = await orchestrator.handleUserPrompt(userPrompt);
 
       expect(result.agentRole).toBe(AgentRole.DEBUGGER);
-      expect(result.prompt).toContain('debugger-moderate');
+      expect(result.prompt).toContain('issue-detective-moderate');
     });
 
     it('should handle review-only workflow', async () => {

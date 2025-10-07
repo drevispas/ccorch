@@ -73,7 +73,7 @@ describe('Context Serializer', () => {
       const agentResult: AgentResult = {
         id: 4,
         workflowId: 'wf-123',
-        agentRole: 'reviewer',
+        agentRole: 'code-reviewer',
         complexity: 'simple',
         stepNumber: 2,
         results: '',
@@ -205,7 +205,7 @@ describe('Context Serializer', () => {
         {
           id: 3,
           workflowId: 'wf-123',
-          agentRole: 'reviewer',
+          agentRole: 'code-reviewer',
           complexity: 'moderate',
           stepNumber: 2,
           results: JSON.stringify({
@@ -261,7 +261,7 @@ describe('Context Serializer', () => {
         {
           id: 3,
           workflowId: 'wf-123',
-          agentRole: 'reviewer',
+          agentRole: 'code-reviewer',
           complexity: 'moderate',
           stepNumber: 2,
           results: JSON.stringify({
@@ -300,7 +300,7 @@ describe('Context Serializer', () => {
 
       expect(context).toBe(
         'Previous agent results:\n' +
-          '1. [reviewer]: Third step\n' +
+          '1. [code-reviewer]: Third step\n' +
           '2. [backend-architect]: First step\n' +
           '3. [java-backend-developer]: Second step'
       );

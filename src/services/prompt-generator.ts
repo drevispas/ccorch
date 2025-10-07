@@ -115,13 +115,13 @@ export function generateAgentPrompt(
       tasks.push('Write component tests');
       break;
 
-    case 'reviewer':
+    case 'code-reviewer':
       tasks.push('Review all staged and unstaged changes');
       tasks.push('Check code quality, security, and test coverage');
       tasks.push('Provide actionable recommendations for improvement');
       break;
 
-    case 'debugger':
+    case 'issue-detective':
       tasks.push('Investigate the issue and identify root cause');
       tasks.push('Document findings and propose solution approach');
       break;

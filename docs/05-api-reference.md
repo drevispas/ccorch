@@ -463,16 +463,16 @@ CCOrch supports the following pre-defined agent chains:
 
 | Chain Name | Agent Sequence |
 |------------|----------------|
-| `backend-development` | backend-architect → backend-developer → reviewer |
-| `frontend-development` | frontend-architect → frontend-developer → reviewer |
-| `debug` | debugger → (backend/frontend)-developer → reviewer |
-| `review` | reviewer → (backend/frontend)-developer |
+| `backend-development` | backend-architect → java-backend-developer → code-reviewer |
+| `frontend-development` | frontend-architect → nextjs-react-developer → code-reviewer |
+| `debug` | issue-detective → (java-backend/nextjs-react)-developer → code-reviewer |
+| `review` | code-reviewer → (java-backend/nextjs-react)-developer |
 | `backend-design-only` | backend-architect |
 | `frontend-design-only` | frontend-architect |
-| `backend-only` | backend-developer |
-| `frontend-only` | frontend-developer |
-| `review-only` | reviewer |
-| `debug-only` | debugger |
+| `backend-only` | java-backend-developer |
+| `frontend-only` | nextjs-react-developer |
+| `review-only` | code-reviewer |
+| `debug-only` | issue-detective |
 
 Each chain step executes with the specified complexity level (`simple`, `moderate`, or `complex`).
 

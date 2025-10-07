@@ -46,8 +46,8 @@
   - `frontend-architect-{simple,moderate,complex}.md`
   - `backend-developer-{simple,moderate,complex}.md`
   - `frontend-developer-{simple,moderate,complex}.md`
-  - `reviewer-{simple,moderate,complex}.md`
-  - `debugger-{simple,moderate,complex}.md`
+  - `code-reviewer-{simple,moderate,complex}.md`
+  - `issue-detective-{simple,moderate,complex}.md`
 
 ### 1.2 Development Environment
 - **Node.js**: LTS version (v18+ recommended)
@@ -64,7 +64,7 @@
 ## 2. Context & Objectives
 - **Scope**: Implement the multi-agent orchestration platform described in `docs/01-product-PRD.md`, including hook processing, workflow state management, and supporting APIs.
 - **Primary Goals**:
-  - Automate selection/sequencing of Claude Code subagents across backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger, and e2e-test-architect roles (§2, §3, §4).
+  - Automate selection/sequencing of Claude Code subagents across backend-architect, frontend-architect, java-backend-developer, nextjs-react-developer, code-reviewer, issue-detective, and e2e-test-architect roles (§2, §3, §4).
   - Maintain durable workflow state with SQLite persistence, enabling retries, manual transitions, and auditability (§5, §10).
   - Deliver performant (<500 ms hook response) and observable operations with logging and metrics hooks (§8).
 - **Success Metrics**: 100% coverage of defined workflow chains (§4.2), hook/API latency targets met, ≥80% automated test coverage, CI pipeline passes lint/type/test gates.

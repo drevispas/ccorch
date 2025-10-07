@@ -47,8 +47,8 @@ export enum AgentRole {
   FRONTEND_ARCHITECT = 'frontend-architect',
   BACKEND_DEVELOPER = 'java-backend-developer',
   FRONTEND_DEVELOPER = 'nextjs-react-developer',
-  REVIEWER = 'reviewer',
-  DEBUGGER = 'debugger',
+  REVIEWER = 'code-reviewer',
+  DEBUGGER = 'issue-detective',
   E2E_TEST_ARCHITECT = 'e2e-test-architect',
 }
 

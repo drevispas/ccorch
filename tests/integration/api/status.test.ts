@@ -162,7 +162,7 @@ describe('GET /api/workflows/:id/status', () => {
     expect(response.body.completed_agents).toHaveLength(3);
     expect(response.body.completed_agents[0].role).toBe('frontend-architect');
     expect(response.body.completed_agents[1].role).toBe('nextjs-react-developer');
-    expect(response.body.completed_agents[2].role).toBe('reviewer');
+    expect(response.body.completed_agents[2].role).toBe('code-reviewer');
   });
 
   it('should return status for FAILED workflow', async () => {

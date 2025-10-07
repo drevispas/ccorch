@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Claude Code Orchestrator (CCOrch)** is an intelligent agent coordination system that intercepts Claude Code interactions via hooks and orchestrates multi-agent workflows based on task complexity and role requirements.
 
-The orchestrator manages chains of specialized agents (backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger, e2e-test-architect) at varying complexity levels (simple, moderate, complex) to automate complex development workflows without manual agent switching.
+The orchestrator manages chains of specialized agents (backend-architect, frontend-architect, java-backend-developer, nextjs-react-developer, code-reviewer, issue-detective, e2e-test-architect) at varying complexity levels (simple, moderate, complex) to automate complex development workflows without manual agent switching.
 
 ## Architecture
 
@@ -33,16 +33,16 @@ The orchestrator manages chains of specialized agents (backend-architect, fronte
 
 | Chain | Agent Sequence |
 |-------|----------------|
-| `backend-development` | backend-architect → backend-developer → reviewer |
-| `frontend-development` | frontend-architect → frontend-developer → reviewer |
-| `debug` | debugger → (backend/frontend)-developer → reviewer |
-| `review` | reviewer → (backend/frontend)-developer |
+| `backend-development` | backend-architect → java-backend-developer → code-reviewer |
+| `frontend-development` | frontend-architect → nextjs-react-developer → code-reviewer |
+| `debug` | issue-detective → (java-backend/nextjs-react)-developer → code-reviewer |
+| `review` | code-reviewer → (java-backend/nextjs-react)-developer |
 | `backend-design-only` | backend-architect |
 | `frontend-design-only` | frontend-architect |
-| `backend-only` | backend-developer |
-| `frontend-only` | frontend-developer |
-| `review-only` | reviewer |
-| `debug-only` | debugger |
+| `backend-only` | java-backend-developer |
+| `frontend-only` | nextjs-react-developer |
+| `review-only` | code-reviewer |
+| `debug-only` | issue-detective |
 
 **Backend/Frontend Selection**: Keyword analysis (`java`, `api`, `database` → backend; `ui`, `component`, `react` → frontend; default: backend)
 
@@ -144,7 +144,7 @@ Run after **every change**:
 ### Configuration Validation
 
 At startup, validate that all expected agent configurations exist:
-- 7 roles (backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger, e2e-test-architect)
+- 7 roles (backend-architect, frontend-architect, java-backend-developer, nextjs-react-developer, code-reviewer, issue-detective, e2e-test-architect)
 - 3 complexity levels (simple, moderate, complex)
 - Total: 21 agent configurations
 

@@ -59,10 +59,10 @@ graph TB
     subgraph "Claude Code Agents"
         BEARCH["backend-architect-(complexity)"]
         FEARCH["frontend-architect-(complexity)"]
-        BACKEND["backend-developer-(complexity)"]
-        FRONTEND["frontend-developer-(complexity)"]
-        REVIEWER["reviewer-(complexity)"]
-        DEBUGGER["debugger-(complexity)"]
+        BACKEND["java-java-backend-developer-(complexity)"]
+        FRONTEND["nextjs-react-developer-(complexity)"]
+        REVIEWER["code-reviewer-(complexity)"]
+        DEBUGGER["issue-detective-(complexity)"]
     end
 
     USER -->|1. Submit prompt| CC
@@ -158,21 +158,21 @@ CCOrch supports 10 predefined workflow chains:
 
 | Chain Name | Agent Sequence | Use Case |
 |------------|----------------|----------|
-| `backend-development` | backend-architect → backend-developer → reviewer | Full backend feature development |
-| `frontend-development` | frontend-architect → frontend-developer → reviewer | Full frontend feature development |
-| `debug` | debugger → backend/frontend-developer → reviewer | Bug investigation and fix |
-| `review` | reviewer → backend/frontend-developer | Code review with optional fixes |
+| `java-backend-development` | backend-architect → java-java-backend-developer → code-reviewer | Full backend feature development |
+| `frontend-development` | frontend-architect → nextjs-react-developer → code-reviewer | Full frontend feature development |
+| `debug` | issue-detective → java-backend/nextjs-react-developer → code-reviewer | Bug investigation and fix |
+| `review` | code-reviewer → java-backend/nextjs-react-developer | Code review with optional fixes |
 | `backend-design-only` | backend-architect | Backend architecture design without implementation |
 | `frontend-design-only` | frontend-architect | Frontend architecture design without implementation |
-| `backend-only` | backend-developer | Backend implementation without design |
-| `frontend-only` | frontend-developer | Frontend implementation without design |
-| `review-only` | reviewer | Code review without fixes |
-| `debug-only` | debugger | Debug investigation without fixes |
+| `backend-only` | java-java-backend-developer | Backend implementation without design |
+| `frontend-only` | nextjs-react-developer | Frontend implementation without design |
+| `review-only` | code-reviewer | Code review without fixes |
+| `debug-only` | issue-detective | Debug investigation without fixes |
 
 **Backend vs Frontend Selection**: For chains with both options (`debug`, `review`), CCOrch uses keyword analysis:
 - **Backend keywords**: `java`, `api`, `database`, `controller`, `service`, `repository`, `junit`, `rest`, `endpoint`, `sql`
 - **Frontend keywords**: `ui`, `ux`, `component`, `home`, `page`, `typescript`, `web`, `react`, `vue`, `css`, `html`, `button`
-- **Default**: backend-developer if ambiguous
+- **Default**: java-backend-developer if ambiguous
 
 ### 1.5 Complexity Levels
 
@@ -255,8 +255,8 @@ sequenceDiagram
 
     Hook->>Resolver: 4. Determine chain & complexity
     activate Resolver
-    Note over Resolver: Analyze keywords:<br/>- "implement" + "API" = backend-development<br/>- Scope: 2-5 files = moderate
-    Resolver-->>Hook: Chain: "backend-development-moderate"<br/>Sequence: [backend-architect, backend-dev, reviewer]
+    Note over Resolver: Analyze keywords:<br/>- "implement" + "API" = java-backend-development<br/>- Scope: 2-5 files = moderate
+    Resolver-->>Hook: Chain: "java-backend-development-moderate"<br/>Sequence: [backend-architect, java-backend-dev, code-reviewer]
     deactivate Resolver
 
     Hook->>StateMgr: 5. Create workflow
@@ -290,7 +290,7 @@ sequenceDiagram
 **Database State After**:
 ```sql
 -- workflows table
-id='abc-123', user_prompt='Implement REST API for auth', chain_name='backend-development',
+id='abc-123', user_prompt='Implement REST API for auth', chain_name='java-backend-development',
 complexity='moderate', current_step=0, status='ACTIVE'
 
 -- workflow_transitions table
@@ -329,8 +329,8 @@ sequenceDiagram
 
     Hook->>Resolver: 4. Determine chain & draft complexity
     activate Resolver
-    Note over Resolver: Analyze keywords:<br/>- "implement" + "API" = backend-development<br/>- Scope heuristic: moderate
-    Resolver-->>Hook: Chain: "backend-development"<br/>Draft complexity: "moderate"
+    Note over Resolver: Analyze keywords:<br/>- "implement" + "API" = java-backend-development<br/>- Scope heuristic: moderate
+    Resolver-->>Hook: Chain: "java-backend-development"<br/>Draft complexity: "moderate"
     deactivate Resolver
 
     Hook->>StateMgr: 5. Create workflow
@@ -398,7 +398,7 @@ sequenceDiagram
 
     StateMgr->>DB: 3a. SELECT * FROM workflows WHERE id='abc-123'
     activate DB
-    DB-->>StateMgr: {current_step: 0, chain_name: 'backend-development', status: 'ACTIVE'}
+    DB-->>StateMgr: {current_step: 0, chain_name: 'java-backend-development', status: 'ACTIVE'}
     deactivate DB
 
     Note over StateMgr: Validate:<br/>- Workflow exists & ACTIVE<br/>- Agent matches expected (backend-architect at step 0)<br/>- No duplicate results for step 0
@@ -413,7 +413,7 @@ sequenceDiagram
     DB-->>StateMgr: OK
     deactivate DB
 
-    StateMgr->>DB: 3d. INSERT INTO workflow_transitions<br/>(workflow_id, from_step=0, to_step=1,<br/>from_agent='backend-architect', to_agent='backend-developer')
+    StateMgr->>DB: 3d. INSERT INTO workflow_transitions<br/>(workflow_id, from_step=0, to_step=1,<br/>from_agent='backend-architect', to_agent='java-backend-developer')
     activate DB
     DB-->>StateMgr: OK
     deactivate DB
@@ -421,7 +421,7 @@ sequenceDiagram
     StateMgr-->>Hook: 4. {status: 'continue', prompt: '...'}
     deactivate StateMgr
 
-    Hook-->>CC: 5. Hook response {message: "Use backend-developer-moderate to:<br/>Review backend-architect results: {...}<br/>Implement auth API endpoints, JWT logic, DB models"}
+    Hook-->>CC: 5. Hook response {message: "Use java-backend-developer-moderate to:<br/>Review backend-architect results: {...}<br/>Implement auth API endpoints, JWT logic, DB models"}
     deactivate Hook
     CC->>Agent: 6. Display injected prompt
     deactivate CC
@@ -437,7 +437,7 @@ sequenceDiagram
 7. **Workflow advancement**: Increment current_step, update timestamp
 8. **Audit logging**: Record transition with from_agent and to_agent
 9. **Next agent injection**: Orchestrator returns next agent prompt, hook handler returns it in hook response message field:
-   - Use the next agent in the chain (backend-developer-moderate)
+   - Use the next agent in the chain (java-backend-developer-moderate)
    - Review previous agent's results (backend-architect's design)
    - Execute the next task (implement auth API endpoints)
    - Synchronous orchestration - next prompt injected directly in PostToolUse hook response
@@ -451,7 +451,7 @@ current_step=1 (incremented), updated_at=<new_timestamp>
 workflow_id='abc-123', agent_role='backend-architect', step_number=0, results='...'
 
 -- workflow_transitions table (new row)
-workflow_id='abc-123', from_step=0, to_step=1, from_agent='backend-architect', to_agent='backend-developer'
+workflow_id='abc-123', from_step=0, to_step=1, from_agent='backend-architect', to_agent='java-backend-developer'
 ```
 
 ---
@@ -475,7 +475,7 @@ sequenceDiagram
 
     Agent->>CC: 1. Task complete
     activate CC
-    CC->>Hook: 2. POST /hooks/post-tool-use<br/>Payload: {workflow_id: 'abc-123', agent_role: 'reviewer',<br/>complexity: 'moderate', step_number: 2,<br/>results: {summary: '...', issues_found: []}}
+    CC->>Hook: 2. POST /hooks/post-tool-use<br/>Payload: {workflow_id: 'abc-123', agent_role: 'code-reviewer',<br/>complexity: 'moderate', step_number: 2,<br/>results: {summary: '...', issues_found: []}}
     activate Hook
 
     Hook->>StateMgr: 3. handleAgentComplete(workflowId, agentResults)
@@ -483,31 +483,31 @@ sequenceDiagram
 
     StateMgr->>DB: 3a. SELECT * FROM workflows WHERE id='abc-123'
     activate DB
-    DB-->>StateMgr: {current_step: 2, chain_name: 'backend-development', status: 'ACTIVE'}
+    DB-->>StateMgr: {current_step: 2, chain_name: 'java-backend-development', status: 'ACTIVE'}
     deactivate DB
 
-    Note over StateMgr: Validate:<br/>- Workflow ACTIVE<br/>- Agent is 'reviewer' at step 2<br/>- This is the final step in chain
+    Note over StateMgr: Validate:<br/>- Workflow ACTIVE<br/>- Agent is 'code-reviewer' at step 2<br/>- This is the final step in chain
 
     StateMgr->>DB: 3b. INSERT INTO agent_results<br/>(workflow_id, agent_role, step_number=2, results='...')
     activate DB
     DB-->>StateMgr: OK
     deactivate DB
 
-    Note over StateMgr: Detect chain completion:<br/>current_step (2) = last step in backend-development chain
+    Note over StateMgr: Detect chain completion:<br/>current_step (2) = last step in java-backend-development chain
 
     StateMgr->>DB: 3c. UPDATE workflows<br/>SET status='COMPLETED', current_step=3, updated_at=NOW()<br/>WHERE id='abc-123'
     activate DB
     DB-->>StateMgr: OK
     deactivate DB
 
-    StateMgr->>DB: 3d. INSERT INTO workflow_transitions<br/>(workflow_id, from_step=2, to_step=3,<br/>from_agent='reviewer', to_agent=NULL, reason='Workflow completed')
+    StateMgr->>DB: 3d. INSERT INTO workflow_transitions<br/>(workflow_id, from_step=2, to_step=3,<br/>from_agent='code-reviewer', to_agent=NULL, reason='Workflow completed')
     activate DB
     DB-->>StateMgr: OK
     deactivate DB
 
     StateMgr->>DB: 3e. SELECT * FROM agent_results WHERE workflow_id='abc-123' ORDER BY step_number
     activate DB
-    DB-->>StateMgr: [{backend-architect results}, {backend-dev results}, {reviewer results}]
+    DB-->>StateMgr: [{backend-architect results}, {java-backend-dev results}, {code-reviewer results}]
     deactivate DB
 
     StateMgr-->>Hook: 4. {status: 'completed', message: 'Workflow complete...'}
@@ -541,11 +541,11 @@ status='COMPLETED', current_step=3 (beyond last agent), updated_at=<timestamp>
 
 -- agent_results table (all steps completed)
 step_number=0: backend-architect results
-step_number=1: backend-developer results
-step_number=2: reviewer results
+step_number=1: java-backend-developer results
+step_number=2: code-reviewer results
 
 -- workflow_transitions table (final transition)
-from_step=2, to_step=3, from_agent='reviewer', to_agent=NULL, reason='Workflow completed'
+from_step=2, to_step=3, from_agent='code-reviewer', to_agent=NULL, reason='Workflow completed'
 ```
 
 ---
@@ -633,7 +633,7 @@ reason='Orphaned workflow detected'
 
 ### 3.1 End-to-End Sequence: "Implement REST API for User Authentication"
 
-This example demonstrates a complete `backend-development-moderate` workflow with all three agents.
+This example demonstrates a complete `java-backend-development-moderate` workflow with all three agents.
 
 ```mermaid
 ---
@@ -647,17 +647,17 @@ sequenceDiagram
     participant API as API Layer
     participant DB as SQLite DB
     participant Arch as backend-architect-moderate
-    participant Backend as backend-developer-moderate
-    participant Rev as reviewer-moderate
+    participant Backend as java-backend-developer-moderate
+    participant Rev as code-reviewer-moderate
 
     %% Step 0: User submission
     User->>CC: 1. "Implement REST API for user authentication"
     CC->>Hook: 2. UserPromptSubmit hook
     Hook->>Orch: 3. Parse & resolve chain
-    Note over Orch: Intent: backend implementation<br/>Scope: 2-5 files (moderate)<br/>Chain: backend-development
-    Orch->>DB: 4. CREATE workflow (id='wf-001', chain='backend-development',<br/>complexity='moderate', current_step=0)
+    Note over Orch: Intent: backend implementation<br/>Scope: 2-5 files (moderate)<br/>Chain: java-backend-development
+    Orch->>DB: 4. CREATE workflow (id='wf-001', chain='java-backend-development',<br/>complexity='moderate', current_step=0)
     DB-->>Orch: OK
-    Orch-->>Hook: Chain: [backend-architect → backend-dev → reviewer]
+    Orch-->>Hook: Chain: [backend-architect → java-backend-dev → code-reviewer]
     Hook-->>CC: 5. "Use backend-architect-moderate to design backend auth API (design only, no impl)"
     CC->>User: Display prompt
 
@@ -679,49 +679,49 @@ sequenceDiagram
     DB-->>Orch: OK
     Orch->>DB: 9c. INSERT transition (from_step=0, to_step=1)
     DB-->>Orch: OK
-    Orch-->>Hook: 10. {status: 'continue', prompt: 'Use backend-developer-moderate...'}
+    Orch-->>Hook: 10. {status: 'continue', prompt: 'Use java-backend-developer-moderate...'}
     deactivate Orch
-    Hook-->>CC: 11. Hook response {message: "Use backend-developer-moderate to:<br/>Review backend-architect design: {...}<br/>Implement auth API endpoints, JWT logic, DB models"}
+    Hook-->>CC: 11. Hook response {message: "Use java-backend-developer-moderate to:<br/>Review backend-architect design: {...}<br/>Implement auth API endpoints, JWT logic, DB models"}
     deactivate Hook
     CC->>User: Display prompt
 
     %% Step 2: Backend Developer agent
-    Note over User,CC: [STEP 2] User approves, CC launches backend-developer-moderate
+    Note over User,CC: [STEP 2] User approves, CC launches java-backend-developer-moderate
     CC->>Backend: 12. Execute with context from backend-architect
     activate Backend
     Note over Backend: Implement:<br/>- Create AuthController.java (login, refresh, logout endpoints)<br/>- JWT token generation/validation service<br/>- User & RefreshToken JPA entities<br/>- Password hashing with bcrypt<br/>- Unit tests
     Backend->>CC: 13. Agent completes
     deactivate Backend
 
-    CC->>Hook: 14. POST /hooks/post-tool-use<br/>Payload: {workflow_id: 'wf-001', agent_role: 'backend-developer',<br/>complexity: 'moderate', step_number: 1,<br/>results: {summary: 'Implemented JWT auth API with 5 files', files_modified: [...], recommendations: '...'}}
+    CC->>Hook: 14. POST /hooks/post-tool-use<br/>Payload: {workflow_id: 'wf-001', agent_role: 'java-backend-developer',<br/>complexity: 'moderate', step_number: 1,<br/>results: {summary: 'Implemented JWT auth API with 5 files', files_modified: [...], recommendations: '...'}}
     activate Hook
     Hook->>Orch: 15. handleAgentComplete()
     activate Orch
-    Orch->>DB: 15a. INSERT agent_results (step=1, agent='backend-developer')
+    Orch->>DB: 15a. INSERT agent_results (step=1, agent='java-backend-developer')
     DB-->>Orch: OK
     Orch->>DB: 15b. UPDATE workflows SET current_step=2
     DB-->>Orch: OK
     Orch->>DB: 15c. INSERT transition (from_step=1, to_step=2)
     DB-->>Orch: OK
-    Orch-->>Hook: 16. {status: 'continue', prompt: 'Use reviewer-moderate...'}
+    Orch-->>Hook: 16. {status: 'continue', prompt: 'Use code-reviewer-moderate...'}
     deactivate Orch
-    Hook-->>CC: 17. Hook response {message: "Use reviewer-moderate to:<br/>Review staged/unstaged changes<br/>Check security, tests, error handling"}
+    Hook-->>CC: 17. Hook response {message: "Use code-reviewer-moderate to:<br/>Review staged/unstaged changes<br/>Check security, tests, error handling"}
     deactivate Hook
     CC->>User: Display prompt
 
     %% Step 3: Reviewer agent
-    Note over User,CC: [STEP 3] User approves, CC launches reviewer-moderate
-    CC->>Rev: 18. Execute with context from backend-developer
+    Note over User,CC: [STEP 3] User approves, CC launches code-reviewer-moderate
+    CC->>Rev: 18. Execute with context from java-backend-developer
     activate Rev
     Note over Rev: Review code:<br/>- Security: JWT secret storage, password hashing ✓<br/>- Tests: Unit tests present ✓<br/>- Error handling: Add 401 for invalid tokens<br/>- Recommendations: Add rate limiting
     Rev->>CC: 19. Agent completes
     deactivate Rev
 
-    CC->>Hook: 20. POST /hooks/post-tool-use<br/>Payload: {workflow_id: 'wf-001', agent_role: 'reviewer',<br/>complexity: 'moderate', step_number: 2,<br/>results: {summary: 'Code review complete', issues_found: [...], recommendations: '...'}}
+    CC->>Hook: 20. POST /hooks/post-tool-use<br/>Payload: {workflow_id: 'wf-001', agent_role: 'code-reviewer',<br/>complexity: 'moderate', step_number: 2,<br/>results: {summary: 'Code review complete', issues_found: [...], recommendations: '...'}}
     activate Hook
     Hook->>Orch: 21. handleAgentComplete()
     activate Orch
-    Orch->>DB: 21a. INSERT agent_results (step=2, agent='reviewer')
+    Orch->>DB: 21a. INSERT agent_results (step=2, agent='code-reviewer')
     DB-->>Orch: OK
     Note over Orch: Detect chain completion (step 2 = last step)
     Orch->>DB: 21b. UPDATE workflows SET status='COMPLETED', current_step=3
@@ -741,7 +741,7 @@ sequenceDiagram
 ```sql
 -- workflows
 id='wf-001', user_prompt='Implement REST API for user authentication',
-chain_name='backend-development', complexity='moderate', current_step=0, status='ACTIVE'
+chain_name='java-backend-development', complexity='moderate', current_step=0, status='ACTIVE'
 
 -- workflow_transitions
 from_step=-1, to_step=0, from_agent=NULL, to_agent='backend-architect'
@@ -756,7 +756,7 @@ current_step=1, updated_at=<timestamp>
 step_number=0, agent_role='backend-architect', results='{"summary":"Designed JWT-based backend auth API",...}'
 
 -- workflow_transitions (new row)
-from_step=0, to_step=1, from_agent='backend-architect', to_agent='backend-developer'
+from_step=0, to_step=1, from_agent='backend-architect', to_agent='java-backend-developer'
 ```
 
 **After Backend Developer Completion (Step 2)**:
@@ -765,10 +765,10 @@ from_step=0, to_step=1, from_agent='backend-architect', to_agent='backend-develo
 current_step=2
 
 -- agent_results (new row)
-step_number=1, agent_role='backend-developer', results='{"summary":"Implemented JWT auth API",...}'
+step_number=1, agent_role='java-backend-developer', results='{"summary":"Implemented JWT auth API",...}'
 
 -- workflow_transitions (new row)
-from_step=1, to_step=2, from_agent='backend-developer', to_agent='reviewer'
+from_step=1, to_step=2, from_agent='java-backend-developer', to_agent='code-reviewer'
 ```
 
 **After Reviewer Completion (Step 3 - COMPLETED)**:
@@ -777,10 +777,10 @@ from_step=1, to_step=2, from_agent='backend-developer', to_agent='reviewer'
 current_step=3, status='COMPLETED'
 
 -- agent_results (new row)
-step_number=2, agent_role='reviewer', results='{"summary":"Code review complete",...}'
+step_number=2, agent_role='code-reviewer', results='{"summary":"Code review complete",...}'
 
 -- workflow_transitions (new row)
-from_step=2, to_step=3, from_agent='reviewer', to_agent=NULL, reason='Workflow completed'
+from_step=2, to_step=3, from_agent='code-reviewer', to_agent=NULL, reason='Workflow completed'
 ```
 
 ### 3.3 Timing Considerations
@@ -878,8 +878,8 @@ sequenceDiagram
     Admin->>API: GET /workflows/{id}/status
     activate API
     API->>DB: SELECT workflow state
-    DB-->>API: {status: 'FAILED', last_agent: 'backend-developer'}
-    API-->>Admin: Workflow failed at backend-developer step
+    DB-->>API: {status: 'FAILED', last_agent: 'java-backend-developer'}
+    API-->>Admin: Workflow failed at java-backend-developer step
     deactivate API
 
     Note over Admin: Admin decides to retry
@@ -887,7 +887,7 @@ sequenceDiagram
     activate API
     API->>DB: DELETE FROM agent_results WHERE step_number=current_step
     DB-->>API: OK
-    API-->>Admin: Ready to retry backend-developer step
+    API-->>Admin: Ready to retry java-backend-developer step
     deactivate API
 ```
 

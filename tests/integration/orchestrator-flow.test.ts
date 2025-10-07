@@ -285,7 +285,7 @@ describe('Orchestrator Integration - E2E Flow', () => {
       const initialResponse = await orchestrator.handleUserPrompt(userPrompt);
 
       expect(initialResponse.agentRole).toBe(AgentRole.DEBUGGER);
-      expect(initialResponse.prompt).toContain('debugger');
+      expect(initialResponse.prompt).toContain('issue-detective');
 
       const workflowId = initialResponse.workflowId;
 

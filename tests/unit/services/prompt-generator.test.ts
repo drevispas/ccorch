@@ -180,7 +180,7 @@ describe('Prompt Generator Service', () => {
     it('should generate reviewer-specific tasks', () => {
       const prompt = generateAgentPrompt({
         chainName: 'backend-development',
-        agentRole: 'reviewer',
+        agentRole: 'code-reviewer',
         complexity: 'moderate',
         stepNumber: 2,
       });
@@ -194,7 +194,7 @@ describe('Prompt Generator Service', () => {
     it('should generate debugger-specific tasks', () => {
       const prompt = generateAgentPrompt({
         chainName: 'debug',
-        agentRole: 'debugger',
+        agentRole: 'issue-detective',
         complexity: 'moderate',
         stepNumber: 0,
       });

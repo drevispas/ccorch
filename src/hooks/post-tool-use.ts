@@ -110,14 +110,34 @@ export async function handlePostToolUse(
       };
     }
 
-    // 4. Parse agent results from Task tool output
+    // 4. Extract agent role from subagent_type parameter
+    // Example: "java-backend-developer-moderate" -> "java-backend-developer"
+    const subagentType = validatedPayload.tool_input?.subagent_type as string | undefined;
+
+    if (!subagentType) {
+      console.log(JSON.stringify({
+        event: 'post_tool_use_error',
+        reason: 'missing_subagent_type',
+        sessionId: validatedPayload.session_id,
+        workflowId: workflow.id,
+      }));
+
+      return {
+        message: 'Error: Task tool invocation missing subagent_type parameter',
+      };
+    }
+
+    // Extract agent role by removing complexity suffix
+    const agentRole = subagentType.replace(/-(simple|moderate|complex)$/, '') as AgentRole;
+
+    // 5. Parse agent results from Task tool output
     // For MVP: Use entire stdout as results (no special parsing)
     const agentOutput = validatedPayload.tool_response?.stdout || '';
 
     // Build agent results for orchestrator
     const agentResults: AgentResultCreateInput = {
       workflowId: workflow.id,
-      agentRole: (workflow.chainName.includes('backend') ? 'backend-architect' : 'frontend-architect') as AgentRole, // Simplified for MVP
+      agentRole,
       complexity: workflow.complexity as Complexity,
       stepNumber: workflow.currentStep,
       status: 'COMPLETED',
@@ -128,14 +148,16 @@ export async function handlePostToolUse(
       event: 'post_tool_use_processing',
       workflowId: workflow.id,
       sessionId: validatedPayload.session_id,
+      agentRole,
+      subagentType,
       currentStep: workflow.currentStep,
       outputLength: agentOutput.length,
     }));
 
-    // 5. Call orchestrator to process agent completion
+    // 6. Call orchestrator to process agent completion
     const result = await orchestrator.handleAgentComplete(workflow.id, agentResults);
 
-    // 6. Format response based on workflow status
+    // 7. Format response based on workflow status
     if (result.status === 'completed') {
       // Workflow complete - return completion message
       return {
@@ -162,7 +184,7 @@ export async function handlePostToolUse(
       message: 'Error: Unknown workflow status',
     };
   } catch (error) {
-    // 7. Handle orchestrator errors with fallback message
+    // 8. Handle orchestrator errors with fallback message
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error occurred';
 

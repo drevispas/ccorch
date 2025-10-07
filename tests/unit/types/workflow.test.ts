@@ -89,8 +89,8 @@ describe('AgentRole Enum', () => {
       'frontend-architect',
       'java-backend-developer',
       'nextjs-react-developer',
-      'reviewer',
-      'debugger',
+      'code-reviewer',
+      'issue-detective',
       'e2e-test-architect',
     ];
 
@@ -199,8 +199,8 @@ describe('AgentRoleSchema', () => {
     const validRoles = [
       'backend-architect',
       'nextjs-react-developer',
-      'reviewer',
-      'debugger',
+      'code-reviewer',
+      'issue-detective',
     ];
 
     validRoles.forEach(role => {
@@ -259,7 +259,7 @@ describe('IntentSchema', () => {
 
   it('should accept intent without keywords (defaults to empty array)', () => {
     const intentWithoutKeywords = {
-      roles: ['reviewer'],
+      roles: ['code-reviewer'],
     };
 
     const result = IntentSchema.parse(intentWithoutKeywords);
@@ -408,7 +408,7 @@ describe('AgentTaskSchema', () => {
 
   it('should reject task with negative step number', () => {
     const invalidTask = {
-      role: 'reviewer',
+      role: 'code-reviewer',
       complexity: 'simple',
       stepNumber: -1,
       instructions: 'Review the code',
@@ -509,8 +509,8 @@ describe('isAgentRole Type Guard', () => {
   it('should return true for valid agent roles', () => {
     expect(isAgentRole('backend-architect')).toBe(true);
     expect(isAgentRole('nextjs-react-developer')).toBe(true);
-    expect(isAgentRole('reviewer')).toBe(true);
-    expect(isAgentRole('debugger')).toBe(true);
+    expect(isAgentRole('code-reviewer')).toBe(true);
+    expect(isAgentRole('issue-detective')).toBe(true);
     expect(isAgentRole('e2e-test-architect')).toBe(true);
   });
 

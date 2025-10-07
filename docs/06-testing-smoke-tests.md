@@ -150,7 +150,7 @@ curl -X POST ${BASE_URL}/api/workflows/${WORKFLOW_ID}/results \
   "message": "Result stored and workflow advanced",
   "workflowId": "<workflow-id>",
   "currentStep": 1,
-  "nextAgent": "backend-developer"
+  "nextAgent": "java-backend-developer"
 }
 ```
 
@@ -190,7 +190,7 @@ curl ${BASE_URL}/api/workflows/${WORKFLOW_ID}/status
   "chainName": "backend-development",
   "complexity": "moderate",
   "currentStep": 1,
-  "agentSequence": ["backend-architect", "backend-developer", "reviewer"],
+  "agentSequence": ["backend-architect", "java-backend-developer", "code-reviewer"],
   "createdAt": "<timestamp>",
   "updatedAt": "<timestamp>"
 }

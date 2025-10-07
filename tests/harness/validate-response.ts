@@ -93,8 +93,8 @@ export function validateHookResponse(response: unknown): ValidationResult {
         'frontend-architect',
         'java-backend-developer',
         'nextjs-react-developer',
-        'reviewer',
-        'debugger',
+        'code-reviewer',
+        'issue-detective',
         'e2e-test-architect',
       ];
 

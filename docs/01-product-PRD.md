@@ -59,8 +59,8 @@ Agent definition files stored in `.claude/agents/` with two dimensions:
 - `frontend-architect` - Frontend/UI design and architecture (design only, no implementation)
 - `backend-developer` - Backend implementation
 - `frontend-developer` - Frontend implementation
-- `reviewer` - Code review (reviews unstaged and staged changes)
-- `debugger` - Debugging and issue resolution
+- `code-reviewer` - Code review (reviews unstaged and staged changes)
+- `issue-detective` - Debugging and issue resolution
 - `e2e-test-architect` - End-to-end testing strategy and design (design only, no implementation)
 
 **Complexity Levels:**
@@ -74,8 +74,8 @@ backend-architect-{simple,moderate,complex}.md
 frontend-architect-{simple,moderate,complex}.md
 backend-developer-{simple,moderate,complex}.md
 frontend-developer-{simple,moderate,complex}.md
-reviewer-{simple,moderate,complex}.md
-debugger-{simple,moderate,complex}.md
+code-reviewer-{simple,moderate,complex}.md
+issue-detective-{simple,moderate,complex}.md
 e2e-test-architect-{simple,moderate,complex}.md
 ```
 
@@ -115,18 +115,18 @@ e2e-test-architect-{simple,moderate,complex}.md
 
 ### 4.2 Workflow Chains
 
-| Chain Name             | Agent Sequence                                                  |
-|------------------------|-----------------------------------------------------------------|
-| `backend-development`  | backend-architect → backend-developer → reviewer                |
-| `frontend-development` | frontend-architect → frontend-developer → reviewer              |
-| `debug`                | debugger → backend-developer OR frontend-developer → reviewer   |
-| `review`               | reviewer → backend-developer OR frontend-developer              |
-| `backend-design-only`  | backend-architect                                               |
-| `frontend-design-only` | frontend-architect                                              |
-| `backend-only`         | backend-developer                                               |
-| `frontend-only`        | frontend-developer                                              |
-| `review-only`          | reviewer                                                        |
-| `debug-only`           | debugger                                                        |
+| Chain Name             | Agent Sequence                                                                   |
+|------------------------|----------------------------------------------------------------------------------|
+| `backend-development`  | backend-architect → java-backend-developer → code-reviewer                       |
+| `frontend-development` | frontend-architect → nextjs-react-developer → code-reviewer                      |
+| `debug`                | issue-detective → java-backend-developer OR nextjs-react-developer → code-reviewer |
+| `review`               | code-reviewer → java-backend-developer OR nextjs-react-developer                 |
+| `backend-design-only`  | backend-architect                                                                |
+| `frontend-design-only` | frontend-architect                                                               |
+| `backend-only`         | java-backend-developer                                                           |
+| `frontend-only`        | nextjs-react-developer                                                           |
+| `review-only`          | code-reviewer                                                                    |
+| `debug-only`           | issue-detective                                                                  |
 
 ---
 
@@ -166,7 +166,7 @@ When a chain offers both `backend-developer` and `frontend-developer` options (d
 
 #### Step 1: Parse User Intent
 - Extract action type from user prompt
-- Identify roles involved: `backend-architect`, `frontend-architect`, `backend-developer`, `frontend-developer`, `reviewer`, `debugger`
+- Identify roles involved: `backend-architect`, `frontend-architect`, `java-backend-developer`, `nextjs-react-developer`, `code-reviewer`, `issue-detective`
 
 #### Step 2: Determine Chain
 - Map action to predefined chain (see [section 4.2](#42-workflow-chains))
@@ -474,7 +474,7 @@ Workflow complete. All agents finished successfully.
 1. **Parse intent**: Backend development task
 2. **Determine complexity**: Moderate (API implementation, 2-5 files)
 3. **Select chain**: `backend-development-moderate`
-4. **Agent sequence**: backend-architect-moderate → backend-developer-moderate → reviewer-moderate
+4. **Agent sequence**: backend-architect-moderate → java-backend-developer-moderate → code-reviewer-moderate
 
 ---
 
@@ -514,7 +514,7 @@ based on design: {backend_architect_results}
 
 **CCOrch injects**:
 ```
-Use the reviewer-moderate subagent to review authentication API implementation
+Use the code-reviewer-moderate subagent to review authentication API implementation
 (review unstaged and staged changes): {developer_results}
 ```
 

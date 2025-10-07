@@ -466,7 +466,7 @@
   - **Purpose**: Create sample data for local development and testing. This demonstrates a complete workflow lifecycle (backend-development chain with 3 agents) and enables manual testing without invoking hooks.
   - File: `prisma/seed.ts`
   - Data: Insert 1 workflow (backend-development-moderate)
-  - Chain: 3 agent results (backend-architect → backend-developer → reviewer)
+  - Chain: 3 agent results (backend-architect → java-backend-developer → code-reviewer)
   - Transitions: 2 transitions (step 0→1, step 1→2)
   - Add to package.json: `"prisma": { "seed": "tsx prisma/seed.ts" }` ✅ Added
   - Test: `pnpm prisma db seed` ✅ Verified

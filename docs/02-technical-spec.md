@@ -185,7 +185,7 @@ CREATE TABLE agent_results (
   workflow_id TEXT NOT NULL,
 
   -- Role of the agent that produced this result
-  -- Valid values: backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger, e2e-test-architect
+  -- Valid values: backend-architect, frontend-architect, java-backend-developer, nextjs-react-developer, code-reviewer, issue-detective, e2e-test-architect
   agent_role TEXT NOT NULL,
 
   -- Complexity level of the agent
@@ -238,7 +238,7 @@ CREATE TABLE workflow_transitions (
   to_step INTEGER NOT NULL,
 
   -- Agent role that completed (nullable for initial transition)
-  -- Valid values: backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger, e2e-test-architect, NULL
+  -- Valid values: backend-architect, frontend-architect, java-backend-developer, nextjs-react-developer, code-reviewer, issue-detective, e2e-test-architect, NULL
   from_agent TEXT,
 
   -- Agent role that will execute next (nullable for final transition)
@@ -372,10 +372,10 @@ enum Complexity {
 enum AgentRole {
   BACKEND_ARCHITECT = 'backend-architect',
   FRONTEND_ARCHITECT = 'frontend-architect',
-  BACKEND_DEVELOPER = 'backend-developer',
-  FRONTEND_DEVELOPER = 'frontend-developer',
-  REVIEWER = 'reviewer',
-  DEBUGGER = 'debugger',
+  BACKEND_DEVELOPER = 'java-backend-developer',
+  FRONTEND_DEVELOPER = 'nextjs-react-developer',
+  REVIEWER = 'code-reviewer',
+  DEBUGGER = 'issue-detective',
   E2E_TEST_ARCHITECT = 'e2e-test-architect',
 }
 
@@ -1009,10 +1009,10 @@ This section documents the core orchestration services that power the workflow e
 - `parseIntent(prompt: string): Intent`
 
 **Features**:
-- Keyword-based role detection (backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger)
+- Keyword-based role detection (backend-architect, frontend-architect, java-backend-developer, nextjs-react-developer, code-reviewer, issue-detective)
 - Case-insensitive matching with simple stemming for plural forms
 - Backend vs frontend differentiation using keyword analysis
-- Default to backend-developer when ambiguous
+- Default to java-backend-developer when ambiguous
 
 **Keyword Categories**:
 - Action keywords: design, implement, build, create, add, review, debug, fix, troubleshoot
@@ -1158,7 +1158,7 @@ Priority order (highest to lowest):
 {
   'backend-architect': { multiplier: 1.1 },   // +10%
   'frontend-architect': { multiplier: 1.1 },  // +10%
-  'debugger': { multiplier: 0.9 },            // -10%
+  'issue-detective': { multiplier: 0.9 },     // -10%
 }
 
 // Feature Flags
