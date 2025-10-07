@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd poc && npx tsx capture-hook.ts"
+            "command": "curl -X POST -H 'X-Hook-Secret: secret' -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/user-prompt-submit"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd poc && npx tsx capture-hook.ts"
+            "command": "curl -X POST -H 'X-Hook-Secret: secret' -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/post-tool-use"
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd poc && npx tsx capture-hook.ts"
+            "command": "curl -X POST -H 'X-Hook-Secret: secret' -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/stop"
           }
         ]
       }
