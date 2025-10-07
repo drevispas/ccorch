@@ -118,10 +118,10 @@ CCOrch is configured via `.claude/settings.json` hooks:
 
 ## Documentation
 
-- **PRD**: `docs/PRD.md` - Product requirements and workflow chains
-- **Technical Spec**: `docs/technical-spec.md` - Implementation details
-- **Architecture**: `docs/architecture.md` - System design diagrams
-- **WBS**: `docs/WBS.md` - Detailed task breakdown
+- **PRD**: `docs/01-product-PRD.md` - Product requirements and workflow chains
+- **Technical Spec**: `docs/02-technical-spec.md` - Implementation details
+- **Architecture**: `docs/02-technical-architecture.md` - System design diagrams
+- **WBS**: `docs/03-planning-WBS.md` - Detailed task breakdown
 
 ## Server Status
 

@@ -1489,9 +1489,9 @@ export const env = envSchema.parse(process.env);
 
 ## 9. References
 
-- **PRD**: `docs/PRD.md` - Product requirements and business logic
-- **Architecture**: `docs/architecture.md` - System diagrams and flows
-- **Development Plan**: `docs/development-plan.md` - Implementation roadmap
+- **PRD**: `docs/01-product-PRD.md` - Product requirements and business logic
+- **Architecture**: `docs/02-technical-architecture.md` - System diagrams and flows
+- **Development Plan**: `docs/03-planning-development-plan.md` - Implementation roadmap
 - **Prisma Docs**: https://www.prisma.io/docs
 - **Vitest Docs**: https://vitest.dev
 - **Zod Docs**: https://zod.dev

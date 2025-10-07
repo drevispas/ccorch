@@ -482,7 +482,7 @@
 ### 3.6 Documentation
 - [x] **3.6.1 Create database documentation** ✅ COMPLETED
   - **Purpose**: Document all database operations so developers can self-serve for common tasks (migrations, seeding, backup). This reduces onboarding time and prevents operational mistakes.
-  - File: `docs/database.md` ✅ Created (450+ lines)
+  - File: `docs/02-technical-database.md` ✅ Created (450+ lines)
   - Sections:
     1. Schema overview (3 tables, relationships) ✅ Included with ER diagram
     2. Migration commands (`prisma migrate dev`, `prisma migrate deploy`) ✅ Documented
@@ -513,7 +513,7 @@
   - ✓ Repositories tested: All tests pass ✅ VERIFIED - 70/70 tests passing
   - ✓ Interface abstraction: Repository interfaces defined ✅ VERIFIED - IWorkflowRepository, IAgentResultRepository, ITransitionRepository
   - ✓ Seed loads: `pnpm prisma db seed` succeeds ✅ VERIFIED - 1 workflow, 3 agent results, 2 transitions created
-  - ✓ Documentation: `docs/database.md` complete ✅ VERIFIED - 509 lines with all required sections
+  - ✓ Documentation: `docs/02-technical-database.md` complete ✅ VERIFIED - 509 lines with all required sections
   - Decision: Proceed to Phase 2 ✅ APPROVED - All exit criteria met
   - **Note**: Schema extended in Phase 1.5 (addendum) for CC-assisted complexity feature
 
@@ -1026,21 +1026,21 @@
 - [x] **5.11.8 Update documentation** ✅ COMPLETED
   - **Purpose**: Document CC-assisted complexity feature across all docs
   - Files updated and verified:
-    - `docs/PRD.md` - New workflow steps 3a-3c, API section 5.4.2 ✅ VERIFIED
+    - `docs/01-product-PRD.md` - New workflow steps 3a-3c, API section 5.4.2 ✅ VERIFIED
       - Documents PENDING_COMPLEXITY state, set-complexity API endpoint
       - Includes flow steps for CC complexity determination
-    - `docs/technical-spec.md` - Schema changes, API specs, project structure ✅ VERIFIED
+    - `docs/02-technical-spec.md` - Schema changes, API specs, project structure ✅ VERIFIED
       - Documents draft_complexity field in schema
       - Includes POST /api/workflows/{id}/set-complexity API specification
       - Lists complexity.ts route in project structure
-    - `docs/architecture.md` - Sequence diagram 2.1b for CC complexity flow ✅ VERIFIED
+    - `docs/02-technical-architecture.md` - Sequence diagram 2.1b for CC complexity flow ✅ VERIFIED
       - Diagram 2.1b shows UserPromptSubmit with CC complexity determination
       - Documents workflow creation in PENDING_COMPLEXITY state
       - Shows CC calling set-complexity API with reasoning
-    - `docs/WBS.md` - Section 4 (Phase 1.5) and section 5.11 (Phase 2) ✅ VERIFIED
+    - `docs/03-planning-WBS.md` - Section 4 (Phase 1.5) and section 5.11 (Phase 2) ✅ VERIFIED
       - Phase 1.5: Database schema changes for CC-assisted complexity
       - Section 5.11: All 8 tasks documented (5 implementation + 3 testing)
-    - `docs/development-plan.md` - Phase 2 updates with +3-4 day estimate ✅ VERIFIED
+    - `docs/03-planning-development-plan.md` - Phase 2 updates with +3-4 day estimate ✅ VERIFIED
       - Documents set-complexity endpoint requirement
       - Includes PENDING_COMPLEXITY workflow status support
   - Verification date: 2025-10-06 (post-completion of tasks 5.11.6-5.11.7)
@@ -1329,7 +1329,7 @@
   - Acceptance: Comprehensive fixtures for all hook types ✅
 
 - [x] **Document test harness** ✅
-  - File: `docs/test-harness.md` ✅
+  - File: `docs/06-testing-harness.md` ✅
   - Sections:
     1. Overview and quick start guide ✅
     2. Mock server setup and usage with examples ✅
@@ -1381,7 +1381,7 @@
 
 ### 6.8 Hook Setup Documentation
 - [x] **Create hook setup guide** ✅
-  - File: `docs/hook-setup.md` ✅
+  - File: `docs/04-ops-hook-setup.md` ✅
   - Complete sections:
     1. **Prerequisites**: ✅
        - Claude Code version requirements ✅
@@ -1477,7 +1477,7 @@
   - ✓ Environment config: .env validation with Zod ✅ (Task 6.5)
   - ✓ Test harness: Mock server, payload sender, validator documented ✅ (Task 6.6)
   - ✓ Prompt templates: 20 integration tests passing ✅ (Task 6.7)
-  - ✓ Setup docs: `docs/hook-setup.md` complete ✅ (Task 6.8)
+  - ✓ Setup docs: `docs/04-ops-hook-setup.md` complete ✅ (Task 6.8)
   - ✓ Hook handlers: Implemented and tested ✅ (Task 6.1 - 9/9 auth tests pass)
   - ✓ Hook endpoints: HTTP server running with routes ✅ (Task 6.2 - endpoints responding)
   - ✓ Hook authentication: X-Hook-Secret middleware integrated ✅ (Task 6.3)
@@ -1692,7 +1692,7 @@
 
 ### 7.6 API Documentation
 - [x] **Create API reference** ✅ COMPLETED
-  - File: `docs/api-reference.md` ✅
+  - File: `docs/05-api-reference.md` ✅
   - Sections per PRD §5.4:
     1. **Authentication**: API key required for admin endpoints (POST /transition), public endpoints (GET /status) no auth ✅
     2. **GET /api/workflows/:id/status**: Response format, workflow states (ACTIVE, COMPLETED, FAILED) ✅
@@ -2208,7 +2208,7 @@ WorkflowTransitions:
   - ✓ Public endpoints accessible: GET /status works without auth
   - ✓ Concurrent workflows isolated: Isolation tests pass, no state leakage
   - ✓ Validation: Zod schemas enforce PRD §5.4 constraints
-  - ✓ Documentation: `docs/api-reference.md` complete with curl examples, error codes, and note about PostToolUse hook result submission
+  - ✓ Documentation: `docs/05-api-reference.md` complete with curl examples, error codes, and note about PostToolUse hook result submission
   - Decision: Proceed to Phase 5
 
 ---
@@ -2326,9 +2326,9 @@ WorkflowTransitions:
   - Acceptance: Archival logic tested
   - **Completed**: Workflow archival with retention policy (30d for COMPLETED, 90d for FAILED), 10 comprehensive tests, and cron scheduler integration guide. Added `findOldWorkflows()` to WorkflowRepository
 
-### 8.4 Operational Runbook (Development Plan: "Draft in docs/runbook.md") ✅
+### 8.4 Operational Runbook (Development Plan: "Draft in docs/04-ops-runbook.md") ✅
 - [x] **Create runbook**
-  - File: `docs/runbook.md`
+  - File: `docs/04-ops-runbook.md`
   - Sections per Development Plan §5: Phase 5:
     1. **Local Deployment**: Clone repo → `pnpm install` → Setup `.env` → `pnpm prisma migrate deploy` → `pnpm build` → `pnpm start`
     2. **Environment Variables**: List all vars with descriptions (PORT, DATABASE_URL, API_KEY_ADMIN, HOOK_SECRET, LOG_LEVEL) and defaults
@@ -2360,7 +2360,7 @@ WorkflowTransitions:
   - **Completed**: Production-ready PM2 config with auto-restart, log management, graceful shutdown, memory limits, and optional deployment automation. Includes staging/production environment configs
 
 - [x] **Create smoke test checklist**
-  - File: `docs/smoke-tests.md`
+  - File: `docs/06-testing-smoke-tests.md`
   - Tests:
     1. Health check returns 200: `curl http://localhost:3000/health`
     2. Create workflow via hook → Verify in DB: `pnpm prisma studio`
@@ -2392,7 +2392,7 @@ WorkflowTransitions:
 
 ### 8.7 Log Retention Configuration (Development Plan §10: 7 days, Loki stack) ✅
 - [x] **Document log retention policy**
-  - File: `docs/logging.md`
+  - File: `docs/04-ops-logging.md`
   - Document: 7-day retention policy for production logs (Loki stack per Development Plan §10)
   - Include: Setup instructions for Loki + Grafana (future enhancement, link to Loki docs)
   - Acceptance: Log retention policy documented
@@ -2445,7 +2445,7 @@ WorkflowTransitions:
   - ✓ Logging operational: Pino logs all events with structured data (18 logger.info calls in source)
   - ✓ Metrics stubs: Placeholders logged with TODO for Prometheus (5 metrics: workflow_created/completed/failed, hook_latency, api_duration)
   - ✓ Recovery paths: Retry (17 tests), stale cleanup, archival (10 tests) all pass
-  - ✓ Deployment runbook: `docs/runbook.md` complete (6 sections: deployment, env vars, DB management, admin API, troubleshooting, monitoring)
+  - ✓ Deployment runbook: `docs/04-ops-runbook.md` complete (6 sections: deployment, env vars, DB management, admin API, troubleshooting, monitoring)
   - ✓ Performance targets: <500ms hook response, <1s transitions validated (9 tests, all pass)
   - ✓ Log retention: 7-day policy documented with complete Loki + Grafana setup
   - Decision: **Phase 5 COMPLETE** - Proceed to Phase 6
@@ -2621,11 +2621,11 @@ WorkflowTransitions:
     - **Ready for PM2 deployment** when PM2 is installed
 
 - [x] **Run smoke tests**
-  - Follow: `docs/smoke-tests.md` checklist
+  - Follow: `docs/06-testing-smoke-tests.md` checklist
   - Verify: All 5 smoke tests pass (health check, create workflow, submit result, query status, manual transition)
   - Acceptance: System ready for production use
   - **Completed**: ✅ **Smoke test guide verified**
-    - Documentation complete: `docs/smoke-tests.md` ✅
+    - Documentation complete: `docs/06-testing-smoke-tests.md` ✅
     - 6 manual test scenarios documented:
       1. Health check (GET /health)
       2. Create workflow via hook (POST /hooks/user-prompt-submit)
@@ -2640,27 +2640,27 @@ WorkflowTransitions:
 
 ### 9.4 Documentation Review ✅
 - [x] **Review all documentation files**
-  - Files: `CLAUDE.md`, `CONTRIBUTING.md`, `docs/PRD.md`, `docs/development-plan.md`, `docs/WBS.md`, `docs/database.md`, `docs/hook-setup.md`, `docs/test-harness.md`, `docs/api-reference.md`, `docs/runbook.md`, `docs/smoke-tests.md`, `docs/logging.md`
+  - Files: `CLAUDE.md`, `CONTRIBUTING.md`, `docs/01-product-PRD.md`, `docs/03-planning-development-plan.md`, `docs/03-planning-WBS.md`, `docs/02-technical-database.md`, `docs/04-ops-hook-setup.md`, `docs/06-testing-harness.md`, `docs/05-api-reference.md`, `docs/04-ops-runbook.md`, `docs/06-testing-smoke-tests.md`, `docs/04-ops-logging.md`
   - Check: No broken links, accurate commands, up-to-date examples
   - Check: All PRD sections referenced correctly
   - Acceptance: Documentation complete and accurate
   - **Completed**: ✅ **All 12 documentation files verified**
     - `CLAUDE.md` (208 lines) - Project overview and dev guidelines ✓
     - `CONTRIBUTING.md` (196 lines) - Contribution guidelines ✓
-    - `docs/PRD.md` (577 lines) - Product requirements ✓
-    - `docs/development-plan.md` (324 lines) - Development phases ✓
-    - `docs/WBS.md` (2809 lines) - Work breakdown structure ✓
-    - `docs/database.md` (526 lines) - Database schema ✓
-    - `docs/hook-setup.md` (712 lines) - Hook configuration ✓
-    - `docs/test-harness.md` (396 lines) - Testing infrastructure ✓
-    - `docs/api-reference.md` (499 lines) - API documentation ✓
-    - `docs/runbook.md` (593 lines) - Operational procedures ✓
-    - `docs/smoke-tests.md` (400 lines) - Post-deployment validation ✓
-    - `docs/logging.md` (551 lines) - Logging and monitoring ✓
+    - `docs/01-product-PRD.md` (577 lines) - Product requirements ✓
+    - `docs/03-planning-development-plan.md` (324 lines) - Development phases ✓
+    - `docs/03-planning-WBS.md` (2809 lines) - Work breakdown structure ✓
+    - `docs/02-technical-database.md` (526 lines) - Database schema ✓
+    - `docs/04-ops-hook-setup.md` (712 lines) - Hook configuration ✓
+    - `docs/06-testing-harness.md` (396 lines) - Testing infrastructure ✓
+    - `docs/05-api-reference.md` (499 lines) - API documentation ✓
+    - `docs/04-ops-runbook.md` (593 lines) - Operational procedures ✓
+    - `docs/06-testing-smoke-tests.md` (400 lines) - Post-deployment validation ✓
+    - `docs/04-ops-logging.md` (551 lines) - Logging and monitoring ✓
   - All documentation complete, accurate, and up-to-date
 
 - [x] **Create release checklist**
-  - File: `docs/release-checklist.md`
+  - File: `docs/06-testing-release-checklist.md`
   - Items (template checklist for each release):
     - All tests pass (`pnpm test`)
     - Coverage ≥80% (`pnpm test:coverage`)
@@ -2669,7 +2669,7 @@ WorkflowTransitions:
     - CI green (GitHub Actions)
     - Documentation reviewed (all docs up-to-date)
     - Deployment tested (`scripts/deploy.sh` works)
-    - Smoke tests pass (all 6 tests from `docs/smoke-tests.md`)
+    - Smoke tests pass (all 6 tests from `docs/06-testing-smoke-tests.md`)
     - Security review (no secrets in repo, API keys validated)
     - Performance validated (<500ms hook response, <1s transitions)
   - Acceptance: Checklist ready for future releases
@@ -2967,7 +2967,7 @@ WorkflowTransitions:
   - **Authentication**: API key middleware for admin endpoints (Bearer token pattern)
   - **Error Handling**: Global error handler with proper HTTP status codes (400/401/404/500)
   - **Integration Tests**: 28 API tests covering success, validation, and error cases
-  - **Documentation**: Complete API reference with curl examples (docs/api-reference.md)
+  - **Documentation**: Complete API reference with curl examples (docs/05-api-reference.md)
   - **Quality Verification**: All exit criteria met (API tests pass, validation works, auth enforced)
   - **Next Phase**: Proceed to Phase 5 (Observability) - Logging, metrics, monitoring
 
@@ -2979,9 +2979,9 @@ WorkflowTransitions:
     - **Recovery Service**: Workflow recovery utilities for manual intervention
     - **Archival Service**: Completed workflow archival (manual, cron deferred to future)
   - **Operational Documentation**: Created comprehensive runbooks
-    - `docs/runbook.md`: Deployment, monitoring, troubleshooting procedures
-    - `docs/smoke-tests.md`: Post-deployment validation checklist (6 tests)
-    - `docs/logging.md`: Log architecture, retention policy, Loki setup
+    - `docs/04-ops-runbook.md`: Deployment, monitoring, troubleshooting procedures
+    - `docs/06-testing-smoke-tests.md`: Post-deployment validation checklist (6 tests)
+    - `docs/04-ops-logging.md`: Log architecture, retention policy, Loki setup
   - **Performance Testing**: Validated latency targets (<500ms hooks, <1s API)
   - **Quality Verification**: All exit criteria met (E2E observability test passes)
   - **Next Phase**: Proceed to Phase 6 (Launch Readiness) - Coverage, quality gates, release prep
@@ -3029,8 +3029,8 @@ Engineers following this WBS should be aware of these common mistakes:
 
 ## References
 
-- **PRD**: `docs/PRD.md` – Product requirements, architecture, tech stack
-- **Development Plan**: `docs/development-plan.md` – Detailed phase breakdown, timelines, exit criteria
+- **PRD**: `docs/01-product-PRD.md` – Product requirements, architecture, tech stack
+- **Development Plan**: `docs/03-planning-development-plan.md` – Detailed phase breakdown, timelines, exit criteria
 - **CLAUDE.md**: Repository guidance for Claude Code
 - **Hook Guide**: https://docs.claude.com/en/docs/claude-code/hooks-guide.md
 - **Hook Reference**: https://docs.claude.com/en/docs/claude-code/hooks.md

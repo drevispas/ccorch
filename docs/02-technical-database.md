@@ -523,4 +523,4 @@ pnpm prisma migrate reset --force
 - [Prisma Documentation](https://www.prisma.io/docs)
 - [Prisma Schema Reference](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference)
 - [SQLite Documentation](https://www.sqlite.org/docs.html)
-- CCOrch Project: `docs/technical-spec.md` (database schema details)
+- CCOrch Project: `docs/02-technical-spec.md` (database schema details)

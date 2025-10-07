@@ -180,10 +180,10 @@ class Orchestrator {
 ## Additional Resources
 
 - **CLAUDE.md**: Project overview and architecture
-- **docs/PRD.md**: Product requirements and workflow chains
-- **docs/technical-spec.md**: Technical implementation details
-- **docs/development-plan.md**: Development phases and timeline
-- **docs/WBS.md**: Granular task breakdown
+- **docs/01-product-PRD.md**: Product requirements and workflow chains
+- **docs/02-technical-spec.md**: Technical implementation details
+- **docs/03-planning-development-plan.md**: Development phases and timeline
+- **docs/03-planning-WBS.md**: Granular task breakdown
 
 ## Questions?
 

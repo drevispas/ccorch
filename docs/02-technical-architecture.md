@@ -895,8 +895,8 @@ sequenceDiagram
 
 ## 5. References
 
-- **PRD**: `docs/PRD.md` - Complete product requirements
-- **Development Plan**: `docs/development-plan.md` - Implementation phases
+- **PRD**: `docs/01-product-PRD.md` - Complete product requirements
+- **Development Plan**: `docs/03-planning-development-plan.md` - Implementation phases
 - **Claude Code Hooks Guide**: https://docs.claude.com/en/docs/claude-code/hooks-guide.md
 - **Hook Reference**: https://docs.claude.com/en/docs/claude-code/hooks.md
 - **Subagent Reference**: https://docs.claude.com/en/docs/claude-code/sub-agents.md

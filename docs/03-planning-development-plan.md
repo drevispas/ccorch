@@ -62,7 +62,7 @@
 ---
 
 ## 2. Context & Objectives
-- **Scope**: Implement the multi-agent orchestration platform described in `docs/PRD.md`, including hook processing, workflow state management, and supporting APIs.
+- **Scope**: Implement the multi-agent orchestration platform described in `docs/01-product-PRD.md`, including hook processing, workflow state management, and supporting APIs.
 - **Primary Goals**:
   - Automate selection/sequencing of Claude Code subagents across backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger, and e2e-test-architect roles (§2, §3, §4).
   - Maintain durable workflow state with SQLite persistence, enabling retries, manual transitions, and auditability (§5, §10).
@@ -200,7 +200,7 @@
 - **DB Connector**: Implement in `src/config/database.ts` handling connection lifecycle and graceful shutdown.
 - **Repository Modules**: Build in `src/models/*.ts` for workflows, agent results, transitions with query helpers for active workflows and audit retrieval.
 - **Unit Tests**: Write Vitest tests covering CRUD operations, foreign keys, cascade deletes, status filters, and unique constraint violations.
-- **Documentation**: Document database usage and migration commands in `docs/database.md`.
+- **Documentation**: Document database usage and migration commands in `docs/02-technical-database.md`.
 - **Exit Criteria**: Migrations run cleanly, repositories tested with interface abstraction, seed data loads backend-development example, documentation updated.
 
 ### 5.5 Phase 2 – Orchestration Core
@@ -239,8 +239,8 @@
   - **Mock HTTP Server**: Simulates Claude Code sending hook payloads to CCOrch endpoints
   - **Payload Sender**: Script that generates and posts test hook payloads for manual testing
   - **Response Validation**: Verify hook responses conform to Claude Code expected format (validate response structure against hook guide requirements)
-  - Document all three components in `docs/test-harness.md`
-- **Documentation**: Document hook setup (`.claude/settings.json` config, environment variables) in `docs/hook-setup.md`.
+  - Document all three components in `docs/06-testing-harness.md`
+- **Documentation**: Document hook setup (`.claude/settings.json` config, environment variables) in `docs/04-ops-hook-setup.md`.
 - **Exit Criteria**: Hook handlers tested end-to-end, prompts generated accurately, configuration metadata validation operational, setup documentation validated.
 
 ### 5.7 Phase 4 – API & Administrative Surface
@@ -250,7 +250,7 @@
 - **Note**: Agent result submission moved to PostToolUse hook (inline processing, no separate API endpoint needed)
 - **Validation**: Use zod schemas aligning to PRD §5.4 for admin transition requests.
 - **Authentication**: Implement **API key authentication** for admin endpoints (POST /transition only); GET /status remains public. Include rate limiting TODO for future enhancement.
-- **API Documentation**: Produce reference in `docs/api-reference.md` (Markdown format) with request/response samples, error codes, and auth requirements per endpoint.
+- **API Documentation**: Produce reference in `docs/05-api-reference.md` (Markdown format) with request/response samples, error codes, and auth requirements per endpoint.
 - **Integration Tests**: Write supertest suites covering success and failure paths, including validation errors and unauthorized access to admin endpoints.
 - **Concurrent Workflow Isolation**: Test concurrent workflow isolation—ensure multiple simultaneous workflows don't interfere (verify separate workflow_id namespacing, no state leakage between workflows).
 - **Exit Criteria**: API endpoints pass tests, API key auth guards admin-only operations, public endpoints accessible without credentials, concurrent workflows isolated, documentation published, error handling consistent.
@@ -263,7 +263,7 @@
   - Manual fail/skip operations via transition endpoint
   - Stale workflow cleanup triggered by `Stop` hook
   - Workflow archival policy: COMPLETED workflows retained for 30 days, FAILED workflows for 90 days (for debugging), then purged
-- **Operator Runbook**: Draft in `docs/runbook.md` detailing:
+- **Operator Runbook**: Draft in `docs/04-ops-runbook.md` detailing:
   - Local deployment steps
   - Environment variable management
   - DB backup/restore procedures

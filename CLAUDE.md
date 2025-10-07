@@ -189,18 +189,18 @@ CCOrch documentation is organized by concern:
 
 | Document | Concern | Audience | Content |
 |----------|---------|----------|---------|
-| **`docs/PRD.md`** | WHAT & WHY | Product managers, stakeholders | Product vision, requirements, business logic, workflow chains |
-| **`docs/technical-spec.md`** | HOW | Developers, architects | Technology stack, database schema, API specs, development practices |
-| **`docs/architecture.md`** | STRUCTURE | Technical team | System architecture diagrams, sequence flows, component interactions |
-| **`docs/development-plan.md`** | WHEN | Project managers, developers | Implementation phases, workstreams, timeline, deliverables |
-| **`docs/WBS.md`** | TASKS | Developers | Granular task breakdown with acceptance criteria and estimates |
+| **`docs/01-product-PRD.md`** | WHAT & WHY | Product managers, stakeholders | Product vision, requirements, business logic, workflow chains |
+| **`docs/02-technical-spec.md`** | HOW | Developers, architects | Technology stack, database schema, API specs, development practices |
+| **`docs/02-technical-architecture.md`** | STRUCTURE | Technical team | System architecture diagrams, sequence flows, component interactions |
+| **`docs/03-planning-development-plan.md`** | WHEN | Project managers, developers | Implementation phases, workstreams, timeline, deliverables |
+| **`docs/03-planning-WBS.md`** | TASKS | Developers | Granular task breakdown with acceptance criteria and estimates |
 
 **Quick References**:
-- Product requirements → `docs/PRD.md`
-- Technical implementation → `docs/technical-spec.md`
-- Architecture diagrams → `docs/architecture.md`
-- Development phases → `docs/development-plan.md`
-- Task checklist → `docs/WBS.md`
+- Product requirements → `docs/01-product-PRD.md`
+- Technical implementation → `docs/02-technical-spec.md`
+- Architecture diagrams → `docs/02-technical-architecture.md`
+- Development phases → `docs/03-planning-development-plan.md`
+- Task checklist → `docs/03-planning-WBS.md`
 
 ## External References
 

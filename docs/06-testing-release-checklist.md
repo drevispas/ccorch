@@ -65,16 +65,16 @@ This checklist ensures CCOrch releases meet quality, security, and performance s
   - [ ] `README.md` - Installation and quick start
   - [ ] `CLAUDE.md` - Project overview and development guidelines
   - [ ] `CONTRIBUTING.md` - Contribution guidelines
-  - [ ] `docs/PRD.md` - Product requirements
-  - [ ] `docs/development-plan.md` - Development phases
-  - [ ] `docs/WBS.md` - Work breakdown structure
-  - [ ] `docs/database.md` - Database schema and migrations
-  - [ ] `docs/hook-setup.md` - Claude Code hook configuration
-  - [ ] `docs/test-harness.md` - Testing infrastructure
-  - [ ] `docs/api-reference.md` - API endpoints and schemas
-  - [ ] `docs/runbook.md` - Operational procedures
-  - [ ] `docs/smoke-tests.md` - Post-deployment validation
-  - [ ] `docs/logging.md` - Logging and monitoring
+  - [ ] `docs/01-product-PRD.md` - Product requirements
+  - [ ] `docs/03-planning-development-plan.md` - Development phases
+  - [ ] `docs/03-planning-WBS.md` - Work breakdown structure
+  - [ ] `docs/02-technical-database.md` - Database schema and migrations
+  - [ ] `docs/04-ops-hook-setup.md` - Claude Code hook configuration
+  - [ ] `docs/06-testing-harness.md` - Testing infrastructure
+  - [ ] `docs/05-api-reference.md` - API endpoints and schemas
+  - [ ] `docs/04-ops-runbook.md` - Operational procedures
+  - [ ] `docs/06-testing-smoke-tests.md` - Post-deployment validation
+  - [ ] `docs/04-ops-logging.md` - Logging and monitoring
 
 - [ ] **No broken links in documentation**
   - Check: All internal references resolve correctly
@@ -99,7 +99,7 @@ This checklist ensures CCOrch releases meet quality, security, and performance s
   - Note: May want to use `pnpm test tests/unit` instead of full test suite
 
 - [ ] **Smoke tests pass**
-  - Follow: `docs/smoke-tests.md` checklist
+  - Follow: `docs/06-testing-smoke-tests.md` checklist
   - Tests:
     - [ ] Health check (GET /health)
     - [ ] Create workflow (POST /hooks/user-prompt-submit)
@@ -244,7 +244,7 @@ This checklist ensures CCOrch releases meet quality, security, and performance s
   - Verify: Health check endpoint returns 200
 
 - [ ] **Post-deployment smoke tests**
-  - Run through: `docs/smoke-tests.md` checklist
+  - Run through: `docs/06-testing-smoke-tests.md` checklist
   - Verify: All 6 tests pass in production
 
 ### 11. Monitoring
