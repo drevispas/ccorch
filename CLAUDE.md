@@ -83,8 +83,6 @@ The orchestrator manages chains of specialized agents (backend-architect, fronte
 
 **Types**: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`
 
-**Frequency**: Commit every single feature or ~200 lines
-
 **Example**:
 ```
 feat(orchestrator): implement chain resolver for workflow routing

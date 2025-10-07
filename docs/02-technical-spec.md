@@ -726,8 +726,6 @@ const TransitionRequestSchema = z.object({
 - `chore` - Build, tooling, dependencies
 - `perf` - Performance improvement
 
-**Frequency**: Commit every single feature or ~200 lines of changes
-
 **Example**:
 ```
 feat(orchestrator): implement chain resolver for workflow routing

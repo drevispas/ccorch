@@ -27,8 +27,6 @@ feat(orchestrator): implement chain resolver for workflow routing
 Resolves: #12
 ```
 
-**Commit Frequency**: Commit every ~200 lines or single feature completion.
-
 ## TDD Workflow
 
 Follow the **red-green-refactor** cycle:

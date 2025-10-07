@@ -2841,7 +2841,7 @@ WorkflowTransitions:
 ### How to Use This WBS
 1. **Sequential execution**: Work through phases in order (PoC → 0 → 1 → 2 → 3 → 4 → 5 → 6)
 2. **Check off tasks**: Mark `[x]` as completed
-3. **Commit frequently**: After each logical unit (~200 lines or feature), commit using Conventional Commits (technical-spec.md §4.1)
+3. **Commit frequently**: After each logical unit, commit using Conventional Commits (technical-spec.md §4.1)
 4. **Quality checks**: Run `pnpm lint && pnpm type-check && pnpm test` before each commit (technical-spec.md §4.3)
 5. **Exit criteria**: Verify all exit criteria before moving to next phase
 6. **Progress notes**: Add notes below for blockers, decisions, or deviations from plan
@@ -3015,7 +3015,7 @@ Engineers following this WBS should be aware of these common mistakes:
 
 5. **Missing PRD Requirements**: Each task references PRD sections for a reason. If unclear about requirements, consult the PRD/development plan before implementing.
 
-6. **Inconsistent Commits**: Follow Conventional Commits format (technical-spec.md §4.1) for every commit. Format: `type(scope): subject`. Commit every ~200 lines or logical feature.
+6. **Inconsistent Commits**: Follow Conventional Commits format (technical-spec.md §4.1) for every commit. Format: `type(scope): subject`.
 
 7. **Hardcoded Values**: Use environment variables for all config (PORT, DATABASE_URL, API_KEY_ADMIN, HOOK_SECRET). Never commit secrets.
 
