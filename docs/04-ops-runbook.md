@@ -78,7 +78,6 @@ All environment variables are defined in `.env` file. Copy `.env.example` to `.e
 | `LOG_LEVEL` | Logging level (trace/debug/info/warn/error) | `info` | No |
 | `API_KEY_ADMIN` | API key for admin endpoints | (none) | No* |
 | `HOOK_SECRET` | Shared secret for hook authentication | (none) | No* |
-| `ENABLE_CC_COMPLEXITY` | Enable Claude Code complexity determination | `false` | No |
 
 \* Required for production deployments
 
@@ -101,7 +100,6 @@ DATABASE_URL=file:./production.db
 LOG_LEVEL=warn
 API_KEY_ADMIN=<your-secure-admin-key>
 HOOK_SECRET=<your-secure-hook-secret>
-ENABLE_CC_COMPLEXITY=false
 ```
 
 ---
@@ -257,9 +255,11 @@ curl -X POST http://localhost:3000/api/workflows/wf-abc-123/transition \
 Success (200):
 ```json
 {
-  "id": "wf-abc-123",
+  "workflow_id": "wf-abc-123",
+  "previous_step": 1,
+  "current_step": 2,
+  "next_agent": "code-reviewer-moderate",
   "status": "ACTIVE",
-  "currentStep": 2,
   "message": "Workflow advanced to step 2"
 }
 ```
@@ -315,13 +315,45 @@ Error: Hook authentication failed
 # 1. Verify HOOK_SECRET in .env
 cat .env | grep HOOK_SECRET
 
-# 2. Verify HOOK_SECRET in Claude Code settings
-cat ~/.claude/settings.json | grep hookSecret
+# 2. Verify HOOK_SECRET is exported in shell environment
+echo $HOOK_SECRET
 
-# 3. Ensure they match - update one if needed
+# 3. Check Claude Code hook configuration includes X-Hook-Secret header
+cat ~/.claude/settings.json | jq '.hooks.UserPromptSubmit[0].hooks[0].command'
+# Should contain: -H 'X-Hook-Secret: $HOOK_SECRET'
 
-# 4. Restart CCOrch
+# 4. Ensure they match - update if needed
+
+# 5. Restart CCOrch
 pnpm start
+```
+
+#### Issue: Workflows not being created
+
+**Symptoms**: UserPromptSubmit hook fires but no workflows appear in database
+
+**Cause**: Missing opt-in trigger prefix in user prompt
+
+**Solution**:
+
+Ensure prompts start with `\cco` or `\c2o` trigger:
+
+```
+\cco Implement REST API for authentication
+```
+
+Without the trigger, orchestration is skipped. The UserPromptSubmit hook will still fire, but CCOrch will return an empty response and no workflow will be created.
+
+**Debugging**:
+```bash
+# 1. Check CCOrch logs for "no_trigger" reason
+cat logs/pm2-combined.log | jq 'select(.reason == "no_trigger")'
+
+# 2. Verify Claude Code settings.json is configured correctly
+cat ~/.claude/settings.json | jq '.hooks.UserPromptSubmit'
+
+# 3. Test with a trigger-prefixed prompt
+# In Claude Code: \cco Test workflow creation
 ```
 
 #### Issue: Stale workflows accumulating
@@ -335,7 +367,7 @@ pnpm start
 # Option 1: Run cleanup manually (see Database Management section)
 
 # Option 2: Check logs for agent errors
-tail -f logs/ccorch.log | grep ERROR
+tail -f logs/pm2-combined.log | grep ERROR
 
 # Option 3: Manually fail specific workflow via admin API
 curl -X POST http://localhost:3000/api/workflows/wf-abc-123/transition \
@@ -414,7 +446,7 @@ pnpm dev
 pm2 logs ccorch
 
 # View structured logs
-cat logs/ccorch.log | jq '.'
+cat logs/pm2-combined.log | jq '.'
 ```
 
 #### Inspect workflow state
@@ -470,7 +502,7 @@ CCOrch logs metrics to console with `[METRIC]` prefix. These are placeholders fo
 
 ```bash
 # View metrics in logs
-tail -f logs/ccorch.log | grep METRIC
+tail -f logs/pm2-combined.log | grep METRIC
 ```
 
 **Current metrics**:
