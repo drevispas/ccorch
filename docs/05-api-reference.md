@@ -1,7 +1,7 @@
 # CCOrch API Reference
 
 **Version:** 1.0.0
-**Base URL:** `http://localhost:3001`
+**Base URL:** `http://localhost:3000`
 
 This document provides comprehensive API documentation for the Claude Code Orchestrator (CCOrch) HTTP endpoints.
 
