@@ -67,6 +67,18 @@ LOG_LEVEL=debug
 LOG_LEVEL=warn
 ```
 
+**Note**: The logger interface (`src/utils/logger.ts`) provides `info`, `error`, `warn`, and `debug` methods for common use cases. For `trace` and `fatal` levels, use the `rawLogger` export:
+
+```typescript
+import { rawLogger } from './utils/logger';
+
+// Trace logging (very detailed)
+rawLogger.trace({ functionArgs }, 'Function entry');
+
+// Fatal logging (unrecoverable errors)
+rawLogger.fatal({ error }, 'Critical system failure');
+```
+
 ---
 
 ## Log Format
@@ -74,7 +86,7 @@ LOG_LEVEL=warn
 ### Development (Pretty-Printed)
 
 ```
-[10:30:45 UTC] INFO: Workflow created
+[10:30:45 +00:00] INFO: Workflow created
     workflowId: "wf-abc-123"
     chainName: "backend-development"
     complexity: "moderate"
