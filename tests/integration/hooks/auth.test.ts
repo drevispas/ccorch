@@ -195,44 +195,52 @@ describe('Hook Authentication', () => {
     });
   });
 
-  describe('Environment configuration', () => {
-    // This test needs its own beforeEach to override the parent describe's beforeEach
-    it('should allow all requests when HOOK_SECRET is not set (dev mode)', async () => {
-      // Clean up database first
-      await prisma.agentResult.deleteMany();
-      await prisma.workflowTransition.deleteMany();
-      await prisma.workflow.deleteMany();
+});
 
-      // Remove HOOK_SECRET before starting server
-      const originalSecret = process.env.HOOK_SECRET;
-      delete process.env.HOOK_SECRET;
+// Separate describe block for dev mode test to avoid parent beforeEach interference
+describe('Hook Authentication - Dev Mode', () => {
+  let localApp: Express;
+  const localPrisma = new PrismaClient();
 
-      try {
-        // Start server without HOOK_SECRET
-        app = await startServer();
+  afterAll(async () => {
+    await localPrisma.$disconnect();
+  });
 
-        const payload = {
-          session_id: 'test-session-009',
-          transcript_path: '/tmp/transcript.json',
-          cwd: '/home/user/project',
-          hook_event_name: 'UserPromptSubmit',
-          prompt: '\\cco Test without auth',
-        };
+  it('should allow all requests when HOOK_SECRET is not set (dev mode)', async () => {
+    // Clean up database first
+    await localPrisma.agentResult.deleteMany();
+    await localPrisma.workflowTransition.deleteMany();
+    await localPrisma.workflow.deleteMany();
 
-        // Should work without auth header when HOOK_SECRET is not set
-        const response = await request(app)
-          .post('/hooks/user-prompt-submit')
-          .send(payload)
-          .expect(200);
+    // Save and clear HOOK_SECRET before starting server
+    const originalSecret = process.env.HOOK_SECRET;
+    process.env.HOOK_SECRET = ''; // Set to empty string instead of deleting
 
-        expect(response.body.continue).toBe(true);
-        expect(response.body.hookSpecificOutput).toBeDefined();
-      } finally {
-        // Restore original HOOK_SECRET for other tests
-        if (originalSecret) {
-          process.env.HOOK_SECRET = originalSecret;
-        }
+    try {
+      // Start server without HOOK_SECRET
+      localApp = await startServer();
+
+      const payload = {
+        session_id: 'test-session-009',
+        transcript_path: '/tmp/transcript.json',
+        cwd: '/home/user/project',
+        hook_event_name: 'UserPromptSubmit',
+        prompt: '\\cco Test without auth',
+      };
+
+      // Should work without auth header when HOOK_SECRET is not set
+      const response = await request(localApp)
+        .post('/hooks/user-prompt-submit')
+        .send(payload)
+        .expect(200);
+
+      expect(response.body.continue).toBe(true);
+      expect(response.body.hookSpecificOutput).toBeDefined();
+    } finally {
+      // Restore original HOOK_SECRET for other tests
+      if (originalSecret) {
+        process.env.HOOK_SECRET = originalSecret;
       }
-    });
+    }
   });
 });
