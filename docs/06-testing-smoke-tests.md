@@ -67,13 +67,14 @@ curl ${BASE_URL}/health
 
 **Objective**: Verify workflow creation through UserPromptSubmit hook
 
+**⚠️ Important**: Prompts must include `\cco` or `\c2o` trigger prefix for orchestration
+
 **Setup**: Create test payload file `test-payload.json`:
 ```json
 {
-  "hookName": "UserPromptSubmit",
-  "userPrompt": "Implement user authentication API",
-  "conversationId": "test-conv-123",
-  "timestamp": 1705315800000
+  "session_id": "test-session-123",
+  "cwd": "/home/user/project",
+  "prompt": "\\cco Implement user authentication API"
 }
 ```
 
@@ -88,16 +89,18 @@ curl -X POST ${BASE_URL}/hooks/user-prompt-submit \
 **Expected Response** (200 OK):
 ```json
 {
-  "workflowId": "<uuid>",
-  "message": "Agent prompt injected successfully",
-  "agentPrompt": "<detailed-prompt>"
+  "continue": true,
+  "hookSpecificOutput": {
+    "hookEventName": "UserPromptSubmit",
+    "additionalContext": "<agent-prompt>"
+  }
 }
 ```
 
 **✅ Pass Criteria**:
 - HTTP status code is 200
-- Response includes `workflowId`
-- Response includes `agentPrompt`
+- Response includes `continue: true`
+- Response includes `hookSpecificOutput.additionalContext` with agent prompt
 
 **Verify in Database**:
 ```bash
@@ -110,68 +113,12 @@ sqlite3 dev.db "SELECT id, chain_name, complexity, status FROM workflows ORDER B
 
 **Expected Database State**:
 - New workflow record exists
-- `status` is either "PENDING_COMPLEXITY" or "ACTIVE"
+- `status` is "ACTIVE"
 - `chain_name` is one of the valid chains (e.g., "backend-development")
 
 ---
 
-### Test 3: Submit Agent Result
-
-**Objective**: Verify agent result submission and workflow advancement
-
-**Prerequisites**: Use `workflowId` from Test 2
-
-**Setup**: Create agent result payload `agent-result.json`:
-```json
-{
-  "agentRole": "backend-architect",
-  "complexity": "moderate",
-  "stepNumber": 0,
-  "results": {
-    "summary": "Architecture designed for authentication API",
-    "design": "RESTful API with JWT tokens, bcrypt password hashing"
-  },
-  "status": "COMPLETED"
-}
-```
-
-**Execute**:
-```bash
-WORKFLOW_ID="<workflow-id-from-test-2>"
-
-curl -X POST ${BASE_URL}/api/workflows/${WORKFLOW_ID}/results \
-  -H "Content-Type: application/json" \
-  -d @agent-result.json
-```
-
-**Expected Response** (200 OK):
-```json
-{
-  "message": "Result stored and workflow advanced",
-  "workflowId": "<workflow-id>",
-  "currentStep": 1,
-  "nextAgent": "java-backend-developer"
-}
-```
-
-**✅ Pass Criteria**:
-- HTTP status code is 200
-- `currentStep` is incremented
-- `nextAgent` matches expected next agent in chain
-
-**Verify in Database**:
-```bash
-sqlite3 dev.db "SELECT id, current_step, status FROM workflows WHERE id = '<workflow-id>';"
-sqlite3 dev.db "SELECT agent_role, step_number, status FROM agent_results WHERE workflow_id = '<workflow-id>';"
-```
-
-**Expected Database State**:
-- Workflow `current_step` is 1 (incremented)
-- Agent result record exists with status "COMPLETED"
-
----
-
-### Test 4: Query Workflow Status
+### Test 3: Query Workflow Status
 
 **Objective**: Verify workflow status retrieval
 
@@ -185,14 +132,14 @@ curl ${BASE_URL}/api/workflows/${WORKFLOW_ID}/status
 **Expected Response** (200 OK):
 ```json
 {
-  "id": "<workflow-id>",
+  "workflow_id": "<workflow-id>",
   "status": "ACTIVE",
-  "chainName": "backend-development",
+  "chain_name": "backend-development",
   "complexity": "moderate",
-  "currentStep": 1,
-  "agentSequence": ["backend-architect", "java-backend-developer", "code-reviewer"],
-  "createdAt": "<timestamp>",
-  "updatedAt": "<timestamp>"
+  "current_step": 0,
+  "total_steps": 3,
+  "completed_agents": [],
+  "summary": "Workflow started, step 0/3"
 }
 ```
 
@@ -200,11 +147,12 @@ curl ${BASE_URL}/api/workflows/${WORKFLOW_ID}/status
 - HTTP status code is 200
 - All expected fields are present
 - `status` is "ACTIVE"
-- `currentStep` matches database
+- `current_step` matches database
+- `total_steps` matches chain length
 
 ---
 
-### Test 5: Manual Transition (Admin API)
+### Test 4: Manual Transition (Admin API)
 
 **Objective**: Verify admin transition API and audit logging
 
@@ -224,35 +172,38 @@ curl -X POST ${BASE_URL}/api/workflows/${WORKFLOW_ID}/transition \
 **Expected Response** (200 OK):
 ```json
 {
-  "id": "<workflow-id>",
+  "workflow_id": "<workflow-id>",
+  "previous_step": 0,
+  "current_step": 1,
+  "next_agent": "java-backend-developer-moderate",
   "status": "ACTIVE",
-  "currentStep": 2,
-  "message": "Workflow advanced to step 2"
+  "message": "Workflow advanced to step 1"
 }
 ```
 
 **✅ Pass Criteria**:
 - HTTP status code is 200
-- `currentStep` is incremented (should be 2)
+- `current_step` is incremented (should be 1)
+- `next_agent` matches expected next agent
 - Transition is logged
 
 **Verify Audit Log**:
 ```bash
-sqlite3 dev.db "SELECT from_step, to_step, from_agent, to_agent, reason FROM workflow_transitions WHERE workflow_id = '<workflow-id>' ORDER BY transitioned_at DESC LIMIT 1;"
+sqlite3 dev.db "SELECT from_step, to_step, from_agent, to_agent, reason FROM workflow_transitions WHERE workflow_id = '<workflow-id>' ORDER BY created_at DESC LIMIT 1;"
 ```
 
 **Expected Audit Log**:
 - New transition record exists
-- `from_step` is 1, `to_step` is 2
+- `from_step` is 0, `to_step` is 1
 - `reason` contains "Smoke test: manual advancement"
 
 ---
 
-### Test 6: Error Handling
+### Test 5: Error Handling
 
 **Objective**: Verify proper error responses
 
-**Test 6a: Invalid Workflow ID**
+**Test 5a: Invalid Workflow ID**
 ```bash
 curl ${BASE_URL}/api/workflows/invalid-id-12345/status
 ```
@@ -261,11 +212,11 @@ curl ${BASE_URL}/api/workflows/invalid-id-12345/status
 ```json
 {
   "error": "Workflow not found",
-  "workflowId": "invalid-id-12345"
+  "workflow_id": "invalid-id-12345"
 }
 ```
 
-**Test 6b: Missing Authentication**
+**Test 5b: Missing Authentication**
 ```bash
 curl -X POST ${BASE_URL}/api/workflows/${WORKFLOW_ID}/transition \
   -H "Content-Type: application/json" \
@@ -275,8 +226,8 @@ curl -X POST ${BASE_URL}/api/workflows/${WORKFLOW_ID}/transition \
 **Expected Response** (401 Unauthorized):
 ```json
 {
-  "error": "Unauthorized",
-  "message": "Missing or invalid API key"
+  "error": "API key required",
+  "message": "Missing Authorization header"
 }
 ```
 
@@ -312,37 +263,25 @@ RESPONSE=$(curl -s -X POST ${BASE_URL}/hooks/user-prompt-submit \
   -H "Content-Type: application/json" \
   -H "X-Hook-Secret: ${HOOK_SECRET}" \
   -d '{
-    "hookName": "UserPromptSubmit",
-    "userPrompt": "Implement smoke test workflow",
-    "conversationId": "smoke-test-'$(date +%s)'",
-    "timestamp": '$(date +%s%3N)'
+    "session_id": "smoke-test-'$(date +%s)'",
+    "cwd": "/tmp",
+    "prompt": "\\\\cco Implement smoke test workflow"
   }')
 
 echo $RESPONSE | jq '.'
-WORKFLOW_ID=$(echo $RESPONSE | jq -r '.workflowId')
+# Note: Hook response doesn't include workflowId in response body
+# Check database for latest workflow
+WORKFLOW_ID=$(sqlite3 dev.db "SELECT id FROM workflows ORDER BY created_at DESC LIMIT 1;")
 echo "Workflow ID: $WORKFLOW_ID"
 echo ""
 
-# Test 3: Submit Agent Result
-echo "Test 3: Submit Agent Result"
-curl -s -X POST ${BASE_URL}/api/workflows/${WORKFLOW_ID}/results \
-  -H "Content-Type: application/json" \
-  -d '{
-    "agentRole": "backend-architect",
-    "complexity": "simple",
-    "stepNumber": 0,
-    "results": {"summary": "Smoke test result"},
-    "status": "COMPLETED"
-  }' | jq '.'
-echo ""
-
-# Test 4: Query Status
-echo "Test 4: Query Workflow Status"
+# Test 3: Query Status
+echo "Test 3: Query Workflow Status"
 curl -s ${BASE_URL}/api/workflows/${WORKFLOW_ID}/status | jq '.'
 echo ""
 
-# Test 5: Manual Transition
-echo "Test 5: Manual Transition"
+# Test 4: Manual Transition
+echo "Test 4: Manual Transition"
 curl -s -X POST ${BASE_URL}/api/workflows/${WORKFLOW_ID}/transition \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_KEY_ADMIN}" \
