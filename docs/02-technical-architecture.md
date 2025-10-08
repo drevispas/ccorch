@@ -68,12 +68,14 @@ graph TB
     USER -->|1. Submit prompt| CC
     CC -->|2. UserPromptSubmit hook| HOOK_HANDLER
     HOOK_HANDLER -->|3. Inject agent prompt| CC
-    CC -->|4. Execute agent| ARCH
+    CC -->|4. Execute agent| BEARCH
+    CC -->|4. Execute agent| FEARCH
     CC -->|4. Execute agent| BACKEND
     CC -->|4. Execute agent| FRONTEND
     CC -->|4. Execute agent| REVIEWER
     CC -->|4. Execute agent| DEBUGGER
-    ARCH -.->|5. PostToolUse hook (with results)| HOOK_HANDLER
+    BEARCH -.->|5. PostToolUse hook (with results)| HOOK_HANDLER
+    FEARCH -.->|5. PostToolUse hook (with results)| HOOK_HANDLER
     BACKEND -.->|5. PostToolUse hook (with results)| HOOK_HANDLER
     FRONTEND -.->|5. PostToolUse hook (with results)| HOOK_HANDLER
     REVIEWER -.->|5. PostToolUse hook (with results)| HOOK_HANDLER
