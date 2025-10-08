@@ -3,5 +3,5 @@
   "transcript_path": "/tmp/claude-code-session-test.json",
   "cwd": "/home/user/project",
   "hook_event_name": "UserPromptSubmit",
-  "prompt": "Fix the bug in the authentication service where tokens are expiring too quickly"
+  "prompt": "\\cco Fix the bug in the authentication service where tokens are expiring too quickly"
 }

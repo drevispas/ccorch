@@ -3,5 +3,5 @@
   "transcript_path": "/tmp/claude-code-session-test.json",
   "cwd": "/home/user/project",
   "hook_event_name": "UserPromptSubmit",
-  "prompt": "Create a React component for user profile with form validation"
+  "prompt": "\\cco Create a React component for user profile with form validation"
 }

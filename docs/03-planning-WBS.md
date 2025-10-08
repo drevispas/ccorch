@@ -339,8 +339,8 @@
 
 - [x] **3.2.2 Define Workflow model in Prisma schema**
   - **Purpose**: Create the core Workflow table that stores orchestration state (chain, complexity, current step). This is the primary entity for tracking multi-agent workflows from creation to completion.
-  - Model: `Workflow { id String @id, userPrompt String @map("user_prompt"), chainName String @map("chain_name"), complexity String, currentStep Int @default(0) @map("current_step"), status String @default("ACTIVE"), createdAt BigInt @map("created_at"), updatedAt BigInt @map("updated_at"), agentResults AgentResult[], transitions WorkflowTransition[], @@index([status], name: "idx_workflows_status"), @@index([createdAt], name: "idx_workflows_created"), @@map("workflows") }`
-  - Note: `@map` directives ensure snake_case column names in database (user_prompt, chain_name, etc.) while using camelCase in TypeScript code
+  - Model: `Workflow { id String @id, sessionId String? @map("session_id"), userPrompt String @map("user_prompt"), chainName String @map("chain_name"), complexity String, currentStep Int @default(0) @map("current_step"), status String @default("ACTIVE"), createdAt BigInt @map("created_at"), updatedAt BigInt @map("updated_at"), agentResults AgentResult[], transitions WorkflowTransition[], @@index([status], name: "idx_workflows_status"), @@index([createdAt], name: "idx_workflows_created"), @@index([sessionId, status], name: "idx_workflows_session_status"), @@map("workflows") }`
+  - Note: `@map` directives ensure snake_case column names in database (user_prompt, chain_name, session_id, etc.) while using camelCase in TypeScript code. The `sessionId` field tracks Claude Code session correlation for PostToolUse filtering.
   - Run: `pnpm prisma format`
   - Acceptance: Model matches technical-spec.md §2.3 Prisma schema exactly
 
@@ -511,7 +511,6 @@
   - ✓ Seed loads: `pnpm prisma db seed` succeeds ✅ VERIFIED - 1 workflow, 3 agent results, 2 transitions created
   - ✓ Documentation: `docs/02-technical-database.md` complete ✅ VERIFIED - 509 lines with all required sections
   - Decision: Proceed to Phase 2 ✅ APPROVED - All exit criteria met
-  - **Note**: Schema extended in Phase 1.5 (addendum) for CC-assisted complexity feature
 
 ---
 
@@ -522,7 +521,7 @@
 ### 5.1 Domain Models & Types (PRD §3, §4.2)
 - [x] **5.1.1 Define domain types** ✅ COMPLETED
   - File: `src/types/workflow.ts`
-  - Enums: `ChainName` (10 chains from PRD §4.2), `Complexity` (SIMPLE, MODERATE, COMPLEX), `AgentRole` (7 roles including BACKEND_ARCHITECT, FRONTEND_ARCHITECT, BACKEND_DEVELOPER, FRONTEND_DEVELOPER, REVIEWER, DEBUGGER, E2E_TEST_ARCHITECT), `WorkflowStatus` (ACTIVE, COMPLETED, FAILED)
+  - Enums: `ChainName` (10 chains from PRD §4.2), `Complexity` (SIMPLE='simple', MODERATE='moderate', COMPLEX='complex'), `AgentRole` (7 roles: BACKEND_ARCHITECT='backend-architect', FRONTEND_ARCHITECT='frontend-architect', BACKEND_DEVELOPER='java-backend-developer', FRONTEND_DEVELOPER='nextjs-react-developer', REVIEWER='code-reviewer', DEBUGGER='issue-detective', E2E_TEST_ARCHITECT='e2e-test-architect'), `WorkflowStatus` (ACTIVE='ACTIVE', COMPLETED='COMPLETED', FAILED='FAILED')
   - Types: `WorkflowContext`, `AgentTask`, `Intent`, `AgentResultData`
   - Zod schemas: For runtime validation
   - Type guards: `isChainName`, `isComplexity`, `isAgentRole`, `isWorkflowStatus`
@@ -1003,7 +1002,7 @@
 - [x] **Implement config validator** ✅
   - File: `src/config/validator.ts` ✅
   - Function: `validateAgentConfig(): ConfigValidationResult` ✅
-  - Logic: Check all combinations of (BACKEND_ARCHITECT, FRONTEND_ARCHITECT, BACKEND_DEVELOPER, FRONTEND_DEVELOPER, REVIEWER, DEBUGGER, E2E_TEST_ARCHITECT) × (SIMPLE, MODERATE, COMPLEX) = 21 configurations ✅
+  - Logic: Check all combinations of (BACKEND_ARCHITECT='backend-architect', FRONTEND_ARCHITECT='frontend-architect', BACKEND_DEVELOPER='java-backend-developer', FRONTEND_DEVELOPER='nextjs-react-developer', REVIEWER='code-reviewer', DEBUGGER='issue-detective', E2E_TEST_ARCHITECT='e2e-test-architect') × (SIMPLE='simple', MODERATE='moderate', COMPLEX='complex') = 21 configurations ✅
   - Note: Validates internal config references, NOT `.claude/agents/` filesystem (per Development Plan) ✅
   - Startup hook: Called from `src/server.ts` validateStartup() before starting server ✅
   - Logger: Created stub logger at `src/utils/logger.ts` for Phase 5 expansion ✅
@@ -1712,7 +1711,7 @@ WorkflowTransitions:
     transcript_path=/tmp/transcript.md \
     cwd=$PWD \
     hook_event_name=UserPromptSubmit \
-    prompt="Implement REST API for user authentication"
+    prompt="\cco Implement REST API for user authentication"
 
   # Expected response (200 OK):
   # {
