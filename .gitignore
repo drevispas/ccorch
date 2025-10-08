@@ -10,6 +10,7 @@ build/
 !*.config.mjs
 !*.config.cjs
 *.d.ts
+!src/types/*.d.ts
 *.js.map
 
 # Test coverage
