@@ -5,11 +5,11 @@
 > This document provides a detailed work breakdown structure with actionable tasks and acceptance criteria. For project phases and timeline, see `development-plan.md`. For technical specifications, see `technical-spec.md`.
 
 **Related Documents**:
-- `PRD.md` - Product requirements (WHAT and WHY)
-- `technical-spec.md` - Technical implementation details (HOW)
-- `architecture.md` - System architecture and sequence diagrams (STRUCTURE)
-- `development-plan.md` - Implementation phases and timeline (WHEN)
-- `WBS.md` - Granular work breakdown (TASKS)
+- `01-product-PRD.md` - Product requirements (WHAT and WHY)
+- `02-technical-spec.md` - Technical implementation details (HOW)
+- `02-technical-architecture.md` - System architecture and sequence diagrams (STRUCTURE)
+- `03-planning-development-plan.md` - Implementation phases and timeline (WHEN)
+- `03-planning-WBS.md` - Granular work breakdown (TASKS)
 
 > **Usage**: Check off tasks as completed.
 > **Phases**: Must be completed sequentially. Each phase has explicit exit criteria.
@@ -21,12 +21,11 @@
 1. [PoC Phase – Hook/API Viability (2-3 days)](#1-poc-phase--hookapi-viability-2-3-days)
 2. [Phase 0 – Environment & Governance (3-5 days)](#2-phase-0--environment--governance-3-5-days)
 3. [Phase 1 – Persistence Foundation (5-7 days)](#3-phase-1--persistence-foundation-5-7-days)
-4. [Phase 1.5 – Addendum: CC-Assisted Complexity Schema (1 day)](#4-phase-15--addendum-cc-assisted-complexity-schema-1-day)
-5. [Phase 2 – Orchestration Core (7-10 days)](#5-phase-2--orchestration-core-7-10-days)
-6. [Phase 3 – Hook Handler Integration (7-10 days)](#6-phase-3--hook-handler-integration-7-10-days)
-7. [Phase 4 – API & Administrative Surface (5-7 days)](#7-phase-4--api--administrative-surface-5-7-days)
-8. [Phase 5 – Observability & Operations (5-7 days)](#8-phase-5--observability--operations-5-7-days)
-9. [Phase 6 – Launch Readiness (2-3 days)](#9-phase-6--launch-readiness-2-3-days)
+4. [Phase 2 – Orchestration Core (7-10 days)](#4-phase-2--orchestration-core-7-10-days)
+5. [Phase 3 – Hook Handler Integration (7-10 days)](#5-phase-3--hook-handler-integration-7-10-days)
+6. [Phase 4 – API & Administrative Surface (5-7 days)](#6-phase-4--api--administrative-surface-5-7-days)
+7. [Phase 5 – Observability & Operations (5-7 days)](#7-phase-5--observability--operations-5-7-days)
+8. [Phase 6 – Launch Readiness (2-3 days)](#8-phase-6--launch-readiness-2-3-days)
 
 ---
 
@@ -519,92 +518,6 @@
 
 ---
 
-## 4. Phase 1.5 – Addendum: CC-Assisted Complexity Schema (1 day)
-
-**Context**: Database schema changes added retroactively to support CC-assisted complexity determination feature. This enhancement was identified during Phase 2 planning and requires database layer modifications.
-
-**Objective**: Extend Workflow schema to support draft complexity storage and PENDING_COMPLEXITY workflow status for CC analysis flow.
-
-### 4.1 Schema Extensions
-- [x] **4.1.1 Add draftComplexity field to Workflow model** ✅ COMPLETED
-  - **Purpose**: Store initial keyword-based complexity estimate for CC to refine
-  - File: `prisma/schema.prisma`
-  - Change: Add `draftComplexity String? @map("draft_complexity")` to Workflow model
-  - Type: Optional string (nullable) to support workflows without CC analysis
-  - Acceptance: Schema updated, field properly mapped to snake_case column ✅ VERIFIED
-
-- [x] **4.1.2 Add PENDING_COMPLEXITY to WorkflowStatus enum** ✅ COMPLETED
-  - **Purpose**: Track workflows awaiting CC complexity determination
-  - File: `src/types/repositories.ts`
-  - Change: Add `'PENDING_COMPLEXITY'` to WorkflowStatus type
-  - Usage: Workflow remains in this state until CC calls set-complexity API
-  - Acceptance: Type definition updated, no compilation errors ✅ VERIFIED
-
-- [x] **4.1.3 Create database migration** ✅ COMPLETED
-  - **Purpose**: Apply schema changes to database without data loss
-  - Command: `pnpm prisma migrate dev --name add_draft_complexity`
-  - Migration: `prisma/migrations/20251005041417_add_draft_complexity/migration.sql`
-  - SQL: `ALTER TABLE "workflows" ADD COLUMN "draft_complexity" TEXT;`
-  - Test: Verify migration applies cleanly on fresh database
-  - Acceptance: Migration created and applied successfully ✅ VERIFIED
-
-### 4.2 Repository Updates
-- [x] **4.2.1 Update WorkflowCreateInput interface** ✅ COMPLETED
-  - **Purpose**: Allow draftComplexity to be specified when creating workflows
-  - File: `src/types/repositories.ts`
-  - Change: Add `draftComplexity?: Complexity` to WorkflowCreateInput interface
-  - Optional: Field is optional to maintain backward compatibility
-  - Acceptance: Interface updated, TypeScript compilation clean ✅ VERIFIED
-
-- [x] **4.2.2 Add SetComplexityData interface** ✅ COMPLETED
-  - **Purpose**: Define contract for updating workflow complexity via API
-  - File: `src/types/repositories.ts`
-  - Interface: `SetComplexityData { complexity: Complexity; reasoning?: string; }`
-  - Usage: Used by set-complexity API endpoint to update workflow
-  - Acceptance: Interface defined with proper types ✅ VERIFIED
-
-- [x] **4.2.3 Implement updateComplexity repository method** ✅ COMPLETED
-  - **Purpose**: Provide method to update workflow complexity and transition to ACTIVE
-  - File: `src/models/workflow-repository.ts`
-  - Method: `async updateComplexity(id: string, data: SetComplexityData): Promise<Workflow>`
-  - Logic: Update complexity, set status=ACTIVE, set currentStep=0, update timestamp
-  - Acceptance: Method implemented and properly typed ✅ VERIFIED
-
-- [x] **4.2.4 Update createWorkflow to handle draftComplexity** ✅ COMPLETED
-  - **Purpose**: Persist draftComplexity when creating workflows
-  - File: `src/models/workflow-repository.ts`
-  - Change: Add `draftComplexity: data.draftComplexity` to Prisma create call
-  - Acceptance: Repository creates workflows with draft complexity field ✅ VERIFIED
-
-### 4.3 Test Updates
-- [x] **4.3.1 Update workflow repository test mocks** ✅ COMPLETED
-  - **Purpose**: Fix TypeScript errors from new required field
-  - File: `tests/unit/repositories/workflow-repository.test.ts`
-  - Change: Add `draftComplexity: null` to mockWorkflow object
-  - Reason: Workflow type now includes draftComplexity field
-  - Acceptance: All 20 workflow repository tests passing ✅ VERIFIED
-
-- [x] **4.3.2 Verify no test regressions** ✅ COMPLETED
-  - **Purpose**: Ensure schema changes don't break existing tests
-  - Command: `pnpm test`
-  - Result: 92/92 tests passing (70 existing + 21 new prompt-generator + 1 setup)
-  - Coverage: No degradation from schema changes
-  - Acceptance: All tests pass, no regressions introduced ✅ VERIFIED
-
-### 4.4 Exit Criteria
-- [x] **4.4.1 Verify Phase 1.5 completion** ✅ COMPLETED
-  - ✓ Migration applied: `20251005041417_add_draft_complexity` ✅ VERIFIED
-  - ✓ Schema updated: draftComplexity field exists in Workflow model ✅ VERIFIED
-  - ✓ Types updated: PENDING_COMPLEXITY in WorkflowStatus enum ✅ VERIFIED
-  - ✓ Repository methods: updateComplexity() implemented ✅ VERIFIED
-  - ✓ Tests passing: 92/92 tests, no regressions ✅ VERIFIED
-  - ✓ TypeScript clean: `pnpm tsc --noEmit` passes ✅ VERIFIED
-  - Decision: Schema extensions complete, proceed to Phase 2 implementation ✅ APPROVED
-
-**Commit**: `feat(complexity): add CC-assisted complexity determination` (0f49617)
-
----
-
 ## 5. Phase 2 – Orchestration Core (7-10 days)
 
 **Objective**: Build prompt parsing, chain resolution, state management, orchestrator coordinator with ≥80% coverage (Development Plan §5.5, PRD §5.2).
@@ -908,152 +821,6 @@
       10. DEBUG_ONLY (debugger only)
     - Verified in src/services/chain-resolver.ts lines 107-245
   - **Decision**: All exit criteria met ✅ **PROCEED TO PHASE 3**
-
-### 5.11 CC-Assisted Complexity Implementation (Continuation from Phase 1.5)
-
-**Prerequisites**: Phase 1.5 database schema changes completed (see §4)
-
-**Note**: This section contains implementation and testing tasks for the CC-assisted complexity feature. Database schema changes are in Phase 1.5 (§4.1-4.4).
-
-- [x] **5.11.1 Create prompt-generator service** ✅ COMPLETED
-  - **Purpose**: Centralized prompt generation for complexity analysis and agent injection
-  - File: `src/services/prompt-generator.ts`
-  - Functions:
-    - `generateComplexityAnalysisPrompt(userPrompt, draftComplexity, workflowId, apiBaseUrl)` - Ask CC to analyze complexity
-    - `generateAgentPrompt(chain, context?, workflowId?)` - Generate agent-specific prompts
-    - `generateCompletionMessage(chainName, agentSummaries)` - Format workflow completion
-  - Acceptance: Service provides reusable prompt templates ✅ VERIFIED
-
-- [x] **5.11.2 Create complexity validators** ✅ COMPLETED
-  - **Purpose**: Runtime validation for set-complexity API requests/responses
-  - File: `src/api/validators/complexity.validator.ts`
-  - Schemas:
-    - `SetComplexityRequestSchema` - Validate incoming complexity determination
-    - `WorkflowIdParamSchema` - Validate URL parameters
-    - `SetComplexityResponseSchema` - Validate API responses
-    - `ErrorResponseSchema` - Validate error responses
-  - Acceptance: Zod schemas defined for all API contracts ✅ VERIFIED
-
-- [x] **5.11.3 Implement set-complexity API endpoint** ✅ COMPLETED
-  - **Purpose**: Receive CC's complexity determination and return first agent prompt
-  - File: `src/api/routes/complexity.ts`
-  - Route: `POST /api/workflows/:workflowId/set-complexity`
-  - Logic:
-    - Validate workflow exists and status is PENDING_COMPLEXITY (409 if wrong state)
-    - Call `workflowRepo.updateComplexity()` to update workflow
-    - Generate first agent prompt using `prompt-generator` service
-    - Return `nextInstructions` for CC to execute
-  - Error handling: 404 (not found), 409 (invalid state), 400 (validation error)
-  - Acceptance: Endpoint functional, all error paths handled ✅ VERIFIED
-
-- [x] **5.11.4 Add ENABLE_CC_COMPLEXITY feature flag** ✅ COMPLETED
-  - **Purpose**: Allow gradual rollout and A/B testing of CC-assisted complexity
-  - Files: `.env.example`, `src/config/env.ts`
-  - Config: `ENABLE_CC_COMPLEXITY=false` (default disabled for backward compatibility)
-  - Validation: Zod schema transforms string to boolean
-  - Usage: When false, use keyword-based complexity; when true, use CC analysis
-  - Acceptance: Feature flag available in env config ✅ VERIFIED
-
-- [x] **5.11.5 Write unit tests for prompt-generator** ✅ COMPLETED
-  - **Purpose**: Validate prompt generation logic without external dependencies
-  - File: `tests/unit/services/prompt-generator.test.ts`
-  - Test cases (21 tests):
-    - `generateComplexityAnalysisPrompt()` includes all required fields (task, guidelines, API endpoint)
-    - `generateAgentPrompt()` varies by role (backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger)
-    - `generateCompletionMessage()` formats agent summaries as numbered list
-    - All complexity levels handled (simple, moderate, complex)
-  - Coverage: 100% for prompt-generator service
-  - Acceptance: All 21 tests passing ✅ VERIFIED
-
-- [x] **5.11.6 Write integration tests for set-complexity API** ✅ COMPLETED
-  - **Purpose**: Test API endpoint with real database operations
-  - File: `tests/integration/api/complexity.test.ts`
-  - Test cases (11 tests): ✅ VERIFIED
-    - **Success Cases (3 tests)**:
-      - POST with valid complexity → 200, workflow updated, nextInstructions returned
-      - POST without reasoning (optional field) → 200 success
-      - Handle all three complexity levels (simple, moderate, complex)
-    - **Validation Errors (3 tests)**:
-      - Reject invalid complexity value → 400 error
-      - Reject missing complexity field → 400 error
-      - Reject reasoning >200 characters → 400 error
-    - **Not Found Errors (1 test)**:
-      - Return 404 for non-existent workflow
-    - **State Conflicts (3 tests)**:
-      - Reject if workflow status is ACTIVE → 409 conflict
-      - Reject if workflow status is COMPLETED → 409 conflict
-      - Reject if workflow status is FAILED → 409 conflict
-    - **Idempotency (1 test)**:
-      - Multiple calls fail after first (state changes to ACTIVE)
-  - Results: All 11 tests passing ✅ VERIFIED
-  - Updates made:
-    - Removed `describe.skip` to enable tests
-    - Updated database setup to use test.db (matches other integration tests)
-    - Added all 10 workflow chains to CHAIN_DEFINITIONS in complexity.ts
-  - Acceptance: All success and error paths tested with real database ✅ VERIFIED
-
-- [x] **5.11.7 Write E2E complexity flow test** ✅ COMPLETED
-  - **Purpose**: Validate full flow from workflow creation to agent execution
-  - File: `tests/integration/hooks/complexity-flow.test.ts`
-  - Test cases (13 tests): ✅ VERIFIED
-    - **Full Complexity Determination Flow (4 tests)**:
-      - Complete flow: PENDING_COMPLEXITY → CC analysis → ACTIVE
-      - CC confirming draft complexity (no change)
-      - CC downgrading complexity from draft
-      - CC upgrading complexity from draft
-    - **Different Workflow Chains (4 tests)**:
-      - Backend-development chain with complexity
-      - Frontend-development chain with complexity
-      - Debug chain with complexity
-      - Single-agent chains with complexity
-    - **Edge Cases and Error Handling (4 tests)**:
-      - Preserve user prompt through complexity flow
-      - Record complexity reasoning in transitions
-      - Handle workflow already in ACTIVE state (409)
-      - Validate complexity prompt contains all required elements
-    - **Complexity Analysis Accuracy (1 test)**:
-      - Provide accurate prompt for CC to determine complexity
-  - Results: All 13 tests passing ✅ VERIFIED
-  - Flow tested:
-    1. Workflow created in PENDING_COMPLEXITY state
-    2. generateComplexityAnalysisPrompt() creates CC prompt
-    3. CC calls POST /api/workflows/:id/set-complexity
-    4. API updates workflow (status=ACTIVE, currentStep=0)
-    5. API returns nextInstructions with agent prompt
-    6. Workflow state transitions verified
-  - Acceptance: Full CC-assisted flow validated end-to-end ✅ VERIFIED
-
-- [x] **5.11.8 Update documentation** ✅ COMPLETED
-  - **Purpose**: Document CC-assisted complexity feature across all docs
-  - Files updated and verified:
-    - `docs/01-product-PRD.md` - New workflow steps 3a-3c, API section 5.4.2 ✅ VERIFIED
-      - Documents PENDING_COMPLEXITY state, set-complexity API endpoint
-      - Includes flow steps for CC complexity determination
-    - `docs/02-technical-spec.md` - Schema changes, API specs, project structure ✅ VERIFIED
-      - Documents draft_complexity field in schema
-      - Includes POST /api/workflows/{id}/set-complexity API specification
-      - Lists complexity.ts route in project structure
-    - `docs/02-technical-architecture.md` - Sequence diagram 2.1b for CC complexity flow ✅ VERIFIED
-      - Diagram 2.1b shows UserPromptSubmit with CC complexity determination
-      - Documents workflow creation in PENDING_COMPLEXITY state
-      - Shows CC calling set-complexity API with reasoning
-    - `docs/03-planning-WBS.md` - Section 4 (Phase 1.5) and section 5.11 (Phase 2) ✅ VERIFIED
-      - Phase 1.5: Database schema changes for CC-assisted complexity
-      - Section 5.11: All 8 tasks documented (5 implementation + 3 testing)
-    - `docs/03-planning-development-plan.md` - Phase 2 updates with +3-4 day estimate ✅ VERIFIED
-      - Documents set-complexity endpoint requirement
-      - Includes PENDING_COMPLEXITY workflow status support
-  - Verification date: 2025-10-06 (post-completion of tasks 5.11.6-5.11.7)
-  - Acceptance: All documentation reflects new feature, including completed tests ✅ VERIFIED
-
-**Implementation Status**: ✅ 8/8 tasks complete (5 implementation + 3 testing)
-**Estimate**: 1.5 days implementation (DONE), 1 day testing (DONE), 1 day docs (DONE)
-
----
-
-## 6. Phase 3 – Hook Handler Integration (7-10 days)
-
-**Objective**: Integrate Claude Code hooks, implement HTTP endpoints, validate configuration, create test harness (Development Plan §5.6, PRD §5.1).
 
 ### 6.1 Hook Adapters (TDD, PRD §5.1 Hook Processing)
 - [x] **Write UserPromptSubmit handler tests** ✅ COMPLETED
