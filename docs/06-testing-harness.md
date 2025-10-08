@@ -68,7 +68,7 @@ Server runs on port 4000 by default.
 ```bash
 curl -X POST http://localhost:4000/trigger/user-prompt-submit \
   -H "Content-Type: application/json" \
-  -d '{"prompt": "Implement REST API for authentication"}'
+  -d '{"prompt": "\\cco Implement REST API for authentication"}'
 ```
 
 **POST /trigger/post-tool-use**
@@ -256,7 +256,7 @@ pnpm harness:mock
 # Terminal 3: Trigger via mock server API
 curl -X POST http://localhost:4000/trigger/user-prompt-submit \
   -H "Content-Type: application/json" \
-  -d '{"prompt": "Implement user authentication"}'
+  -d '{"prompt": "\\cco Implement user authentication"}'
 
 # Mock server will:
 # 1. Generate proper hook payload
@@ -268,17 +268,21 @@ curl -X POST http://localhost:4000/trigger/user-prompt-submit \
 
 ### UserPromptSubmit Payload
 
+**⚠️ Important**: Prompts must include `\cco` or `\c2o` trigger prefix for orchestration. Without a trigger, orchestration will be skipped and no workflow will be created.
+
 ```json
 {
   "session_id": "unique-session-id",
   "transcript_path": "/path/to/transcript.json",
   "cwd": "/path/to/project",
   "hook_event_name": "UserPromptSubmit",
-  "prompt": "Your task description here"
+  "prompt": "\\cco Your task description here"
 }
 ```
 
 ### PostToolUse Payload
+
+**Important**: PostToolUse payloads come from Claude Code after Task tool execution. Agent results are in `tool_response.stdout` as plain text. The orchestrator extracts the agent role from `tool_input.subagent_type` and finds the workflow by matching `session_id`.
 
 ```json
 {
@@ -287,15 +291,16 @@ curl -X POST http://localhost:4000/trigger/user-prompt-submit \
   "cwd": "/path/to/project",
   "hook_event_name": "PostToolUse",
   "tool_name": "Task",
-  "workflow_id": "workflow-id-from-ccorch",
-  "agent_role": "backend-architect",
-  "complexity": "moderate",
-  "step_number": 0,
-  "results": {
-    "summary": "Brief summary of what was done",
-    "design": "Design decisions (for architects)",
-    "filesModified": ["file1.ts", "file2.ts"],
-    "recommendations": ["Recommendation 1", "Recommendation 2"]
+  "tool_input": {
+    "subagent_type": "backend-architect-moderate",
+    "prompt": "Use the backend-architect-moderate subagent to design authentication API",
+    "description": "Architecture design task"
+  },
+  "tool_response": {
+    "stdout": "# Architecture Design\n\nDesigned authentication API with JWT tokens...\n\n## Components\n- Auth controller\n- Token service\n- User repository\n\n## Security Considerations\n- HTTPS only\n- Token expiration\n...",
+    "stderr": "",
+    "interrupted": false,
+    "isImage": false
   }
 }
 ```

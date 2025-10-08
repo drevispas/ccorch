@@ -86,7 +86,7 @@ Validate CCOrch with actual Claude Code hooks to verify:
 **Compatibility Assessment:**
 - **Status**: ✅ Compatible
 - **Impact**: No code changes needed
-- **Critical Path**: For Task tool, `tool_response` will contain agent results JSON
+- **Critical Path**: For Task tool, `tool_response.stdout` will contain agent results as plain text
 
 **Expected Task Tool Payload (hypothesis):**
 ```json
@@ -94,16 +94,20 @@ Validate CCOrch with actual Claude Code hooks to verify:
   "hook_event_name": "PostToolUse",
   "tool_name": "Task",
   "tool_input": {
+    "subagent_type": "backend-architect-moderate",
     "prompt": "Use the backend-architect-moderate subagent to: ...",
-    "subagent_type": "backend-architect-moderate"
+    "description": "Architecture design task"
   },
   "tool_response": {
-    "result": "Agent execution results here",
-    "summary": "...",
-    "design": "..."
+    "stdout": "# Architecture Design\n\nDesigned authentication API...\n\n## Components\n- Auth controller\n- Token service\n...",
+    "stderr": "",
+    "interrupted": false,
+    "isImage": false
   }
 }
 ```
+
+**Note**: Agent results are extracted from `tool_response.stdout` as plain text, not structured JSON. The orchestrator stores this output in the `results` field of the `agent_results` table. The agent role is identified by parsing the `subagent_type` suffix (e.g., "backend-architect-moderate" → "backend-architect").
 
 ### 1.3 Stop Hook
 
