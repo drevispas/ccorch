@@ -11,17 +11,6 @@
         ]
       }
     ],
-    "SubagentStop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "curl -X POST -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/subagent-stop"
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "matcher": "",

@@ -196,7 +196,7 @@ Note: Agent definition files (`.claude/agents/*.md`) live in Claude Code's direc
 │   ├── config/          # Database connection, env config
 │   ├── models/          # Workflow, agent-result, transition models
 │   ├── services/        # Orchestrator, chain-resolver, state-manager
-│   ├── hooks/           # user-prompt-submit, subagent-stop handlers
+│   ├── hooks/           # user-prompt-submit, post-tool-use, stop handlers
 │   ├── api/             # Express routes (workflows, results)
 │   ├── utils/           # Prompt parser, logger
 │   └── server.ts        # Main entry point

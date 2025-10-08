@@ -83,7 +83,7 @@
 | Environment & Governance | Tooling, project scaffold, contributor guidance | pnpm/TypeScript skeleton, lint/test/type scripts, CONTRIBUTING, `.env.example` |
 | Persistence Layer | Database schema, migrations, repository APIs | Prisma schema + migrations, seed scripts, repository unit tests |
 | Orchestration Core | Prompt parsing, chain resolution, state manager | Parser/resolver modules, orchestrator service, decision logging |
-| Hook Integration | Claude Code hooks implementation | `UserPromptSubmit`, `SubagentStop`, `Stop` handlers, prompt templates, integration tests |
+| Hook Integration | Claude Code hooks implementation | `UserPromptSubmit`, `PostToolUse`, `Stop` handlers, prompt templates, integration tests |
 | API Surface | API surface (public + admin endpoints) | Express routes, zod validation, supertest coverage, API docs |
 | Observability & Ops | Logging, metrics, recovery, runbooks | Pino logging, metrics stubs, failure recovery routines, deployment/runbook docs |
 
