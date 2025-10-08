@@ -57,12 +57,12 @@ graph TB
     end
 
     subgraph "Claude Code Agents"
-        BEARCH["backend-architect-(complexity)"]
-        FEARCH["frontend-architect-(complexity)"]
-        BACKEND["java-backend-developer-(complexity)"]
-        FRONTEND["nextjs-react-developer-(complexity)"]
-        REVIEWER["code-reviewer-(complexity)"]
-        DEBUGGER["issue-detective-(complexity)"]
+        BEARCH["backend-architect-{complexity}"]
+        FEARCH["frontend-architect-{complexity}"]
+        BACKEND["java-backend-developer-{complexity}"]
+        FRONTEND["nextjs-react-developer-{complexity}"]
+        REVIEWER["code-reviewer-{complexity}"]
+        DEBUGGER["issue-detective-{complexity}"]
     end
 
     USER -->|1. Submit prompt| CC
@@ -74,12 +74,12 @@ graph TB
     CC -->|4. Execute agent| FRONTEND
     CC -->|4. Execute agent| REVIEWER
     CC -->|4. Execute agent| DEBUGGER
-    BEARCH -.->|5. PostToolUse hook (with results)| HOOK_HANDLER
-    FEARCH -.->|5. PostToolUse hook (with results)| HOOK_HANDLER
-    BACKEND -.->|5. PostToolUse hook (with results)| HOOK_HANDLER
-    FRONTEND -.->|5. PostToolUse hook (with results)| HOOK_HANDLER
-    REVIEWER -.->|5. PostToolUse hook (with results)| HOOK_HANDLER
-    DEBUGGER -.->|5. PostToolUse hook (with results)| HOOK_HANDLER
+    BEARCH -.->|5. PostToolUse hook with results| HOOK_HANDLER
+    FEARCH -.->|5. PostToolUse hook with results| HOOK_HANDLER
+    BACKEND -.->|5. PostToolUse hook with results| HOOK_HANDLER
+    FRONTEND -.->|5. PostToolUse hook with results| HOOK_HANDLER
+    REVIEWER -.->|5. PostToolUse hook with results| HOOK_HANDLER
+    DEBUGGER -.->|5. PostToolUse hook with results| HOOK_HANDLER
     STATE_MGR <-->|7. Read/Write| DB
 ```
 
