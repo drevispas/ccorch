@@ -27,6 +27,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Setup test database
+        env:
+          DATABASE_URL: file:./test.db
+        run: pnpm prisma migrate deploy
+
       - name: Run linter
         run: pnpm lint
 
@@ -34,9 +39,13 @@ jobs:
         run: pnpm type-check
 
       - name: Run tests
+        env:
+          DATABASE_URL: file:./test.db
         run: pnpm test
 
       - name: Generate coverage report
+        env:
+          DATABASE_URL: file:./test.db
         run: pnpm test:coverage
 
       - name: Upload coverage artifact
