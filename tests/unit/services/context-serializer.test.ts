@@ -221,7 +221,7 @@ describe('Context Serializer', () => {
       expect(context).toBe(
         'Previous agent results:\n' +
           '1. [backend-architect]: Designed REST API\n' +
-          '2. [reviewer]: Code review passed'
+          '2. [code-reviewer]: Code review passed'
       );
     });
 

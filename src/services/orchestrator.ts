@@ -123,7 +123,7 @@ export class Orchestrator {
     const firstAgent = agentSequence[0];
 
     // 6. Generate first agent prompt (PRD §6.1 format)
-    const prompt = this.generateFirstAgentPrompt(firstAgent, complexity, chainName);
+    const prompt = this.generateFirstAgentPrompt(firstAgent, complexity, chainName, userPrompt);
 
     // 7. Log workflow creation decision
     console.log(JSON.stringify({
@@ -255,15 +255,17 @@ export class Orchestrator {
    * @param agentRole - Agent role
    * @param complexity - Complexity level
    * @param chainName - Workflow chain name
+   * @param userPrompt - Original user prompt
    * @returns Formatted prompt for first agent
    */
   private generateFirstAgentPrompt(
     agentRole: AgentRole,
     complexity: string,
-    chainName: string
+    chainName: string,
+    userPrompt: string
   ): string {
     const agentName = `${agentRole}-${complexity}`;
-    return `IMPORTANT: You must invoke the Task tool with subagent_type="${agentName}" to handle this ${chainName} task.`;
+    return `IMPORTANT: You must invoke the Task tool with subagent_type="${agentName}" to handle this ${chainName} task.\n\nTask: ${userPrompt}`;
   }
 
   /**
@@ -289,7 +291,7 @@ export class Orchestrator {
     let prompt = `IMPORTANT: You must invoke the Task tool with subagent_type="${agentName}" to handle this ${chainName} task.`;
 
     if (previousContext) {
-      prompt += `\n\n${previousContext}`;
+      prompt += `\n\nReview previous results and continue the workflow:\n\n${previousContext}`;
     }
 
     return prompt;

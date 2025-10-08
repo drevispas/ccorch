@@ -86,7 +86,7 @@ describe('UserPromptSubmit Hook Handler', () => {
 
       expect(response).toBeDefined();
       expect(response.hookResponse.hookSpecificOutput?.additionalContext).toBeDefined();
-      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toContain('debugger');
+      expect(response.hookResponse.hookSpecificOutput?.additionalContext).toContain('issue-detective');
       expect(response.workflowId).toBeDefined();
     });
 
