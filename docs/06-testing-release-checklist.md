@@ -18,8 +18,8 @@ This checklist ensures CCOrch releases meet quality, security, and performance s
   ```bash
   pnpm test
   ```
-  - Expected: 478/478 unit tests pass
-  - Expected: 47+ integration tests pass
+  - Expected: All unit tests pass
+  - Expected: All integration tests pass
 
 - [ ] **Coverage ≥80%**
   ```bash
@@ -103,7 +103,6 @@ This checklist ensures CCOrch releases meet quality, security, and performance s
   - Tests:
     - [ ] Health check (GET /health)
     - [ ] Create workflow (POST /hooks/user-prompt-submit)
-    - [ ] Submit agent result (POST /api/workflows/:id/results)
     - [ ] Query status (GET /api/workflows/:id/status)
     - [ ] Manual transition (POST /api/workflows/:id/transition)
     - [ ] Error handling (400, 401, 404)
@@ -188,13 +187,12 @@ This checklist ensures CCOrch releases meet quality, security, and performance s
     - [ ] `LOG_LEVEL`
     - [ ] `API_KEY_ADMIN`
     - [ ] `HOOK_SECRET`
-    - [ ] `ENABLE_CC_COMPLEXITY` (optional)
 
 ### 8. PRD Requirements Verification
 
 - [ ] **All PRD requirements implemented**
   - [ ] PRD §2: Functional Requirements
-    - Workflow chains implemented (all 9 chains)
+    - Workflow chains implemented (all 10 chains)
     - Complexity determination (simple/moderate/complex)
     - Agent sequencing and transitions
   - [ ] PRD §3: Hook Integration
@@ -203,7 +201,6 @@ This checklist ensures CCOrch releases meet quality, security, and performance s
     - Stop hook
   - [ ] PRD §4: API Endpoints
     - GET /api/workflows/:id/status
-    - POST /api/workflows/:id/results
     - POST /api/workflows/:id/transition (admin)
   - [ ] PRD §5: Error Handling
     - Invalid workflow IDs
@@ -244,7 +241,7 @@ This checklist ensures CCOrch releases meet quality, security, and performance s
 
 - [ ] **Post-deployment smoke tests**
   - Run through: `docs/06-testing-smoke-tests.md` checklist
-  - Verify: All 6 tests pass in production
+  - Verify: All 5 tests pass in production
 
 ### 11. Monitoring
 
