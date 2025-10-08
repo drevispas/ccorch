@@ -61,27 +61,113 @@ Create or edit `~/.claude/settings.json`:
 ```json
 {
   "hooks": {
-    "UserPromptSubmit": {
-      "command": "curl -X POST -H 'X-Hook-Secret: test-hook-secret' -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/user-prompt-submit"
-    },
-    "PostToolUse": {
-      "command": "curl -X POST -H 'X-Hook-Secret: test-hook-secret' -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/post-tool-use"
-    },
-    "Stop": {
-      "command": "curl -X POST -H 'X-Hook-Secret: test-hook-secret' -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/stop"
-    }
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -X POST -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/user-prompt-submit"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -X POST -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/post-tool-use"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -X POST http://localhost:3000/hooks/stop"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
+**Note**: For local development, no authentication is configured. For production setup with authentication, see the [Local Development vs Production](#local-development-vs-production) section.
+
 **3. Test the Integration**
 
-Submit a prompt in Claude Code and verify CCOrch processes it:
+Submit a prompt with the opt-in trigger in Claude Code:
+
+```
+\cco Implement REST API for user authentication
+```
+
+Verify CCOrch processes it by checking the logs:
 
 ```bash
 # Check CCOrch logs for hook activity
 # You should see UserPromptSubmit hook being processed
 ```
+
+## ⚠️ Important: Opt-in Triggers Required
+
+**CCOrch requires all prompts to start with an opt-in trigger prefix**. Without a trigger, your prompt will go directly to Claude Code without workflow orchestration.
+
+### Supported Triggers
+
+- `\cco` - **Claude Code Orchestrator** (recommended)
+- `\c2o` - Claude 2 Orchestrator (alternative)
+
+Triggers are **case-insensitive** and **require whitespace** after them.
+
+### Examples
+
+**✅ Valid Prompts**:
+```
+\cco Implement REST API for user authentication
+\CCO Design database schema for blog platform
+\c2o Fix authentication bug in login flow
+\Cco Create React component for user profile
+```
+
+**❌ Invalid Prompts**:
+```
+Implement REST API                    ← No trigger - orchestration skipped
+\ccoImplement                         ← No space - not recognized
+cco Implement REST API                ← Missing backslash - not recognized
+```
+
+### Why Triggers?
+
+**Explicit Activation**: Triggers ensure orchestration is intentional, not automatic for every prompt.
+
+**Flexibility**: You can still use Claude Code normally for simple tasks without triggering multi-agent workflows.
+
+**Control**: You decide when to use orchestration vs direct Claude Code interaction.
+
+### How It Works
+
+1. You submit: `\cco Design REST API for authentication`
+2. CCOrch receives: `Design REST API for authentication` (trigger removed)
+3. Workflow created with clean prompt
+4. First agent receives task without trigger prefix
+
+### What Happens Without a Trigger?
+
+If you submit a prompt without `\cco` or `\c2o`:
+- UserPromptSubmit hook still fires
+- CCOrch receives the prompt
+- **Orchestration is skipped** (no workflow created)
+- Prompt goes directly to Claude Code
+- No agent chain is executed
+
+**To activate orchestration, always start your prompt with `\cco` or `\c2o`.**
 
 ## Configuration
 
@@ -94,48 +180,139 @@ Claude Code hooks are configured in `~/.claude/settings.json`. This file tells C
 - **macOS/Linux**: `~/.claude/settings.json`
 - **Windows**: `%USERPROFILE%\.claude\settings.json`
 
-#### Complete Configuration Example
-
-```json
-{
-  "hooks": {
-    "UserPromptSubmit": {
-      "command": "curl -X POST -H 'X-Hook-Secret: $HOOK_SECRET' -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/user-prompt-submit",
-      "description": "CCOrch: Initiate workflow when user submits prompt"
-    },
-    "PostToolUse": {
-      "command": "curl -X POST -H 'X-Hook-Secret: $HOOK_SECRET' -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/post-tool-use",
-      "description": "CCOrch: Process agent results and determine next step"
-    },
-    "Stop": {
-      "command": "curl -X POST -H 'X-Hook-Secret: $HOOK_SECRET' -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/stop",
-      "description": "CCOrch: Cleanup orphaned workflows"
-    }
-  }
-}
-```
-
 ### Hook Endpoints
 
 | Hook | Endpoint | Purpose | Response |
 |------|----------|---------|----------|
-| `UserPromptSubmit` | `POST /hooks/user-prompt-submit` | User initiates task | Agent injection prompt |
-| `PostToolUse` | `POST /hooks/post-tool-use` | Agent completes work | Next agent prompt or completion message |
+| `UserPromptSubmit` | `POST /hooks/user-prompt-submit` | User initiates task (with `\cco` trigger) | Agent injection prompt |
+| `PostToolUse` | `POST /hooks/post-tool-use` | Agent completes Task tool (filters by tool_name='Task' and session_id) | Next agent prompt or completion message |
 | `Stop` | `POST /hooks/stop` | Cleanup trigger | 200 OK (no message) |
 
-### Customizing CCOrch URL
+**Note**: PostToolUse uses two-level filtering:
+1. Only processes payloads where `tool_name='Task'` (ignores other tools)
+2. Finds active workflow by matching `session_id` from hook payload
 
-If CCOrch is running on a different host or port:
+### Local Development vs Production
 
+CCOrch supports two configuration modes depending on your environment.
+
+#### Local Development (No Authentication)
+
+For local development and testing, you can run without authentication:
+
+**Configuration** (`~/.claude/settings.json`):
 ```json
 {
   "hooks": {
-    "UserPromptSubmit": {
-      "command": "curl -X POST -H 'X-Hook-Secret: $HOOK_SECRET' -H 'Content-Type: application/json' -d @- http://your-server:3000/hooks/user-prompt-submit"
-    }
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -X POST -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/user-prompt-submit",
+            "description": "CCOrch: Initiate workflow when user submits prompt"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -X POST -H 'Content-Type: application/json' -d @- http://localhost:3000/hooks/post-tool-use",
+            "description": "CCOrch: Process agent results and determine next step"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -X POST http://localhost:3000/hooks/stop",
+            "description": "CCOrch: Cleanup orphaned workflows"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
+
+**Environment** (CCOrch `.env`):
+```bash
+# Don't set HOOK_SECRET for local development
+# Authentication is disabled when HOOK_SECRET is not configured
+```
+
+#### Production (With Authentication)
+
+For production deployments, use authentication with shared secret:
+
+**Configuration** (`~/.claude/settings.json`):
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -X POST -H 'X-Hook-Secret: $HOOK_SECRET' -H 'Content-Type: application/json' -d @- https://ccorch.example.com/hooks/user-prompt-submit",
+            "description": "CCOrch: Initiate workflow when user submits prompt"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -X POST -H 'X-Hook-Secret: $HOOK_SECRET' -H 'Content-Type: application/json' -d @- https://ccorch.example.com/hooks/post-tool-use",
+            "description": "CCOrch: Process agent results and determine next step"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -X POST -H 'X-Hook-Secret: $HOOK_SECRET' https://ccorch.example.com/hooks/stop",
+            "description": "CCOrch: Cleanup orphaned workflows"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Environment** (CCOrch `.env`):
+```bash
+HOOK_SECRET=your-secure-secret-here
+```
+
+**Shell Environment**:
+```bash
+export HOOK_SECRET=your-secure-secret-here
+```
+
+**Important**: The `HOOK_SECRET` in your shell environment must exactly match the `HOOK_SECRET` in CCOrch's `.env` file (case-sensitive).
+
+### Customizing CCOrch URL
+
+Replace `http://localhost:3000` or `https://ccorch.example.com` with your actual CCOrch server URL in all hook commands
 
 ## Environment Setup
 
@@ -159,9 +336,6 @@ HOOK_SECRET=your-secure-hook-secret-here
 
 # Security - Admin API Authentication (optional for dev)
 API_KEY_ADMIN=your-secure-admin-key-here
-
-# Feature Flags
-ENABLE_CC_COMPLEXITY=false
 ```
 
 ### Generating Secure Secrets
@@ -339,10 +513,10 @@ pnpm dev
 
 **2. Submit a Test Prompt**
 
-In Claude Code, submit a prompt like:
+In Claude Code, submit a prompt with the opt-in trigger:
 
 ```
-Implement REST API for user authentication
+\cco Implement REST API for user authentication
 ```
 
 **3. Verify Hook Activity**
@@ -368,7 +542,7 @@ Claude Code should:
 curl -X POST \
   -H "X-Hook-Secret: your-hook-secret" \
   -H "Content-Type: application/json" \
-  -d '{"session_id":"test","hook_event_name":"UserPromptSubmit","prompt":"test"}' \
+  -d '{"session_id":"test","hook_event_name":"UserPromptSubmit","prompt":"\\cco test"}' \
   http://localhost:3000/hooks/user-prompt-submit
 
 # Expected: 200 OK with agent injection response
@@ -380,7 +554,7 @@ curl -X POST \
 curl -X POST \
   -H "X-Hook-Secret: wrong-secret" \
   -H "Content-Type: application/json" \
-  -d '{"session_id":"test","hook_event_name":"UserPromptSubmit","prompt":"test"}' \
+  -d '{"session_id":"test","hook_event_name":"UserPromptSubmit","prompt":"\\cco test"}' \
   http://localhost:3000/hooks/user-prompt-submit
 
 # Expected: 401 Unauthorized
@@ -391,7 +565,7 @@ curl -X POST \
 ```bash
 curl -X POST \
   -H "Content-Type: application/json" \
-  -d '{"session_id":"test","hook_event_name":"UserPromptSubmit","prompt":"test"}' \
+  -d '{"session_id":"test","hook_event_name":"UserPromptSubmit","prompt":"\\cco test"}' \
   http://localhost:3000/hooks/user-prompt-submit
 
 # Expected: 401 Unauthorized (if HOOK_SECRET is configured)
