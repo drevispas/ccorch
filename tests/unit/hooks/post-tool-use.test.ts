@@ -46,7 +46,6 @@ describe('PostToolUse Hook Handler', () => {
         userPrompt: 'Design REST API for authentication',
         chainName: ChainName.BACKEND_DEVELOPMENT,
         complexity: 'moderate',
-        draftComplexity: undefined,
         sessionId: 'test-session-001',
       });
 
@@ -83,7 +82,6 @@ describe('PostToolUse Hook Handler', () => {
         userPrompt: 'Implement user authentication',
         chainName: ChainName.BACKEND_DEVELOPMENT,
         complexity: 'moderate',
-        draftComplexity: undefined,
         sessionId: 'test-session-002',
       });
 
@@ -120,7 +118,6 @@ describe('PostToolUse Hook Handler', () => {
         userPrompt: 'Create user service',
         chainName: ChainName.BACKEND_DEVELOPMENT,
         complexity: 'simple',
-        draftComplexity: undefined,
         sessionId: 'test-session-003',
       });
 
@@ -159,7 +156,6 @@ describe('PostToolUse Hook Handler', () => {
         userPrompt: 'Design API',
         chainName: ChainName.BACKEND_DESIGN_ONLY,
         complexity: 'simple',
-        draftComplexity: undefined,
         sessionId: 'test-session-004',
       });
 
@@ -197,7 +193,6 @@ describe('PostToolUse Hook Handler', () => {
         userPrompt: 'Implement payment service',
         chainName: ChainName.BACKEND_DEVELOPMENT,
         complexity: 'moderate',
-        draftComplexity: undefined,
         sessionId: 'test-session-005',
       });
 
@@ -315,7 +310,6 @@ describe('PostToolUse Hook Handler', () => {
         userPrompt: 'Test idempotency',
         chainName: ChainName.BACKEND_DEVELOPMENT,
         complexity: 'moderate',
-        draftComplexity: undefined,
         sessionId: 'test-session-010',
       });
 
@@ -355,7 +349,6 @@ describe('PostToolUse Hook Handler', () => {
         userPrompt: 'Test response format',
         chainName: ChainName.BACKEND_DEVELOPMENT,
         complexity: 'moderate',
-        draftComplexity: undefined,
         sessionId: 'test-session-011',
       });
 

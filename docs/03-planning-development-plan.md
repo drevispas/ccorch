@@ -5,11 +5,11 @@
 > This document outlines the implementation roadmap with phases, workstreams, and deliverables. For product requirements, see `PRD.md`. For technical specifications, see `technical-spec.md`.
 
 **Related Documents**:
-- `PRD.md` - Product requirements (WHAT and WHY)
-- `technical-spec.md` - Technical implementation details (HOW)
-- `architecture.md` - System architecture and sequence diagrams (STRUCTURE)
-- `development-plan.md` - Implementation phases and timeline (WHEN)
-- `WBS.md` - Granular work breakdown (TASKS)
+- `01-product-PRD.md` - Product requirements (WHAT and WHY)
+- `02-technical-spec.md` - Technical implementation details (HOW)
+- `02-technical-architecture.md` - System architecture and sequence diagrams (STRUCTURE)
+- `03-planning-development-plan.md` - Implementation phases and timeline (WHEN)
+- `03-planning-WBS.md` - Granular work breakdown (TASKS)
 
 ## Table of Contents
 
@@ -40,14 +40,15 @@
 
 ### 1.1 Claude Code Requirements
 - **Minimum Version**: Claude Code with hooks support enabled
-- **Hook Feature Availability**: `UserPromptSubmit`, `SubagentStop`, `Stop` hooks must be available
+- **Hook Feature Availability**: `UserPromptSubmit`, `PostToolUse`, `Stop` hooks must be available
 - **Agent Definitions**: `.claude/agents/` directory populated with all required agent files:
   - `backend-architect-{simple,moderate,complex}.md`
   - `frontend-architect-{simple,moderate,complex}.md`
-  - `backend-developer-{simple,moderate,complex}.md`
-  - `frontend-developer-{simple,moderate,complex}.md`
+  - `java-backend-developer-{simple,moderate,complex}.md`
+  - `nextjs-react-developer-{simple,moderate,complex}.md`
   - `code-reviewer-{simple,moderate,complex}.md`
   - `issue-detective-{simple,moderate,complex}.md`
+  - `e2e-test-architect-{simple,moderate,complex}.md`
 
 ### 1.2 Development Environment
 - **Node.js**: LTS version (v18+ recommended)
@@ -194,6 +195,7 @@
 - **ORM Selection**: Use Prisma (default per technical-spec.md §1.3); document rationale; initialize with SQLite datasource.
 - **Schema Modeling**: Model tables `workflows`, `agent_results`, `workflow_transitions` matching technical-spec.md §2 including:
   - All field names, indexes, constraints
+  - `session_id` field on `workflows` table with index for session-based correlation and cleanup
   - `UNIQUE (workflow_id, step_number)` on `agent_results` for idempotency
 - **Repository Interface Design**: Abstract persistence layer to ease future Redis migration (§9, §10.2); define interface contracts for workflow/agent-results/transitions repositories.
 - **Seed Data**: Generate migration(s) and seed script with representative **backend-development** workflow example.
@@ -206,35 +208,23 @@
 ### 5.5 Phase 2 – Orchestration Core
 - Implement prompt parsing utility to extract intent, match backend/frontend keywords, and detect complexity per PRD §5.2 (tables and keyword modifiers).
 - Build chain resolver service that maps intents to chains, applies backend/frontend fallback, and logs ambiguous prompts with severity levels.
-- **CC-Assisted Complexity Determination** (optional feature, feature-flagged):
-  - Add `draftComplexity` field to Workflow schema for storing initial keyword-based estimate
-  - Implement `prompt-generator` service for generating:
-    - Complexity analysis prompts (asking CC to analyze task and determine final complexity)
-    - Agent injection prompts (instructing CC to use specific subagents)
-    - Completion messages (workflow summary)
-  - Create `POST /api/workflows/:id/set-complexity` endpoint for CC to submit final complexity determination
-  - Add `ENABLE_CC_COMPLEXITY` feature flag to `.env.example` and `src/config/env.ts` (default: false)
-  - Support `PENDING_COMPLEXITY` workflow status for workflows awaiting CC analysis
-  - Update Stop hook to clean up workflows stuck in PENDING_COMPLEXITY >5min (timeout)
-  - Write unit tests for prompt-generator service (≥90% coverage)
-  - Write integration tests for set-complexity API endpoint (all success/error paths)
-  - Write E2E test for UserPromptSubmit → set-complexity → agent injection flow
-  - **Estimate**: +3-4 days (1.5 days implementation, 1.5 days testing, 1 day docs)
-- Develop state manager to create workflows, progress `current_step`, track statuses (`PENDING_COMPLEXITY`, `ACTIVE`, `COMPLETED`, `FAILED`), and enforce chain bounds.
+- Develop state manager to create workflows, progress `current_step`, track statuses (`ACTIVE`, `COMPLETED`, `FAILED`), and enforce chain bounds.
 - Define workflow ID generation strategy (use UUID v4 for global uniqueness, no ordering leaks, and collision resistance).
 - Implement orchestrator coordinator orchestrating parser, resolver, and state manager interactions; ensure it produces agent prompt payloads per §6.
 - Design context serialization strategy for passing previous agent results to next agent (per PRD §6.2: "Review previous results: {summary}"); include result summary extraction and template variable substitution.
 - Add domain models/types for workflow context and agent tasks; validate using zod.
 - Cover each module with unit and contract tests using mocked repositories; include negative cases (invalid prompt, chain exhaustion, failed agent state).
-- **Exit Criteria**: Orchestrator service API stable with ≥80% coverage across modules, decision logging present, CC-assisted complexity feature functional (with tests).
+- **Exit Criteria**: Orchestrator service API stable with ≥80% coverage across modules, decision logging present.
 
 ### 5.6 Phase 3 – Hook Handler Integration
 - **Hook Adapters**: Create hook adapters in `src/hooks/` for `UserPromptSubmit`, `PostToolUse`, and `Stop` matching PRD §5.1 behavior matrix.
+- **Opt-in Trigger Filtering**: UserPromptSubmit handler checks for `\cco` or `\c2o` prefix (case insensitive) in user prompt; only activate orchestration when trigger present, otherwise return empty response.
 - **HTTP Integration**: Implement Node.js HTTP endpoint handlers that receive hook payloads from `.claude/settings.json` command configuration (reference [Hook Guide](https://docs.claude.com/en/docs/claude-code/hooks-guide.md)).
 - **Result Extraction**: PostToolUse handler extracts agent results from hook payload (no separate API submission needed).
+- **PostToolUse Filtering**: Implement two-level filtering: (1) only process when `tool_name === 'Task'` (ignore other tools), (2) find active workflow by `session_id` from payload (ignore if no active workflow exists). Return empty response when filters don't match.
 - **Idempotent Handling**: Use deduplication tokens to prevent duplicate transitions on hook retries; check `(workflow_id, step_number)` uniqueness before persisting agent results.
 - **Prompt Templates**: Craft templates referencing correct agent role/complexity naming (§6.1, §6.2). Remove API submission reminders - results come via hook payload.
-- **Configuration Validation**: Implement loader for hook secrets and orchestrator base URL; **validate configuration metadata at startup**: ensure all expected agent roles (backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger, e2e-test-architect) × complexity levels (simple, moderate, complex) = 21 total agent configurations are defined. Note: Agent definition files live in Claude Code's `.claude/agents/` directory on the user's machine, not on CCOrch server—CCOrch validates its internal config references, not filesystem paths.
+- **Configuration Validation**: Implement loader for hook secrets and orchestrator base URL; **validate configuration metadata at startup**: ensure all expected agent roles (backend-architect, frontend-architect, java-backend-developer, nextjs-react-developer, code-reviewer, issue-detective, e2e-test-architect) × complexity levels (simple, moderate, complex) = 21 total agent configurations are defined. Note: Agent definition files live in Claude Code's `.claude/agents/` directory on the user's machine, not on CCOrch server—CCOrch validates its internal config references, not filesystem paths.
 - **Test Harness**: Develop dual-purpose test harness:
   - **Mock HTTP Server**: Simulates Claude Code sending hook payloads to CCOrch endpoints
   - **Payload Sender**: Script that generates and posts test hook payloads for manual testing
@@ -303,7 +293,7 @@
 | Prompt misclassification leads to wrong agent chain | Medium | Medium | Expand keyword taxonomy, add telemetry, provide manual override workflow. |
 | Hook retries duplicate workflow steps | High | Medium | Enforce unique `(workflow_id, step_number)` constraint, idempotent updates, detect replay tokens. |
 | SQLite contention at higher concurrency | Medium | Low | Monitor via metrics, batch writes, prepare Redis migration plan. |
-| Drift between `.claude/agents/` prompts and orchestrator templates | Medium | Medium | Add config validation ensuring all 15 agent configurations (5 roles × 3 complexity) are defined; monitor template naming drift via telemetry. |
+| Drift between `.claude/agents/` prompts and orchestrator templates | Medium | Medium | Add config validation ensuring all 21 agent configurations (7 roles × 3 complexity) are defined; monitor template naming drift via telemetry. |
 | Missing Claude hook credentials blocks integration testing | High | Medium | Secure credentials early, provide local mock server fallback. |
 
 ## 10. Open Questions

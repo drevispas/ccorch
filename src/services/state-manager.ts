@@ -28,7 +28,6 @@ export interface CreateWorkflowInput {
   userPrompt: string;
   chainName: ChainName;
   complexity: Complexity;
-  draftComplexity?: Complexity;
   status?: WorkflowStatus;
 }
 
@@ -85,7 +84,6 @@ export class StateManager {
       userPrompt: input.userPrompt,
       chainName: input.chainName,
       complexity: input.complexity,
-      draftComplexity: input.draftComplexity,
       currentStep: 0,
       status: input.status ?? 'ACTIVE',
     };

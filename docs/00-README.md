@@ -20,6 +20,9 @@ This document provides a guide to all CCOrch documentation files, organized by p
 | **[06-testing-e2e-results.md](#06-testing-e2e-results)** | End-to-end test results | QA, developers | For validation - test reports |
 | **[06-testing-release-checklist.md](#06-testing-release-checklist)** | Pre-release validation steps | Release managers | Before release - quality gates |
 | **[06-testing-harness.md](#06-testing-harness)** | Testing infrastructure | Test engineers | For testing - test setup |
+| **[poc/README.md](#pocreadmemd)** | PoC validation & architecture decisions | Developers, architects | To understand validated approaches |
+| **[CLAUDE.md](#claudemd)** | AI assistant project instructions | Claude Code AI | Auto-loaded by Claude Code |
+| **[CONTRIBUTING.md](#contributingmd)** | Developer contribution guidelines | Contributors | Before contributing code |
 
 ---
 
@@ -229,14 +232,64 @@ This document provides a guide to all CCOrch documentation files, organized by p
 
 ---
 
+### 7. Proof of Concept & Validation
+
+#### poc/README.md
+- **Full Name**: Proof of Concept Documentation
+- **Size**: ~23 KB
+- **Purpose**: PoC validation results and architecture decisions
+- **Key Sections**:
+  - Production architecture decisions (PostToolUse vs SubagentStop)
+  - Hook payload structure validation
+  - Performance measurements (~47ms average latency)
+  - Opt-in trigger system validation
+  - Session-based correlation testing
+  - Real Claude Code hook integration results
+- **Read This**: To understand validated architecture and why specific approaches were chosen
+- **Dependencies**: None (historical validation record)
+
+---
+
+### 8. Root-Level Documentation
+
+These files live in the repository root and serve specific purposes:
+
+#### CLAUDE.md
+- **Purpose**: Project instructions for Claude Code (AI assistant)
+- **Audience**: Claude Code AI assistant
+- **Contents**:
+  - Project overview and architecture
+  - Opt-in trigger system (`\cco`, `\c2o`)
+  - Design principles (idempotency, repository pattern, etc.)
+  - Component interactions and file locations
+  - Common development tasks
+  - Anti-patterns and gotchas
+- **Read This**: To understand what guidance Claude Code receives when working on this codebase
+
+#### CONTRIBUTING.md
+- **Purpose**: Developer contribution guidelines
+- **Audience**: Human contributors
+- **Contents**:
+  - Conventional Commits format
+  - TDD workflow (red-green-refactor)
+  - Quality checklist (lint, type-check, test)
+  - PR review process
+  - Code style guidelines (naming, structure)
+  - Architecture patterns (repository, DI, error handling)
+- **Read This**: Before contributing to the codebase
+
+---
+
 ## Reading Order by Role
 
 ### New Developer Onboarding
-1. **01-product-PRD.md** - Understand product vision
-2. **02-technical-architecture.md** - Understand system structure
-3. **02-technical-spec.md** - Understand implementation details
-4. **03-planning-development-plan.md** - Understand current phase
-5. **03-planning-WBS.md** - Pick up tasks
+1. **CONTRIBUTING.md** - Learn contribution guidelines
+2. **01-product-PRD.md** - Understand product vision
+3. **02-technical-architecture.md** - Understand system structure
+4. **poc/README.md** - Learn about validated architecture decisions
+5. **02-technical-spec.md** - Understand implementation details
+6. **03-planning-development-plan.md** - Understand current phase
+7. **03-planning-WBS.md** - Pick up tasks
 
 ### SRE/Operator Setup
 1. **01-product-PRD.md** - Understand what CCOrch does
@@ -295,9 +348,9 @@ Testing docs (cross-cutting):
 - review-only, debug-only
 
 ### Hook Types (04-ops-hook-setup.md, 05-api-reference.md, 06-testing-e2e-results.md)
-- **UserPromptSubmit**: Intercepts user prompts, injects agent instructions
-- **PostToolUse**: Captures agent completion, advances workflow
-- **Stop**: Cleans up workflows when session terminates
+- **UserPromptSubmit**: Intercepts user prompts (when `\cco` or `\c2o` trigger detected), injects agent instructions
+- **PostToolUse**: Captures agent completion (filters by `tool_name === 'Task'`), extracts results from `tool_response.stdout`, advances workflow
+- **Stop**: Cleans up workflows when session terminates (uses `session_id` to find active workflows)
 
 ### Complexity Levels (01-product-PRD.md, 02-technical-spec.md)
 - **Simple**: Single file, quick fixes
@@ -306,17 +359,32 @@ Testing docs (cross-cutting):
 
 ### Agent Roles (01-product-PRD.md, 03-planning-WBS.md)
 - backend-architect, frontend-architect
-- backend-developer, frontend-developer
-- reviewer, debugger, e2e-test-architect
+- java-backend-developer, nextjs-react-developer
+- code-reviewer, issue-detective, e2e-test-architect
 
 ### Trigger Protocol (04-ops-hook-setup.md, 06-testing-e2e-results.md)
 - `\cco` or `\c2o` prefix (case insensitive)
 - Avoids conflicts with Claude Code slash commands
-- Session-based filtering for hook processing
+- **Session-Based Correlation**:
+  - Workflows correlated to Claude Code sessions via `session_id`
+  - Active workflow lookup by session prevents duplicate workflows
+  - PostToolUse filters by session to ensure correct workflow advancement
+  - Stop hook uses `session_id` to find and clean up active workflows
 
 ---
 
 ## Recent Changes
+
+### 2025-10-08: Documentation Accuracy Update
+- **Files Updated**: docs/00-README.md, CLAUDE.md, CONTRIBUTING.md, poc/README.md
+- **Changes**:
+  - Fixed agent role names to match implementation (java-backend-developer, nextjs-react-developer, code-reviewer, issue-detective)
+  - Added PostToolUse filtering details (Task tool filtering, result extraction)
+  - Expanded session correlation explanation
+  - Added PoC documentation section
+  - Added root-level documentation references (CLAUDE.md, CONTRIBUTING.md)
+  - Updated poc/README.md to reflect production architecture (PostToolUse, opt-in triggers)
+- **Impact**: Documentation now accurately reflects implemented architecture
 
 ### 2025-10-07: Session Tracking & Trigger Change
 - **Files Updated**: 04-ops-hook-setup.md, 06-testing-e2e-results.md, 02-technical-spec.md
@@ -371,6 +439,6 @@ When updating documentation:
 
 ---
 
-**Last Updated**: 2025-10-07
-**Total Documentation Size**: ~436 KB
-**Document Count**: 14 files
+**Last Updated**: 2025-10-08
+**Total Documentation Size**: ~470 KB
+**Document Count**: 17 files (14 in docs/, 1 in poc/, 2 root-level)

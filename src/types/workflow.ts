@@ -56,7 +56,6 @@ export enum AgentRole {
  * Workflow lifecycle states
  */
 export enum WorkflowStatus {
-  PENDING_COMPLEXITY = 'PENDING_COMPLEXITY',
   ACTIVE = 'ACTIVE',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',

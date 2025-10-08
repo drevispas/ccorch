@@ -5,11 +5,11 @@
 > This document specifies the technical implementation details for the Claude Code Orchestrator (CCOrch), including technology stack, database schema, API specifications, and development practices.
 
 **Related Documents**:
-- `PRD.md` - Product requirements (WHAT and WHY)
-- `technical-spec.md` - Technical implementation details (HOW)
-- `architecture.md` - System architecture and sequence diagrams (STRUCTURE)
-- `development-plan.md` - Implementation phases and timeline (WHEN)
-- `WBS.md` - Granular work breakdown (TASKS)
+- `01-product-PRD.md` - Product requirements (WHAT and WHY)
+- `02-technical-spec.md` - Technical implementation details (HOW)
+- `02-technical-architecture.md` - System architecture and sequence diagrams (STRUCTURE)
+- `03-planning-development-plan.md` - Implementation phases and timeline (WHEN)
+- `03-planning-WBS.md` - Granular work breakdown (TASKS)
 
 ---
 
@@ -145,6 +145,10 @@ CREATE TABLE workflows (
   -- Original user prompt that initiated the workflow
   user_prompt TEXT NOT NULL,
 
+  -- Claude Code session identifier for correlation
+  -- Used to prevent duplicate workflows and enable session-based cleanup
+  session_id TEXT NOT NULL,
+
   -- Name of the agent chain (e.g., 'backend-development', 'debug', 'design-only')
   -- Valid values: backend-development, frontend-development, debug, review,
   --               design-only, backend-only, frontend-only, review-only, debug-only
@@ -268,6 +272,9 @@ CREATE INDEX idx_workflows_status ON workflows(status);
 -- Speed up workflow history queries (e.g., recent workflows)
 CREATE INDEX idx_workflows_created ON workflows(created_at);
 
+-- Speed up session-based workflow lookups (e.g., finding active workflow for session)
+CREATE INDEX idx_workflows_session ON workflows(session_id);
+
 -- Speed up agent result lookups by workflow
 CREATE INDEX idx_agent_results_workflow ON agent_results(workflow_id);
 
@@ -292,9 +299,9 @@ datasource db {
 model Workflow {
   id               String   @id
   userPrompt       String   @map("user_prompt")
+  sessionId        String   @map("session_id")
   chainName        String   @map("chain_name")
   complexity       String
-  draftComplexity  String?  @map("draft_complexity")
   currentStep      Int      @default(0) @map("current_step")
   status           String   @default("ACTIVE")
   createdAt        BigInt   @map("created_at")
@@ -305,6 +312,7 @@ model Workflow {
 
   @@index([status], name: "idx_workflows_status")
   @@index([createdAt], name: "idx_workflows_created")
+  @@index([sessionId], name: "idx_workflows_session")
   @@map("workflows")
 }
 
@@ -347,7 +355,6 @@ model WorkflowTransition {
 ```typescript
 // Workflow status
 enum WorkflowStatus {
-  PENDING_COMPLEXITY = 'PENDING_COMPLEXITY',
   ACTIVE = 'ACTIVE',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
@@ -423,7 +430,6 @@ enum ChainName {
 
 2. **Public API Endpoints**:
    ```
-   POST /api/workflows/{id}/set-complexity - CC submits complexity (public)
    GET  /api/workflows/{id}/status          - Query workflow status (read-only monitoring)
    ```
 
@@ -458,6 +464,8 @@ Claude Code → /hooks/post-tool-use (with results) → Next agent or completion
 
 **Purpose**: Receives UserPromptSubmit hook from Claude Code, analyzes user intent, returns agent injection
 
+**Opt-in Requirement**: User prompt must start with `\cco` or `\c2o` trigger (case insensitive) to activate orchestration. Prompts without trigger are ignored.
+
 **Authentication**: `X-Hook-Secret` header (shared secret)
 
 **Request**: Hook payload from Claude Code (structure defined by Claude Code hooks spec)
@@ -473,11 +481,15 @@ Claude Code → /hooks/post-tool-use (with results) → Next agent or completion
 
 **Purpose**: Receives PostToolUse hook from Claude Code when agent completes, processes results, determines next agent or completes workflow
 
-**Trigger**: Fires when subagent finishes its task
+**Trigger**: Fires when any tool finishes execution
+
+**Filtering**: Two-level filtering ensures only CCOrch-managed agents are processed:
+1. **Tool Filter**: Only process when `tool_name === 'Task'` (ignore other tools)
+2. **Session Filter**: Find active workflow by `session_id` from payload (ignore if no active workflow)
 
 **Authentication**: `X-Hook-Secret` header (shared secret)
 
-**Request**: Hook payload from Claude Code with agent results embedded
+**Request**: Hook payload from Claude Code with agent results embedded in `tool_response.stdout`
 
 **Response** (next agent):
 ```json
@@ -495,88 +507,27 @@ Claude Code → /hooks/post-tool-use (with results) → Next agent or completion
 
 #### 3.2.3 POST /hooks/stop
 
-**Purpose**: Cleanup orphaned workflows (fires after **each agent completion**, not just session end)
+**Purpose**: Cleanup active workflows when Claude Code session terminates
 
-**Trigger Behavior**: The Stop hook fires alongside PostToolUse after every agent execution. It is NOT an indicator of session termination or chain completion.
+**Trigger Behavior**: The Stop hook fires when Claude Code session ends.
 
 **Authentication**: `X-Hook-Secret` header (shared secret)
 
-**Request**: Hook payload from Claude Code
+**Request**: Hook payload from Claude Code (includes `session_id`)
 
 **Response**: `200 OK` (no body, no message injection)
 
 **Implementation Notes**:
-- Query for ACTIVE workflows with stale timestamps (>5 minutes old)
-- Mark truly orphaned workflows as FAILED
-- Most invocations will find zero orphaned workflows (normal operation)
+- Find ACTIVE workflows for the terminated session (by `session_id`)
+- Mark session workflows as COMPLETED or FAILED depending on their state
+- Session-based cleanup ensures proper workflow termination
 - Never returns message injection (always 200 OK)
 
 ---
 
 ### 3.3 Public & Admin API Endpoints
 
-#### 3.3.1 POST /api/workflows/{workflow_id}/set-complexity (CC Complexity Determination)
-
-**Purpose**: Receives final complexity determination from Claude Code after analyzing task scope
-
-**Access**: Public (no authentication required)
-
-**Request**:
-```typescript
-interface SetComplexityRequest {
-  complexity: 'simple' | 'moderate' | 'complex';
-  reasoning?: string;  // Optional, max 200 chars
-}
-```
-
-**Response (Success - 200)**:
-```typescript
-interface SetComplexityResponse {
-  success: true;
-  workflowId: string;
-  complexity: 'simple' | 'moderate' | 'complex';
-  nextInstructions: string;  // Agent injection prompt
-}
-```
-
-**Response (Error - 404)**:
-```json
-{
-  "error": {
-    "code": "WORKFLOW_NOT_FOUND",
-    "message": "Workflow abc-123 does not exist"
-  }
-}
-```
-
-**Response (Error - 409)**:
-```json
-{
-  "error": {
-    "code": "INVALID_STATE",
-    "message": "Workflow status is ACTIVE, expected PENDING_COMPLEXITY"
-  }
-}
-```
-
-**Validation Rules** (zod):
-```typescript
-const SetComplexityRequestSchema = z.object({
-  complexity: z.enum(['simple', 'moderate', 'complex']),
-  reasoning: z.string().max(200).optional(),
-});
-```
-
-**Flow**:
-1. UserPromptSubmit hook creates workflow with `status=PENDING_COMPLEXITY`
-2. CC analyzes prompt, calls this endpoint
-3. CCOrch validates workflow state, updates complexity
-4. CCOrch generates first agent prompt
-5. Returns `nextInstructions` for CC to execute
-
----
-
-#### 3.3.2 GET /api/workflows/{workflow_id}/status (Optional Monitoring)
+#### 3.3.1 GET /api/workflows/{workflow_id}/status (Optional Monitoring)
 
 **Purpose**: Query current workflow state and progress
 
@@ -636,7 +587,7 @@ interface WorkflowStatusResponse {
 
 ---
 
-#### 3.3.3 POST /api/workflows/{workflow_id}/transition (Admin Only)
+#### 3.3.2 POST /api/workflows/{workflow_id}/transition (Admin Only)
 
 **Purpose**: Administrative endpoint for manual workflow control (debugging, recovery, testing)
 
@@ -977,11 +928,11 @@ orchestrator-v3/
 │       └── prompts.json         # Test prompt examples
 │
 ├── docs/
-│   ├── PRD.md                   # Product requirements
-│   ├── technical-spec.md        # This document
-│   ├── architecture.md          # Architecture diagrams
-│   ├── development-plan.md      # Implementation phases
-│   └── WBS.md                   # Work breakdown structure
+│   ├── 01-product-PRD.md                   # Product requirements
+│   ├── 02-technical-spec.md                # This document
+│   ├── 02-technical-architecture.md        # Architecture diagrams
+│   ├── 03-planning-development-plan.md     # Implementation phases
+│   └── 03-planning-WBS.md                  # Work breakdown structure
 │
 ├── .env.example                 # Environment variable template
 ├── .env                         # Local environment (gitignored)
@@ -1476,7 +1427,6 @@ const envSchema = z.object({
   PORT: z.string().transform(Number).pipe(z.number().min(1).max(65535)).default('3000'),
   DATABASE_URL: z.string().min(1), // Prisma supports file:./dev.db format
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
-  ENABLE_CC_COMPLEXITY: z.string().transform((val) => val === 'true').default('false'),
   ADMIN_API_KEY: z.string().optional(),
 });
 

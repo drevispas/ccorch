@@ -16,7 +16,6 @@ model Workflow {
   userPrompt      String               @map("user_prompt")
   chainName       String               @map("chain_name")
   complexity      String
-  draftComplexity String?              @map("draft_complexity")
   currentStep     Int                  @default(0) @map("current_step")
   status          String               @default("ACTIVE")
   createdAt       BigInt               @map("created_at")

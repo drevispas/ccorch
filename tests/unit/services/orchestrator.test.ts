@@ -45,7 +45,6 @@ describe('Orchestrator Coordinator', () => {
       findActiveBySession: vi.fn(),
       updateStatus: vi.fn(),
       updateCurrentStep: vi.fn(),
-      updateComplexity: vi.fn(),
       deleteWorkflow: vi.fn(),
     };
 

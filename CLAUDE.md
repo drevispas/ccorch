@@ -8,6 +8,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The orchestrator manages chains of specialized agents (backend-architect, frontend-architect, java-backend-developer, nextjs-react-developer, code-reviewer, issue-detective, e2e-test-architect) at varying complexity levels (simple, moderate, complex) to automate complex development workflows without manual agent switching.
 
+## Opt-in Trigger System
+
+CCOrch uses an **opt-in activation model** to avoid interfering with normal Claude Code usage:
+
+**Trigger Patterns**: Users must prefix prompts with `\cco` or `\c2o` (case insensitive) followed by whitespace
+- Example: `\cco Implement REST API for user authentication`
+- Example: `\C2O Debug performance issues in the database layer`
+
+**Behavior**:
+- **With trigger**: UserPromptSubmit hook activates orchestration, injects first agent prompt
+- **Without trigger**: Hook passes through silently, Claude Code operates normally
+
+This ensures CCOrch only activates when explicitly requested by the user.
+
 ## Architecture
 
 ### Core Components
@@ -15,8 +29,8 @@ The orchestrator manages chains of specialized agents (backend-architect, fronte
 **Orchestration Pipeline**: User prompt → Intent parser → Chain resolver → State manager → Agent injection → Result collection → Transition logic
 
 **Hook Integration**: CCOrch responds to three Claude Code hooks:
-- `UserPromptSubmit`: Analyzes user intent, selects agent chain, injects first agent prompt
-- `SubagentStop`: Receives agent results via API, determines next agent, continues or completes chain
+- `UserPromptSubmit`: Analyzes user intent, selects agent chain, injects first agent prompt (opt-in via `\cco` or `\c2o` trigger)
+- `PostToolUse`: Extracts agent results from Task tool output, determines next agent, continues or completes chain
 - `Stop`: Cleanup for orphaned workflows (no message injection)
 
 **State Persistence**: SQLite database with three tables:
@@ -25,26 +39,20 @@ The orchestrator manages chains of specialized agents (backend-architect, fronte
 - `workflow_transitions`: Audit log of state changes (from_step, to_step, reason)
 
 **API Surface**:
-- `POST /api/workflows/{id}/results`: Agents submit execution results (public)
-- `GET /api/workflows/{id}/status`: Query workflow progress (public)
-- `POST /api/workflows/{id}/transition`: Admin control for manual fail/skip/retry (API key auth)
+- `GET /api/workflows/:id/status`: Query workflow progress (public)
+- `POST /api/workflows/:id/transition`: Admin control for manual fail/skip/retry (API key auth)
 
 ### Workflow Chains
 
-| Chain | Agent Sequence |
-|-------|----------------|
-| `backend-development` | backend-architect → java-backend-developer → code-reviewer |
-| `frontend-development` | frontend-architect → nextjs-react-developer → code-reviewer |
-| `debug` | issue-detective → (java-backend/nextjs-react)-developer → code-reviewer |
-| `review` | code-reviewer → (java-backend/nextjs-react)-developer |
-| `backend-design-only` | backend-architect |
-| `frontend-design-only` | frontend-architect |
-| `backend-only` | java-backend-developer |
-| `frontend-only` | nextjs-react-developer |
-| `review-only` | code-reviewer |
-| `debug-only` | issue-detective |
+CCOrch supports 9 workflow chains organized by task type:
+- **Full Development**: `backend-development`, `frontend-development` (architect → developer → reviewer)
+- **Debug**: `debug` (issue-detective → developer → reviewer)
+- **Review**: `review` (code-reviewer → developer)
+- **Single-Role**: `backend-only`, `frontend-only`, `backend-design-only`, `frontend-design-only`, `review-only`, `debug-only`
 
 **Backend/Frontend Selection**: Keyword analysis (`java`, `api`, `database` → backend; `ui`, `component`, `react` → frontend; default: backend)
+
+See `docs/01-product-PRD.md` for complete chain definitions and agent sequences.
 
 ### Complexity Determination
 
@@ -64,58 +72,34 @@ The orchestrator manages chains of specialized agents (backend-architect, fronte
 - **Web Framework**: Express.js
 - **Database**: SQLite (Prisma ORM)
 - **Validation**: zod
-- **Logging**: pino + express-request-id
 - **Testing**: vitest + supertest
-- **Process Manager**: pm2 (production)
 
-## Development Workflow
+## Design Principles
 
-### Commit Guidelines
+**Idempotency**: All hook handlers and API endpoints must handle retries gracefully
+- Unique constraints on `(workflow_id, step_number)` prevent duplicate agent results
+- Deduplication tokens prevent duplicate state transitions
+- Check workflow status before state changes
 
-**Format**: Conventional Commits
-```
-<type>(<scope>): <subject>
+**Repository Pattern**: Abstract all data access through repository interfaces
+- Enables future migration from SQLite to Redis
+- All database operations via `IWorkflowRepository`, `IAgentResultRepository`, `IWorkflowTransitionRepository`
+- No direct Prisma calls outside repository layer
 
-<body>
+**State Machine Guarantees**: Workflow state transitions must be valid and auditable
+- Only valid transitions allowed (e.g., ACTIVE → COMPLETED, ACTIVE → FAILED)
+- All transitions logged in `workflow_transitions` table with reason
+- State manager enforces transition rules
 
-<footer>
-```
+**Error Context Preservation**: Wrap external errors with domain context
+- Prisma errors wrapped with workflow/agent context
+- Network errors include workflow ID and step number
+- All errors logged with structured data for debugging
 
-**Types**: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`
-
-**Example**:
-```
-feat(orchestrator): implement chain resolver for workflow routing
-
-- Add chain determination logic based on user prompt analysis
-- Support all 9 workflow chains (backend-dev, frontend-dev, etc.)
-- Include complexity level resolution (simple/moderate/complex)
-
-Resolves: #12
-```
-
-### Test-Driven Development (TDD)
-
-Write unit tests **before** implementation:
-```typescript
-describe('ChainResolver', () => {
-  it('should resolve backend-development chain for API implementation prompts', () => {
-    const prompt = 'Implement REST API for authentication';
-    const result = chainResolver.resolve(prompt);
-    expect(result.chain).toBe('backend-development');
-    expect(result.complexity).toBe('moderate');
-  });
-});
-```
-
-**Coverage Target**: ≥80% statement coverage
-
-### Quality Checks
-
-Run after **every change**:
-- Type integrity: `pnpm tsc --noEmit`
-- Test regression: `pnpm test`
-- Linting: `pnpm lint`
+**Dependency Injection**: Components receive dependencies via constructor
+- Facilitates testing with mocks
+- Clear dependency graph (e.g., Orchestrator depends on Parser, Resolver, StateManager)
+- No global state or singletons
 
 ## Key Implementation Details
 
@@ -150,10 +134,64 @@ At startup, validate that all expected agent configurations exist:
 
 Note: Agent definition files (`.claude/agents/*.md`) live in Claude Code's directory on the user's machine. CCOrch validates its internal config references, not filesystem paths.
 
+### Anti-patterns & Gotchas
+
+**Don't bypass the state manager**: All state changes must go through `StateManager`
+- Direct Prisma writes skip validation and audit logging
+- State manager ensures valid transitions and records reasons
+
+**Don't assume hook calls are unique**: Claude Code may retry hooks on failure
+- Always check `(workflow_id, step_number)` before inserting agent results
+- Use deduplication tokens for transitions
+- Expect same hook payload multiple times
+
+**Don't skip transition validation**: Invalid transitions corrupt workflow state
+- Verify current status before state changes
+- Use state manager's transition methods, not direct updates
+- Log transition failures for debugging
+
+**Agent role names must match exactly**: Case-sensitive, must align with `.claude/agents/*.md`
+- `backend-architect-simple` (correct) vs `backend_architect_simple` (wrong)
+- Mismatches cause agent resolution failures
+- Validate against config at startup
+
+**Workflow ID is UUID, not integer**: Type mismatches cause lookup failures
+- Database uses TEXT for workflow.id
+- API expects string UUIDs, not numeric IDs
+
+## Component Interactions
+
+**Orchestration Flow**:
+1. `UserPromptSubmit` hook → Check for `\cco` or `\c2o` trigger
+2. `PromptParser` analyzes intent
+3. `ChainResolver` determines workflow chain + complexity
+4. `StateManager` creates workflow record (status: ACTIVE)
+5. Hook handler injects first agent prompt via message injection
+6. Agent executes as Task tool
+7. `PostToolUse` hook → Extract agent results from `tool_response.stdout`
+8. `StateManager` checks for next step
+9. If more steps: inject next agent prompt, goto 6
+10. If done: `StateManager` updates status to COMPLETED
+
+**Hook-to-Agent Feedback Loop**:
+- `UserPromptSubmit` hook initiates workflow, injects first agent prompt
+- Agent executes as Task tool invocation
+- `PostToolUse` hook extracts results from tool output, determines next step
+- State manager coordinates workflow progression
+- Session ID correlates hook events to active workflows
+
+**Key File Locations**:
+- Prompt parsing: `src/services/prompt-parser.ts`
+- Chain resolution: `src/services/chain-resolver.ts`
+- State management: `src/services/state-manager.ts`
+- Hook handlers: `src/hooks/user-prompt-submit.ts`, `src/hooks/post-tool-use.ts`, `src/hooks/stop.ts`
+- API routes: `src/api/workflows.ts`
+- Orchestrator: `src/services/orchestrator.ts`
+
 ## Project Structure
 
 ```
-orchestrator-v3/
+/
 ├── src/
 │   ├── config/          # Database connection, env config
 │   ├── models/          # Workflow, agent-result, transition models
@@ -171,37 +209,44 @@ orchestrator-v3/
 
 ## Common Development Tasks
 
-This section will be populated as the codebase is implemented. Initial tasks from the development plan:
+### Adding a New Workflow Chain
 
-**PoC Phase**: Validate Claude Code hooks can interact with CCOrch HTTP endpoints
-**Phase 0**: Set up project scaffold, tooling, CI/CD
-**Phase 1**: Implement database schema, migrations, repository layer
-**Phase 2**: Build orchestration core (parser, resolver, state manager)
-**Phase 3**: Integrate hook handlers
-**Phase 4**: Implement API endpoints
-**Phase 5**: Add observability and operational polish
+1. Update `ChainResolver.resolve()` in `src/services/chain-resolver.ts`
+   - Add chain detection logic based on keywords
+   - Define agent sequence for the new chain
+2. Update chain validation in `StateManager` to allow new chain name
+3. Add integration test in `tests/services/chain-resolver.test.ts`
+4. Document chain in `docs/01-product-PRD.md`
 
-## Documentation Structure
+### Adding a New Agent Role
 
-CCOrch documentation is organized by concern:
+1. Add new role to `AgentRole` enum in `src/types/workflow.ts`
+2. Ensure agent definition file exists: `.claude/agents/{role}-{complexity}.md`
+3. Update config validation in `src/config/validator.ts`
+   - Verification automatically includes new role from enum
+   - Ensure all 3 complexity levels exist (simple, moderate, complex)
+4. Update chain definitions in `ChainResolver` if needed
+5. Add unit tests for role resolution
 
-| Document | Concern | Audience | Content |
-|----------|---------|----------|---------|
-| **`docs/01-product-PRD.md`** | WHAT & WHY | Product managers, stakeholders | Product vision, requirements, business logic, workflow chains |
-| **`docs/02-technical-spec.md`** | HOW | Developers, architects | Technology stack, database schema, API specs, development practices |
-| **`docs/02-technical-architecture.md`** | STRUCTURE | Technical team | System architecture diagrams, sequence flows, component interactions |
-| **`docs/03-planning-development-plan.md`** | WHEN | Project managers, developers | Implementation phases, workstreams, timeline, deliverables |
-| **`docs/03-planning-WBS.md`** | TASKS | Developers | Granular task breakdown with acceptance criteria and estimates |
+### Testing Hook Integration
 
-**Quick References**:
-- Product requirements → `docs/01-product-PRD.md`
-- Technical implementation → `docs/02-technical-spec.md`
-- Architecture diagrams → `docs/02-technical-architecture.md`
-- Development phases → `docs/03-planning-development-plan.md`
-- Task checklist → `docs/03-planning-WBS.md`
+**Unit Tests**: Mock hook events and verify state transitions
+```typescript
+// Test UserPromptSubmit hook creates workflow
+const mockEvent = { userPrompt: 'Implement REST API', sessionId: 'abc' };
+await userPromptSubmitHandler(mockEvent);
+// Verify workflow created with correct chain
+```
 
-## External References
+**Integration Tests**: Use test harness in `tests/hooks/test-harness.ts`
+- Simulates full hook → API → hook cycle
+- Validates idempotency with retries
+- Checks message injection format
 
-- Claude Code Hooks Guide: https://docs.claude.com/en/docs/claude-code/hooks-guide.md
-- Hook Reference: https://docs.claude.com/en/docs/claude-code/hooks.md
-- Subagent Reference: https://docs.claude.com/en/docs/claude-code/sub-agents.md
+### Debugging State Issues
+
+1. Check `workflow_transitions` table for audit trail
+2. Verify workflow status matches expected state machine
+3. Check for duplicate `(workflow_id, step_number)` in agent_results
+4. Review logs for state validation errors
+5. Use `GET /api/workflows/{id}/status` to inspect current state

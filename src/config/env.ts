@@ -41,11 +41,6 @@ const envSchema = z.object({
   HOOK_SECRET: z
     .string()
     .optional(),
-
-  ENABLE_CC_COMPLEXITY: z
-    .string()
-    .default('false')
-    .transform((val) => val === 'true'),
 });
 
 /**

@@ -26,7 +26,6 @@ const createMockWorkflowRepository = (): IWorkflowRepository => ({
   findActive: vi.fn(),
   findActiveBySession: vi.fn(),
   updateStatus: vi.fn(),
-  updateComplexity: vi.fn(),
   updateCurrentStep: vi.fn(),
   deleteWorkflow: vi.fn(),
 });

@@ -11,7 +11,6 @@ import { parseIntent } from './prompt-parser';
 import { analyzeComplexity } from './complexity-analyzer';
 import { resolveChain } from './chain-resolver';
 import { buildContextForAgent } from './context-serializer';
-import { generateAgentPrompt } from './prompt-generator';
 import type { StateManager } from './state-manager';
 import type { IAgentResultRepository, AgentResultCreateInput } from '../types/repositories';
 import { ChainName, AgentRole } from '../types/workflow';
@@ -118,7 +117,6 @@ export class Orchestrator {
       userPrompt,
       chainName,
       complexity,
-      draftComplexity: undefined,
     });
 
     // 5. Get first agent from sequence
@@ -252,7 +250,7 @@ export class Orchestrator {
   /**
    * Generate first agent prompt (PRD §6.1 format)
    *
-   * Uses prompt-generator service to create actionable Task tool invocation prompts
+   * Creates actionable Task tool invocation prompts for first agent in chain
    *
    * @param agentRole - Agent role
    * @param complexity - Complexity level
@@ -264,19 +262,14 @@ export class Orchestrator {
     complexity: string,
     chainName: string
   ): string {
-    return generateAgentPrompt({
-      chainName,
-      agentRole,
-      complexity: complexity as import('../types/repositories').Complexity,
-      stepNumber: 1,
-    });
+    const agentName = `${agentRole}-${complexity}`;
+    return `IMPORTANT: You must invoke the Task tool with subagent_type="${agentName}" to handle this ${chainName} task.`;
   }
 
   /**
    * Generate next agent prompt with context (PRD §6.2 format)
    *
-   * Uses prompt-generator service to create actionable Task tool invocation prompts
-   * with context from previous agents
+   * Creates actionable Task tool invocation prompts with context from previous agents
    *
    * @param agentRole - Next agent role
    * @param complexity - Complexity level
@@ -292,15 +285,14 @@ export class Orchestrator {
     stepNumber: number,
     previousContext?: string
   ): string {
-    return generateAgentPrompt(
-      {
-        chainName,
-        agentRole,
-        complexity: complexity as import('../types/repositories').Complexity,
-        stepNumber,
-      },
-      previousContext
-    );
+    const agentName = `${agentRole}-${complexity}`;
+    let prompt = `IMPORTANT: You must invoke the Task tool with subagent_type="${agentName}" to handle this ${chainName} task.`;
+
+    if (previousContext) {
+      prompt += `\n\n${previousContext}`;
+    }
+
+    return prompt;
   }
 
   /**

@@ -17,8 +17,6 @@ This document provides comprehensive guidance for all database operations in the
 
 CCOrch uses SQLite as the primary database with Prisma ORM for type-safe data access. The database consists of three core tables that track workflow orchestration state.
 
-> **Note**: Schema was extended in Phase 1.5 (addendum) to support CC-assisted complexity determination. See migration `20251005041417_add_draft_complexity` for details.
-
 ### Entity Relationship Diagram
 
 ```mermaid
@@ -29,11 +27,11 @@ erDiagram
     Workflow {
         string id PK "UUID v4"
         string user_prompt
+        string session_id "Claude Code session identifier"
         string chain_name "backend-development, frontend-development, etc."
         string complexity "simple, moderate, complex"
-        string draft_complexity "Initial complexity estimate (optional)"
         int current_step "Current step in workflow (0-based)"
-        string status "PENDING_COMPLEXITY, ACTIVE, COMPLETED, FAILED"
+        string status "ACTIVE, COMPLETED, FAILED"
         bigint created_at "Timestamp (milliseconds)"
         bigint updated_at "Timestamp (milliseconds)"
     }
@@ -71,17 +69,18 @@ erDiagram
 |--------|------|-------------|
 | `id` | TEXT (PK) | UUID v4 identifier |
 | `user_prompt` | TEXT | Original user request |
+| `session_id` | TEXT | Claude Code session identifier for correlation |
 | `chain_name` | TEXT | Workflow chain type (e.g., `backend-development`) |
 | `complexity` | TEXT | Agent complexity level (`simple`, `moderate`, `complex`) |
-| `draft_complexity` | TEXT | Initial keyword-based complexity estimate (optional, added in Phase 1.5) |
 | `current_step` | INTEGER | Current step in workflow (default: 0) |
-| `status` | TEXT | Workflow status (`PENDING_COMPLEXITY`, `ACTIVE`, `COMPLETED`, `FAILED`) |
+| `status` | TEXT | Workflow status (`ACTIVE`, `COMPLETED`, `FAILED`) |
 | `created_at` | INTEGER | Creation timestamp (BigInt milliseconds) |
 | `updated_at` | INTEGER | Last update timestamp (BigInt milliseconds) |
 
 **Indexes**:
 - `idx_workflows_status` on `status`
 - `idx_workflows_created` on `created_at`
+- `idx_workflows_session` on `session_id`
 
 #### `agent_results`
 
@@ -166,10 +165,10 @@ Current migration history:
    - Created `workflows`, `agent_results`, `workflow_transitions` tables
    - Established foreign key relationships and indexes
 
-2. **CC-assisted complexity** - `20251005041417_add_draft_complexity` (Phase 1.5)
-   - Added `draft_complexity` column to `workflows` table
-   - Added `PENDING_COMPLEXITY` workflow status support
-   - Enables Claude Code-assisted complexity determination feature
+2. **Session tracking** - `20241007_XXXXXX_add_session_id`
+   - Added `session_id` column to `workflows` table
+   - Added `idx_workflows_session` index for session-based lookups
+   - Enables session-based workflow correlation and cleanup
 
 #### Reset Database (Destructive)
 

@@ -111,18 +111,17 @@ describe('AgentRole Enum', () => {
 });
 
 describe('WorkflowStatus Enum', () => {
-  it('should have all 4 workflow statuses', () => {
-    const expectedStatuses = ['PENDING_COMPLEXITY', 'ACTIVE', 'COMPLETED', 'FAILED'];
+  it('should have all 3 workflow statuses', () => {
+    const expectedStatuses = ['ACTIVE', 'COMPLETED', 'FAILED'];
     const actualStatuses = Object.values(WorkflowStatus);
 
-    expect(actualStatuses).toHaveLength(4);
+    expect(actualStatuses).toHaveLength(3);
     expectedStatuses.forEach(status => {
       expect(actualStatuses).toContain(status);
     });
   });
 
   it('should use UPPER_CASE values', () => {
-    expect(WorkflowStatus.PENDING_COMPLEXITY).toBe('PENDING_COMPLEXITY');
     expect(WorkflowStatus.ACTIVE).toBe('ACTIVE');
     expect(WorkflowStatus.COMPLETED).toBe('COMPLETED');
     expect(WorkflowStatus.FAILED).toBe('FAILED');
@@ -229,7 +228,7 @@ describe('AgentRoleSchema', () => {
 
 describe('WorkflowStatusSchema', () => {
   it('should accept valid workflow statuses', () => {
-    const validStatuses = ['PENDING_COMPLEXITY', 'ACTIVE', 'COMPLETED', 'FAILED'];
+    const validStatuses = ['ACTIVE', 'COMPLETED', 'FAILED'];
 
     validStatuses.forEach(status => {
       expect(() => WorkflowStatusSchema.parse(status)).not.toThrow();
@@ -524,7 +523,6 @@ describe('isAgentRole Type Guard', () => {
 
 describe('isWorkflowStatus Type Guard', () => {
   it('should return true for valid workflow statuses', () => {
-    expect(isWorkflowStatus('PENDING_COMPLEXITY')).toBe(true);
     expect(isWorkflowStatus('ACTIVE')).toBe(true);
     expect(isWorkflowStatus('COMPLETED')).toBe(true);
     expect(isWorkflowStatus('FAILED')).toBe(true);

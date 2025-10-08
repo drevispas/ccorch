@@ -40,7 +40,6 @@ describe('Stop Hook Handler', () => {
         userPrompt: 'Task 1',
         chainName: ChainName.BACKEND_DEVELOPMENT,
         complexity: 'moderate',
-        draftComplexity: undefined,
         sessionId: 'test-session-1',
       });
 
@@ -48,7 +47,6 @@ describe('Stop Hook Handler', () => {
         userPrompt: 'Task 2',
         chainName: ChainName.FRONTEND_DEVELOPMENT,
         complexity: 'simple',
-        draftComplexity: undefined,
         sessionId: 'test-session-2',
       });
 
@@ -56,7 +54,6 @@ describe('Stop Hook Handler', () => {
         userPrompt: 'Task 3',
         chainName: ChainName.REVIEW_ONLY,
         complexity: 'simple',
-        draftComplexity: undefined,
         sessionId: 'test-session-3',
       });
 
@@ -79,7 +76,6 @@ describe('Stop Hook Handler', () => {
         userPrompt: 'Completed task',
         chainName: ChainName.REVIEW_ONLY,
         complexity: 'simple',
-        draftComplexity: undefined,
         sessionId: 'test-session-completed',
       });
 
@@ -99,7 +95,6 @@ describe('Stop Hook Handler', () => {
         userPrompt: 'Failed task',
         chainName: ChainName.BACKEND_DEVELOPMENT,
         complexity: 'moderate',
-        draftComplexity: undefined,
         sessionId: 'test-session-failed',
       });
 
@@ -130,7 +125,6 @@ describe('Stop Hook Handler', () => {
         userPrompt: 'Done task',
         chainName: ChainName.REVIEW_ONLY,
         complexity: 'simple',
-        draftComplexity: undefined,
         sessionId: 'test-session-no-active',
       });
 
@@ -156,7 +150,6 @@ describe('Stop Hook Handler', () => {
           userPrompt: `Task A${i}`,
           chainName: ChainName.BACKEND_DEVELOPMENT,
           complexity: 'moderate',
-          draftComplexity: undefined,
           sessionId: 'test-session-A',
         });
         sessionAWorkflows.push(workflowA.id);
@@ -165,7 +158,6 @@ describe('Stop Hook Handler', () => {
           userPrompt: `Task B${i}`,
           chainName: ChainName.FRONTEND_DEVELOPMENT,
           complexity: 'simple',
-          draftComplexity: undefined,
           sessionId: 'test-session-B',
         });
         sessionBWorkflows.push(workflowB.id);

@@ -5,11 +5,11 @@
 > This document provides comprehensive architectural diagrams and sequence flows for the Claude Code Orchestrator (CCOrch) system. For product requirements, see `PRD.md`. For technical implementation details, see `technical-spec.md`.
 
 **Related Documents**:
-- `PRD.md` - Product requirements (WHAT and WHY)
-- `technical-spec.md` - Technical implementation details (HOW)
-- `architecture.md` - System architecture and sequence diagrams (STRUCTURE)
-- `development-plan.md` - Implementation phases and timeline (WHEN)
-- `WBS.md` - Granular work breakdown (TASKS)
+- `01-product-PRD.md` - Product requirements (WHAT and WHY)
+- `02-technical-spec.md` - Technical implementation details (HOW)
+- `02-technical-architecture.md` - System architecture and sequence diagrams (STRUCTURE)
+- `03-planning-development-plan.md` - Implementation phases and timeline (WHEN)
+- `03-planning-WBS.md` - Granular work breakdown (TASKS)
 
 ## Table of Contents
 1. [System Architecture](#1-system-architecture)
@@ -59,7 +59,7 @@ graph TB
     subgraph "Claude Code Agents"
         BEARCH["backend-architect-(complexity)"]
         FEARCH["frontend-architect-(complexity)"]
-        BACKEND["java-java-backend-developer-(complexity)"]
+        BACKEND["java-backend-developer-(complexity)"]
         FRONTEND["nextjs-react-developer-(complexity)"]
         REVIEWER["code-reviewer-(complexity)"]
         DEBUGGER["issue-detective-(complexity)"]
@@ -85,7 +85,7 @@ graph TB
 
 #### Hook Integration Layer
 - **Purpose**: Intercepts Claude Code lifecycle events
-- **Components**: `UserPromptSubmit`, `SubagentStop`, `Stop` handlers
+- **Components**: `UserPromptSubmit`, `PostToolUse`, `Stop` handlers
 - **Responsibilities**:
   - Parse incoming hook payloads
   - Generate prompt injections for Claude Code
@@ -107,7 +107,6 @@ graph TB
 - **Purpose**: External interface for monitoring and administration
 - **Public API Endpoints**:
   - `GET /api/workflows/{workflow_id}/status`: Workflow status query (read-only)
-  - `POST /api/workflows/{workflow_id}/set-complexity`: CC complexity determination
 - **Admin API Endpoints**:
   - `POST /api/workflows/{workflow_id}/transition`: Admin workflow control (API key required)
 - **Hook Endpoints** (called by Claude Code):
@@ -118,7 +117,7 @@ graph TB
   - Request validation (zod schemas)
   - Authentication (X-Hook-Secret for hooks, API key for admin endpoints)
   - Response formatting
-- **Note**: Agent results are NOT submitted via separate API endpoint. They are received via PostToolUse hook payload and processed inline.
+- **Note**: Agent results are received via PostToolUse hook payload (in `tool_response.stdout`) and processed inline. Two-level filtering ensures only CCOrch-managed agents are processed: (1) `tool_name === 'Task'`, (2) active workflow lookup by `session_id`.
 
 #### Data Persistence Layer
 - **Purpose**: Workflow state storage and audit logging
@@ -191,44 +190,13 @@ Each agent in a chain is assigned one of three complexity levels:
 
 ---
 
-### 1.6 CC-Assisted Complexity Determination (Optional Feature)
-
-**Feature Flag**: `ENABLE_CC_COMPLEXITY=true`
-
-When enabled, CCOrch delegates final complexity determination to Claude Code instead of relying solely on keyword-based heuristics:
-
-```mermaid
----
-title: "Diagram 1.6: CC-Assisted Complexity Flow"
----
-flowchart LR
-    A[User Prompt] --> B{Parse Intent}
-    B --> C{Determine Chain}
-    C --> D{Determine Draft Complexity}
-    D --> E[Create Workflow: PENDING_COMPLEXITY]
-    E --> F[Ask CC to Analyze]
-    F --> G[CC Analyzes Task Scope]
-    G --> H[CC Calls set-complexity API]
-    H --> I{Validate & Update}
-    I --> J[Workflow Status: ACTIVE]
-    J --> K[Generate First Agent Prompt]
-    K --> L[Return nextInstructions to CC]
-    L --> M[CC Executes Agent]
-```
-
-**Key Points**:
-- Draft complexity serves as initial estimate for CC's analysis
-- Workflow remains in `PENDING_COMPLEXITY` state until CC responds
-- Stop hook cleanup marks workflows >5min old as FAILED (timeout)
-- CC receives agent prompt in `nextInstructions` field of API response
-
----
-
 ## 2. Hook Flow Sequences
 
 ### 2.1 UserPromptSubmit Hook Flow
 
-**Trigger**: User submits a prompt to Claude Code
+**Trigger**: User submits a prompt to Claude Code **with opt-in trigger**
+
+**Opt-in Requirement**: User prompt must start with `\cco` or `\c2o` (case insensitive) to activate orchestration. Prompts without trigger are ignored.
 
 ```mermaid
 ---
@@ -290,8 +258,8 @@ sequenceDiagram
 **Database State After**:
 ```sql
 -- workflows table
-id='abc-123', user_prompt='Implement REST API for auth', chain_name='java-backend-development',
-complexity='moderate', current_step=0, status='ACTIVE'
+id='abc-123', user_prompt='Implement REST API for auth', session_id='session-xyz',
+chain_name='java-backend-development', complexity='moderate', current_step=0, status='ACTIVE'
 
 -- workflow_transitions table
 workflow_id='abc-123', from_step=-1, to_step=0, from_agent=NULL, to_agent='backend-architect'
@@ -299,81 +267,13 @@ workflow_id='abc-123', from_step=-1, to_step=0, from_agent=NULL, to_agent='backe
 
 ---
 
-### 2.1b UserPromptSubmit Hook Flow (with CC Complexity Analysis)
-
-**Trigger**: User submits a prompt to Claude Code (with `ENABLE_CC_COMPLEXITY=true`)
-
-```mermaid
----
-title: "Diagram 2.1b: UserPromptSubmit with CC Complexity Determination"
----
-sequenceDiagram
-    actor User
-    participant CC as Claude Code
-    participant Hook as Hook Handler
-    participant Parser as Prompt Parser
-    participant Resolver as Chain Resolver
-    participant StateMgr as State Manager
-    participant DB as SQLite DB
-    participant API as set-complexity API
-
-    User->>CC: 1. Submit prompt: "Implement REST API for auth"
-    activate CC
-    CC->>Hook: 2. UserPromptSubmit hook
-    activate Hook
-
-    Hook->>Parser: 3. Parse prompt
-    activate Parser
-    Parser-->>Hook: Intent: "backend implementation"
-    deactivate Parser
-
-    Hook->>Resolver: 4. Determine chain & draft complexity
-    activate Resolver
-    Note over Resolver: Analyze keywords:<br/>- "implement" + "API" = java-backend-development<br/>- Scope heuristic: moderate
-    Resolver-->>Hook: Chain: "java-backend-development"<br/>Draft complexity: "moderate"
-    deactivate Resolver
-
-    Hook->>StateMgr: 5. Create workflow
-    activate StateMgr
-    StateMgr->>DB: 5a. INSERT INTO workflows<br/>(status='PENDING_COMPLEXITY', currentStep=-1,<br/>draftComplexity='moderate')
-    activate DB
-    DB-->>StateMgr: workflow_id: "abc-123"
-    deactivate DB
-    StateMgr-->>Hook: Workflow created
-    deactivate StateMgr
-
-    Hook-->>CC: 6. Ask CC to analyze complexity:<br/>"Analyze task scope and call<br/>POST /api/workflows/abc-123/set-complexity"
-    deactivate Hook
-
-    Note over CC: CC analyzes user prompt,<br/>determines final complexity
-
-    CC->>API: 7. POST /api/workflows/abc-123/set-complexity<br/>{complexity: "moderate", reasoning: "..."}
-    activate API
-
-    API->>DB: 8a. UPDATE workflows<br/>SET complexity='moderate', status='ACTIVE', currentStep=0
-    activate DB
-    DB-->>API: OK
-    deactivate DB
-
-    API-->>CC: 8b. {success: true, nextInstructions: "Use backend-architect-moderate..."}
-    deactivate API
-
-    CC->>User: 9. Display agent prompt
-    deactivate CC
-```
-
-**Key Differences from Standard Flow**:
-1. Workflow created with `status=PENDING_COMPLEXITY` and `currentStep=-1`
-2. Hook response asks CC to analyze complexity (not immediate agent injection)
-3. CC makes API call to submit complexity determination
-4. API response contains `nextInstructions` for first agent
-5. Adds ~500ms latency but improves accuracy
-
----
-
 ### 2.2 PostToolUse Hook Flow (Chain Continues)
 
 **Trigger**: Agent completes and Claude Code fires PostToolUse hook with results in payload
+
+**Filtering**: Two-level filtering ensures only CCOrch-managed agents are processed:
+1. **Tool Filter**: Only process when `tool_name === 'Task'` (ignore other tools)
+2. **Session Filter**: Find active workflow by `session_id` from payload (ignore if no active workflow)
 
 ```mermaid
 ---
@@ -552,9 +452,9 @@ from_step=2, to_step=3, from_agent='code-reviewer', to_agent=NULL, reason='Workf
 
 ### 2.4 Stop Hook Flow (Cleanup)
 
-**Trigger**: Fires after **each agent completion** (alongside PostToolUse hook)
+**Trigger**: Fires when Claude Code session terminates
 
-**Important**: The `Stop` hook does NOT signal session termination or chain completion. It fires after every agent execution as part of the prompt lifecycle. Use `PostToolUse` for chain continuation logic.
+**Purpose**: Clean up active workflows associated with the terminated session
 
 ```mermaid
 ---
@@ -566,35 +466,35 @@ sequenceDiagram
     participant StateMgr as State Manager
     participant DB as SQLite DB
 
-    Note over CC: Stop hook fires after each agent completion<br/>(alongside PostToolUse)
+    Note over CC: Stop hook fires when session ends
 
-    CC->>Hook: 1. Stop hook
+    CC->>Hook: 1. Stop hook (includes session_id)
     activate Hook
 
-    Hook->>StateMgr: 2. Check for orphaned workflows
+    Hook->>StateMgr: 2. Find workflows for session
     activate StateMgr
 
-    StateMgr->>DB: 2a. SELECT * FROM workflows<br/>WHERE status='ACTIVE'<br/>AND updated_at < NOW() - threshold
+    StateMgr->>DB: 2a. SELECT * FROM workflows<br/>WHERE session_id='xyz-session'<br/>AND status='ACTIVE'
     activate DB
-    Note over DB: Find workflows that are ACTIVE<br/>but haven't been updated recently<br/>(e.g., >5 minutes stale)<br/>These are truly orphaned (crashed/abandoned)
-    DB-->>StateMgr: [{workflow_id: 'xyz-789', current_step: 1, ...}] OR []
+    Note over DB: Find active workflows<br/>for this specific session
+    DB-->>StateMgr: [{workflow_id: 'abc-123', ...}] OR []
     deactivate DB
 
-    alt Orphaned workflows found
-        Note over StateMgr: Identify truly orphaned workflows:<br/>- Status is ACTIVE<br/>- No recent updates (>5min stale)<br/>- Likely crashed or abandoned
+    alt Active workflows found
+        Note over StateMgr: Mark session workflows as terminated
 
-        StateMgr->>DB: 2b. UPDATE workflows<br/>SET status='FAILED', updated_at=NOW()<br/>WHERE id IN ('xyz-789', ...)
+        StateMgr->>DB: 2b. UPDATE workflows<br/>SET status='COMPLETED' or 'FAILED', updated_at=NOW()<br/>WHERE session_id='xyz-session'
         activate DB
         DB-->>StateMgr: OK
         deactivate DB
 
-        StateMgr->>DB: 2c. INSERT INTO workflow_transitions<br/>(workflow_id='xyz-789', from_step=1, to_step=1,<br/>reason='Orphaned workflow detected')
+        StateMgr->>DB: 2c. INSERT INTO workflow_transitions<br/>(workflow_id, reason='Session terminated')
         activate DB
         DB-->>StateMgr: OK
         deactivate DB
 
-        StateMgr-->>Hook: Cleaned up N orphaned workflows
-    else No orphaned workflows
+        StateMgr-->>Hook: Cleaned up N session workflows
+    else No active workflows
         StateMgr-->>Hook: No cleanup needed
     end
     deactivate StateMgr
@@ -606,26 +506,26 @@ sequenceDiagram
 ```
 
 **Key Steps**:
-1. **Hook emission**: Claude Code emits `Stop` hook after **every agent completion** (not just session end)
-2. **Orphan detection**: Query for ACTIVE workflows with stale timestamps (>5 min old)
-3. **Status update**: Mark truly orphaned workflows as FAILED (if any found)
+1. **Hook emission**: Claude Code emits `Stop` hook when session terminates
+2. **Session lookup**: Find ACTIVE workflows by `session_id` from hook payload
+3. **Status update**: Mark session workflows as COMPLETED or FAILED based on their state
 4. **Audit logging**: Record cleanup reason in workflow_transitions
 5. **No injection**: Stop hook never performs message injection (always returns 200 OK)
 
-**Database State After** (if orphaned workflows found):
+**Database State After** (if session workflows found):
 ```sql
--- workflows table (orphaned workflows marked FAILED)
-status='FAILED', updated_at=<timestamp>
+-- workflows table (session workflows terminated)
+status='COMPLETED' or 'FAILED', updated_at=<timestamp>
 
 -- workflow_transitions table (cleanup audit)
-reason='Orphaned workflow detected'
+reason='Session terminated'
 ```
 
-**Orphan Detection Strategy**:
-- Workflows with status='ACTIVE'
-- Last updated_at > 5 minutes ago (configurable threshold)
-- No recent agent_results submissions
-- **Note**: Most Stop hook invocations will find **zero** orphaned workflows (normal operation)
+**Session-Based Cleanup**:
+- Workflows are correlated to sessions via `session_id` field
+- Active workflow lookup by session ensures proper cleanup
+- Only workflows for the terminated session are affected
+- Prevents orphaned workflows when user closes Claude Code
 
 ---
 
@@ -740,7 +640,7 @@ sequenceDiagram
 **After UserPromptSubmit (Step 0)**:
 ```sql
 -- workflows
-id='wf-001', user_prompt='Implement REST API for user authentication',
+id='wf-001', user_prompt='Implement REST API for user authentication', session_id='session-123',
 chain_name='java-backend-development', complexity='moderate', current_step=0, status='ACTIVE'
 
 -- workflow_transitions
@@ -791,10 +691,10 @@ from_step=2, to_step=3, from_agent='code-reviewer', to_agent=NULL, reason='Workf
 | Chain determination | Prompt Parser + Chain Resolver | <200ms | Keyword analysis, chain mapping |
 | DB write | State Manager → SQLite | <100ms | Single transaction with 3 writes |
 | Agent execution | Claude Code agent | Variable | Depends on task complexity |
-| API submission | Agent → CCOrch API | <200ms | Result validation + persistence |
+| PostToolUse processing | Hook Handler → Orchestrator | <500ms | Extract results from payload, determine next agent |
 | Transition logic | State Manager | <1s | PRD requirement (section 8.1) |
 
-**Total overhead per agent transition**: ~800ms (excludes agent execution time)
+**Total overhead per agent transition**: ~1.1s (excludes agent execution time)
 
 ---
 

@@ -2,14 +2,14 @@
 
 > **Document Concern**: WHAT and WHY (product managers, stakeholders)
 >
-> This document defines the product vision, requirements, and business logic. For technical implementation details, see `technical-spec.md`. For system architecture diagrams, see `architecture.md`.
+> This document defines the product vision, requirements, and business logic. For technical implementation details, see `02-technical-spec.md`. For system architecture diagrams, see `02-technical-architecture.md`.
 
 **Related Documents**:
-- `PRD.md` - Product requirements (WHAT and WHY)
-- `technical-spec.md` - Technical implementation details (HOW)
-- `architecture.md` - System architecture and sequence diagrams (STRUCTURE)
-- `development-plan.md` - Implementation phases and timeline (WHEN)
-- `WBS.md` - Granular work breakdown (TASKS)
+- `01-product-PRD.md` - Product requirements (WHAT and WHY)
+- `02-technical-spec.md` - Technical implementation details (HOW)
+- `02-technical-architecture.md` - System architecture and sequence diagrams (STRUCTURE)
+- `03-planning-development-plan.md` - Implementation phases and timeline (WHEN)
+- `03-planning-WBS.md` - Granular work breakdown (TASKS)
 
 ## Table of Contents
 
@@ -57,8 +57,8 @@ Agent definition files stored in `.claude/agents/` with two dimensions:
 **Roles:**
 - `backend-architect` - Backend system design and architecture (design only, no implementation)
 - `frontend-architect` - Frontend/UI design and architecture (design only, no implementation)
-- `backend-developer` - Backend implementation
-- `frontend-developer` - Frontend implementation
+- `java-backend-developer` - Backend implementation (Java/Spring Boot)
+- `nextjs-react-developer` - Frontend implementation (Next.js/React)
 - `code-reviewer` - Code review (reviews unstaged and staged changes)
 - `issue-detective` - Debugging and issue resolution
 - `e2e-test-architect` - End-to-end testing strategy and design (design only, no implementation)
@@ -72,8 +72,8 @@ Agent definition files stored in `.claude/agents/` with two dimensions:
 ```
 backend-architect-{simple,moderate,complex}.md
 frontend-architect-{simple,moderate,complex}.md
-backend-developer-{simple,moderate,complex}.md
-frontend-developer-{simple,moderate,complex}.md
+java-backend-developer-{simple,moderate,complex}.md
+nextjs-react-developer-{simple,moderate,complex}.md
 code-reviewer-{simple,moderate,complex}.md
 issue-detective-{simple,moderate,complex}.md
 e2e-test-architect-{simple,moderate,complex}.md
@@ -88,18 +88,13 @@ e2e-test-architect-{simple,moderate,complex}.md
 
 ### 4.1 User Interaction Flow
 
-1. **User initiates**: Access Claude Code via terminal, submit task prompt
-   - Examples: "design architecture", "implement backend", "review changes", "debug code"
+1. **User initiates**: Access Claude Code via terminal, submit task prompt **with opt-in trigger** (`\cco` or `\c2o` prefix)
+   - Examples: `\cco design architecture`, `\c2o implement backend`, `\cco review changes`, `\cco debug code`
+   - **Note**: Orchestration only activates when prompt starts with `\cco` or `\c2o` (case insensitive)
 
 2. **Hook emission**: CC emits `UserPromptSubmit` hook → CCOrch receives and processes
 
-3. **Workflow planning**: CCOrch determines action chain and draft complexity level
-
-3a. **Complexity analysis** (optional, if `ENABLE_CC_COMPLEXITY=true`): CCOrch asks CC to analyze task and determine final complexity
-
-3b. **Complexity finalization**: CC analyzes task scope and calls `POST /api/workflows/{id}/set-complexity` with final determination
-
-3c. **Agent preparation**: CCOrch receives complexity, advances workflow to ACTIVE status
+3. **Workflow planning**: CCOrch determines action chain and complexity level
 
 4. **First agent injection**: CCOrch responds with injected prompt for first agent
 
@@ -132,7 +127,7 @@ e2e-test-architect-{simple,moderate,complex}.md
 
 #### Backend vs Frontend Selection Strategy
 
-When a chain offers both `backend-developer` and `frontend-developer` options (debug/review chains), the orchestrator uses **keyword analysis** to determine the appropriate role:
+When a chain offers both `java-backend-developer` and `nextjs-react-developer` options (debug/review chains), the orchestrator uses **keyword analysis** to determine the appropriate role:
 
 **Backend Keywords**:
 `java`, `api`, `database`, `controller`, `service`, `repository`, `junit`, `rest`, `endpoint`, `sql`
@@ -140,7 +135,7 @@ When a chain offers both `backend-developer` and `frontend-developer` options (d
 **Frontend Keywords**:
 `ui`, `ux`, `component`, `home`, `page`, `typescript`, `web`, `react`, `vue`, `css`, `html`, `button`
 
-**Default**: If ambiguous or no clear signals → **backend-developer**
+**Default**: If ambiguous or no clear signals → **java-backend-developer**
 
 ## 5. Orchestrator Responsibilities
 
@@ -150,15 +145,13 @@ When a chain offers both `backend-developer` and `frontend-developer` options (d
 |--------------------|--------------------------|-----------------------------------------------------------------------------------|
 | `UserPromptSubmit` | User initiates task      | Parse intent, determine chain and complexity, inject first agent prompt           |
 | `PostToolUse`      | Agent completes work     | Receive results in hook payload, determine next agent, inject next prompt OR end workflow |
-| `Stop`             | Each prompt completes    | Cleanup: Mark stale ACTIVE workflows as FAILED (orphan detection)                 |
+| `Stop`             | Session terminates       | Cleanup: Find and mark active workflows for this session as terminated            |
 
 **Rationale**:
 - **`UserPromptSubmit`**: Entry point for workflow initiation
-- **`PostToolUse`**: Fires when subagent finishes task. Coordination point between agents in chain - receives agent results in hook payload, determines next agent, injects prompt synchronously
-- **`Stop`**: Fires after **each agent completion** (not just session end). Used only for cleanup of truly orphaned workflows (stale timestamps), not for chain completion logic. No message injection.
+- **`PostToolUse`**: Fires when any tool finishes. Uses two-level filtering: (1) only processes `tool_name === 'Task'`, (2) finds active workflow by `session_id`. Coordination point between agents in chain - receives agent results from Task tool output in hook payload, determines next agent, injects prompt synchronously
+- **`Stop`**: Fires when Claude Code session terminates. Used for cleanup of active workflows associated with the session (via `session_id` lookup). No message injection.
 - **Not needed**: `PreToolUse` - not required for core orchestration
-
-**Important**: The `Stop` hook fires alongside `PostToolUse` after every agent execution. It is NOT an indicator of chain completion or session termination. Use `PostToolUse` for all chain continuation/completion decisions.
 
 ---
 
@@ -173,17 +166,7 @@ When a chain offers both `backend-developer` and `frontend-developer` options (d
 
 #### Step 3: Determine Complexity
 
-**Step 3a: Draft Complexity** (keyword-based heuristics):
-Analyze task scope, requirements, and constraints using keyword analysis. Determine draft complexity: `simple`, `moderate`, or `complex`
-
-**Step 3b: CC-Assisted Refinement** (optional, if `ENABLE_CC_COMPLEXITY=true`):
-Ask Claude Code to analyze the task and determine final complexity by calling `POST /api/workflows/{id}/set-complexity`
-
-**Step 3c: Final Complexity**:
-- If CC-assisted: Use complexity from API call
-- If keyword-only: Use draft complexity
-
-Select: `simple`, `moderate`, or `complex`
+Analyze task scope, requirements, and constraints using keyword-based heuristics. Select: `simple`, `moderate`, or `complex`
 
 **Complexity Scoring Rubric**:
 
@@ -211,7 +194,6 @@ Select: `simple`, `moderate`, or `complex`
 For each agent in chain:
 - Define specific tasks based on chain position
 - Include context from previous agent (if applicable)
-- Add final task: "Send results to CCOrch API endpoint"
 
 #### Step 5: Generate Chain Identifier
 - **Format**: `{chain-name}-{complexity}`
@@ -224,10 +206,17 @@ For each agent in chain:
 CCOrch maintains the following state for each workflow:
 
 - **Workflow ID**: Unique identifier for tracking
+- **Session ID**: Claude Code session identifier for correlation (prevents duplicate workflows, enables cleanup)
 - **Chain & Complexity**: Active chain name and complexity level
 - **Current Position**: Step number in the agent chain
 - **Agent Results**: Outputs from completed agents
 - **Pending Tasks**: Queue of upcoming agent tasks
+
+**Session-Based Correlation**:
+- Workflows are correlated to Claude Code sessions via `session_id` field
+- Active workflow lookup by session prevents duplicate workflows for the same user
+- PostToolUse hook filters by session to ensure correct workflow advancement
+- Stop hook uses `session_id` to find and clean up active workflows when session terminates
 
 ---
 
@@ -243,7 +232,6 @@ CCOrch exposes two categories of endpoints:
    - `POST /hooks/stop` - Receives Stop hook for cleanup, returns 200 OK
 
 2. **Public API Endpoints**:
-   - `POST /api/workflows/{id}/set-complexity` - CC submits complexity determination (public)
    - `GET /api/workflows/{workflow_id}/status` - Query workflow progress (public, read-only)
 
 3. **Admin API Endpoints**:
@@ -298,61 +286,7 @@ interface AgentResults {
 
 ---
 
-#### 5.4.2 POST /api/workflows/{workflow_id}/set-complexity (CC Complexity Determination)
-
-**Purpose**: Receives final complexity determination from Claude Code after analyzing task scope
-
-**Access**: Public (no authentication required, called by Claude Code)
-
-**Request**:
-```json
-{
-  "complexity": "simple" | "moderate" | "complex",
-  "reasoning": "Brief explanation (optional, max 200 chars)"
-}
-```
-
-**Response (Success - 200)**:
-```json
-{
-  "success": true,
-  "workflowId": "abc-123",
-  "complexity": "moderate",
-  "nextInstructions": "Use the backend-architect-moderate subagent to:\n1. Design architecture..."
-}
-```
-
-**Response (Error - 404)**:
-```json
-{
-  "error": {
-    "code": "WORKFLOW_NOT_FOUND",
-    "message": "Workflow abc-123 does not exist"
-  }
-}
-```
-
-**Response (Error - 409)**:
-```json
-{
-  "error": {
-    "code": "INVALID_STATE",
-    "message": "Workflow status is ACTIVE, expected PENDING_COMPLEXITY"
-  }
-}
-```
-
-**Workflow**:
-1. UserPromptSubmit hook creates workflow with `status=PENDING_COMPLEXITY`, `currentStep=-1`
-2. CC analyzes user prompt and determines complexity
-3. CC calls this endpoint with complexity determination
-4. CCOrch updates workflow: `complexity=<determined>`, `status=ACTIVE`, `currentStep=0`
-5. CCOrch returns `nextInstructions` containing first agent prompt
-6. CC reads response and executes the instructions (launches first agent)
-
----
-
-#### 5.4.3 GET /api/workflows/{workflow_id}/status (Optional Monitoring)
+#### 5.4.2 GET /api/workflows/{workflow_id}/status (Optional Monitoring)
 
 **Purpose**: Query current workflow state and progress
 
@@ -386,7 +320,7 @@ interface AgentResults {
 
 ---
 
-#### 5.4.4 POST /api/workflows/{workflow_id}/transition (Admin Only)
+#### 5.4.3 POST /api/workflows/{workflow_id}/transition (Admin Only)
 
 **Purpose**: Administrative endpoint for manual workflow control (debugging, recovery, testing)
 
@@ -415,9 +349,9 @@ interface AgentResults {
   "workflow_id": "abc-123",
   "previous_step": 0,
   "current_step": 1,
-  "next_agent": "backend-developer-moderate",
+  "next_agent": "java-backend-developer-moderate",
   "status": "ACTIVE",
-  "message": "Transitioned to step 1 (backend-developer-moderate)"
+  "message": "Transitioned to step 1 (java-backend-developer-moderate)"
 }
 ```
 
@@ -498,7 +432,7 @@ Use the backend-architect-moderate subagent to design authentication API archite
 
 **CCOrch injects**:
 ```
-Use the backend-developer-moderate subagent to implement authentication API
+Use the java-backend-developer-moderate subagent to implement authentication API
 based on design: {backend_architect_results}
 ```
 
@@ -510,7 +444,7 @@ based on design: {backend_architect_results}
 
 #### Step 3: Reviewer Agent
 
-**CCOrch receives** backend-developer results via PostToolUse hook payload
+**CCOrch receives** java-backend-developer results via PostToolUse hook payload
 
 **CCOrch injects**:
 ```
@@ -554,6 +488,7 @@ Use the code-reviewer-moderate subagent to review authentication API implementat
 
 ## 9. Future Considerations
 
+- **Two-phase complexity determination**: Claude Code assisted refinement via `POST /api/workflows/{id}/set-complexity` API (currently not implemented - orchestrator determines complexity directly)
 - Custom chain definitions
 - Dynamic complexity adjustment
 - Parallel agent execution
@@ -563,10 +498,10 @@ Use the code-reviewer-moderate subagent to review authentication API implementat
 ## 10. References
 
 **Related Documents**:
-- **Technical Specification**: `technical-spec.md` - Technology stack, database schema, API specs, development practices
-- **Architecture**: `architecture.md` - System architecture diagrams and sequence flows
-- **Development Plan**: `development-plan.md` - Implementation phases and timeline
-- **Work Breakdown**: `WBS.md` - Granular task breakdown with estimates
+- **Technical Specification**: `02-technical-spec.md` - Technology stack, database schema, API specs, development practices
+- **Architecture**: `02-technical-architecture.md` - System architecture diagrams and sequence flows
+- **Development Plan**: `03-planning-development-plan.md` - Implementation phases and timeline
+- **Work Breakdown**: `03-planning-WBS.md` - Granular task breakdown with estimates
 
 **External References**
 
