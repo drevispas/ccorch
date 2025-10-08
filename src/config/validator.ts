@@ -57,8 +57,8 @@ function generateRequiredConfigurations(): AgentConfig[] {
  * Validate that all required agent configurations exist
  *
  * Checks for all combinations of:
- * - 7 agent roles (backend-architect, frontend-architect, backend-developer,
- *   frontend-developer, reviewer, debugger, e2e-test-architect)
+ * - 7 agent roles (backend-architect, frontend-architect, java-backend-developer,
+ *   nextjs-react-developer, code-reviewer, issue-detective, e2e-test-architect)
  * - 3 complexity levels (simple, moderate, complex)
  * - Total: 21 configurations
  *

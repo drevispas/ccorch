@@ -23,26 +23,26 @@ import { requireApiKey } from '../middleware/api-key-auth.js';
 const CHAIN_SEQUENCES: Record<ChainName, AgentRole[]> = {
   [ChainName.BACKEND_DEVELOPMENT]: [
     'backend-architect' as AgentRole,
-    'backend-developer' as AgentRole,
-    'reviewer' as AgentRole,
+    'java-backend-developer' as AgentRole,
+    'code-reviewer' as AgentRole,
   ],
   [ChainName.FRONTEND_DEVELOPMENT]: [
     'frontend-architect' as AgentRole,
-    'frontend-developer' as AgentRole,
-    'reviewer' as AgentRole,
+    'nextjs-react-developer' as AgentRole,
+    'code-reviewer' as AgentRole,
   ],
   [ChainName.DEBUG]: [
-    'debugger' as AgentRole,
-    'backend-developer' as AgentRole,
-    'reviewer' as AgentRole,
+    'issue-detective' as AgentRole,
+    'java-backend-developer' as AgentRole,
+    'code-reviewer' as AgentRole,
   ],
-  [ChainName.REVIEW]: ['reviewer' as AgentRole, 'backend-developer' as AgentRole],
+  [ChainName.REVIEW]: ['code-reviewer' as AgentRole, 'java-backend-developer' as AgentRole],
   [ChainName.BACKEND_DESIGN_ONLY]: ['backend-architect' as AgentRole],
   [ChainName.FRONTEND_DESIGN_ONLY]: ['frontend-architect' as AgentRole],
-  [ChainName.BACKEND_ONLY]: ['backend-developer' as AgentRole],
-  [ChainName.FRONTEND_ONLY]: ['frontend-developer' as AgentRole],
-  [ChainName.REVIEW_ONLY]: ['reviewer' as AgentRole],
-  [ChainName.DEBUG_ONLY]: ['debugger' as AgentRole],
+  [ChainName.BACKEND_ONLY]: ['java-backend-developer' as AgentRole],
+  [ChainName.FRONTEND_ONLY]: ['nextjs-react-developer' as AgentRole],
+  [ChainName.REVIEW_ONLY]: ['code-reviewer' as AgentRole],
+  [ChainName.DEBUG_ONLY]: ['issue-detective' as AgentRole],
 };
 
 /**

@@ -7,7 +7,7 @@
  *
  * Sample Data:
  * - 1 Workflow: backend-development chain at moderate complexity
- * - 3 Agent Results: architect → backend-developer → reviewer
+ * - 3 Agent Results: backend-architect → java-backend-developer → code-reviewer
  * - 2 Transitions: documenting state changes between agents
  */
 
@@ -35,10 +35,10 @@ async function main() {
   console.log(`   Prompt: "${workflow.userPrompt}"`);
   console.log(`   Chain: ${workflow.chainName} (${workflow.complexity})\n`);
 
-  // Agent 1: Architect (step 0)
+  // Agent 1: Backend Architect (step 0)
   const architectResult = await agentResultRepo.createResult({
     workflowId: workflow.id,
-    agentRole: 'architect',
+    agentRole: 'backend-architect',
     complexity: 'moderate',
     stepNumber: 0,
     results: JSON.stringify({
@@ -60,25 +60,25 @@ async function main() {
     }),
   });
 
-  console.log(`✅ Created agent result: architect (step ${architectResult.stepNumber})`);
+  console.log(`✅ Created agent result: backend-architect (step ${architectResult.stepNumber})`);
 
-  // Transition: architect → backend-developer
+  // Transition: backend-architect → java-backend-developer
   const transition1 = await transitionRepo.createTransition({
     workflowId: workflow.id,
     fromStep: 0,
     toStep: 1,
-    fromAgent: 'architect',
-    toAgent: 'backend-developer',
+    fromAgent: 'backend-architect',
+    toAgent: 'java-backend-developer',
     reason: 'Architecture design approved, proceeding to implementation',
   });
 
   console.log(`✅ Created transition: step ${transition1.fromStep} → ${transition1.toStep}`);
   console.log(`   ${transition1.fromAgent} → ${transition1.toAgent}\n`);
 
-  // Agent 2: Backend Developer (step 1)
+  // Agent 2: Java Backend Developer (step 1)
   const backendResult = await agentResultRepo.createResult({
     workflowId: workflow.id,
-    agentRole: 'backend-developer',
+    agentRole: 'java-backend-developer',
     complexity: 'moderate',
     stepNumber: 1,
     results: JSON.stringify({
@@ -97,25 +97,25 @@ async function main() {
     }),
   });
 
-  console.log(`✅ Created agent result: backend-developer (step ${backendResult.stepNumber})`);
+  console.log(`✅ Created agent result: java-backend-developer (step ${backendResult.stepNumber})`);
 
-  // Transition: backend-developer → reviewer
+  // Transition: java-backend-developer → code-reviewer
   const transition2 = await transitionRepo.createTransition({
     workflowId: workflow.id,
     fromStep: 1,
     toStep: 2,
-    fromAgent: 'backend-developer',
-    toAgent: 'reviewer',
+    fromAgent: 'java-backend-developer',
+    toAgent: 'code-reviewer',
     reason: 'Implementation complete with tests, ready for review',
   });
 
   console.log(`✅ Created transition: step ${transition2.fromStep} → ${transition2.toStep}`);
   console.log(`   ${transition2.fromAgent} → ${transition2.toAgent}\n`);
 
-  // Agent 3: Reviewer (step 2)
+  // Agent 3: Code Reviewer (step 2)
   const reviewerResult = await agentResultRepo.createResult({
     workflowId: workflow.id,
-    agentRole: 'reviewer',
+    agentRole: 'code-reviewer',
     complexity: 'moderate',
     stepNumber: 2,
     results: JSON.stringify({
@@ -129,7 +129,7 @@ async function main() {
     }),
   });
 
-  console.log(`✅ Created agent result: reviewer (step ${reviewerResult.stepNumber})`);
+  console.log(`✅ Created agent result: code-reviewer (step ${reviewerResult.stepNumber})`);
 
   // Update workflow status to COMPLETED
   await workflowRepo.updateStatus(workflow.id, 'COMPLETED', 2);
