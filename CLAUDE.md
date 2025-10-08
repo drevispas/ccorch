@@ -198,7 +198,9 @@ Note: Agent definition files (`.claude/agents/*.md`) live in Claude Code's direc
 │   ├── services/        # Orchestrator, chain-resolver, state-manager
 │   ├── hooks/           # user-prompt-submit, post-tool-use, stop handlers
 │   ├── api/             # Express routes (workflows, results)
-│   ├── utils/           # Prompt parser, logger
+│   ├── middleware/      # Express middleware (auth, error handling)
+│   ├── utils/           # Helpers (logger, parser, templates, metrics)
+│   ├── types/           # TypeScript type definitions
 │   └── server.ts        # Main entry point
 ├── tests/               # Unit and integration tests
 ├── prisma/              # Schema and migrations
