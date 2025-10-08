@@ -40,12 +40,10 @@
   - Dependencies: `express@4.18.0`, `typescript@5.9.3`, `tsx@4.20.6`, `@types/node@24.6.1`, `@types/express@5.0.3`
   - **Hook endpoints** (called by Claude Code via `.claude/settings.json`):
     - `POST /hooks/user-prompt-submit` - receives UserPromptSubmit hook payloads, **returns JSON with `hookSpecificOutput.additionalContext` containing agent injection**
-    - `POST /hooks/subagent-stop` - receives SubagentStop hook payloads (kept for logging/monitoring only)
     - `POST /hooks/post-tool-use` - **receives PostToolUse hook payloads (with agent results embedded), returns next agent injection** (synchronous orchestration - Option 2)
     - `POST /hooks/stop` - receives Stop hook payloads, marks orphaned workflows as FAILED
   - **Monitoring API endpoints**:
     - `GET /api/workflows/:id/status` - query workflow status, returns mock status with completed_agents array
-    - `POST /api/workflows/:id/set-complexity` - CC submits complexity determination (public endpoint)
   - **Hook Response Format**: Returns `{message: "Use {agent}-{complexity} subagent to:\n1. Task..."}`
   - **Note**: Agent results are submitted via PostToolUse hook payload (not separate API endpoint - embedded in hook payload)
   - Storage: In-memory Map with TypeScript interfaces (WorkflowState, AgentResult)
@@ -64,7 +62,7 @@
 - [x] **1.2.2 Configure Claude Code hooks to call capture script** ✅ COMPLETED
   - File: `.claude/settings.json` (configured in capture mode)
   - Configure `UserPromptSubmit` hook: `"command": "cd poc && npx tsx capture-hook.ts"`
-  - Configure `SubagentStop` hook: `"command": "cd poc && npx tsx capture-hook.ts"`
+  - Configure `PostToolUse` hook: `"command": "cd poc && npx tsx capture-hook.ts"`
   - Configure `Stop` hook: `"command": "cd poc && npx tsx capture-hook.ts"`
   - Note: PoC completed with capture mode configuration. Stub server mode available for flow testing (documented in README.md §6.2)
   - Reference: [Hook Guide](https://docs.claude.com/en/docs/claude-code/hooks-guide.md)
@@ -75,7 +73,7 @@
   - Test 1: UserPromptSubmit hook endpoint → ✅ PASS (45ms latency, workflow created, agent injection returned)
   - Test 2: Agent results submission → ✅ PASS (52ms latency, results stored)
   - Test 3: Workflow status query → ✅ PASS (48ms latency, state returned with completed agents)
-  - Test 4: SubagentStop hook (chain continuation) → ✅ PASS (51ms latency, next agent injection)
+  - Test 4: PostToolUse hook (chain continuation) → ✅ PASS (51ms latency, next agent injection)
   - Test 5: Stop hook (cleanup) → ✅ PASS (47ms latency, orphaned workflows marked FAILED)
   - Test 6: Error handling (workflow not found) → ✅ PASS (43ms latency, proper 404 response)
 
@@ -83,7 +81,6 @@
   - Location: `poc/README.md` §5.3 (comprehensive test results with request/response examples)
   - UserPromptSubmit: Documented request format and response structure with `hookSpecificOutput.additionalContext`
   - PostToolUse: Documented tool_name, tool_input, tool_response structure for agent result extraction
-  - SubagentStop: Documented workflowId parameter for chain continuation
   - Stop: Documented cleanup behavior (no payload, marks ACTIVE workflows as FAILED)
   - Note: Real Claude Code payload capture deferred to Phase 3 (manual integration testing)
   - Purpose: Serves as reference for Phase 3 hook handler implementation ✅ VALIDATED
@@ -141,7 +138,7 @@
 ### 1.5 Exit Criteria Verification
 - [x] **1.5.1 Verify PoC phase complete (development-plan.md §5.2)** ✅ COMPLETED
   - ✅ Express stub server running with hook and agent endpoints (4 hook endpoints, 2 API endpoints)
-  - ✅ Hook payload structures documented (UserPromptSubmit, SubagentStop, PostToolUse, Stop - see README.md §5.3)
+  - ✅ Hook payload structures documented (UserPromptSubmit, PostToolUse, Stop - see README.md §5.3)
   - ⚠️ **Claude Code displays injected prompts to user** (manual validation deferred to Phase 3 integration testing)
   - ✅ Hook response format correct (JSON with `hookSpecificOutput.additionalContext` field per Claude Code spec)
   - ✅ State persistence validated across consecutive calls (Tests 2-4 demonstrate workflow state maintenance)
@@ -525,7 +522,7 @@
 ### 5.1 Domain Models & Types (PRD §3, §4.2)
 - [x] **5.1.1 Define domain types** ✅ COMPLETED
   - File: `src/types/workflow.ts`
-  - Enums: `ChainName` (10 chains from PRD §4.2), `Complexity` (SIMPLE, MODERATE, COMPLEX), `AgentRole` (7 roles including BACKEND_ARCHITECT, FRONTEND_ARCHITECT, BACKEND_DEVELOPER, FRONTEND_DEVELOPER, REVIEWER, DEBUGGER, E2E_TEST_ARCHITECT), `WorkflowStatus` (PENDING_COMPLEXITY, ACTIVE, COMPLETED, FAILED)
+  - Enums: `ChainName` (10 chains from PRD §4.2), `Complexity` (SIMPLE, MODERATE, COMPLEX), `AgentRole` (7 roles including BACKEND_ARCHITECT, FRONTEND_ARCHITECT, BACKEND_DEVELOPER, FRONTEND_DEVELOPER, REVIEWER, DEBUGGER, E2E_TEST_ARCHITECT), `WorkflowStatus` (ACTIVE, COMPLETED, FAILED)
   - Types: `WorkflowContext`, `AgentTask`, `Intent`, `AgentResultData`
   - Zod schemas: For runtime validation
   - Type guards: `isChainName`, `isComplexity`, `isAgentRole`, `isWorkflowStatus`
@@ -545,7 +542,7 @@
     - Developer role detection (backend/frontend) with "implement", "build", "create", "add" keywords
     - Reviewer role detection with "review" keyword
     - Debugger role detection with "debug", "fix", "resolve", "troubleshoot" keywords
-    - Multi-role detection (combined backend-architect+backend-developer or frontend-architect+frontend-developer, debugger+developer, reviewer+developer)
+    - Multi-role detection (combined backend-architect+java-backend-developer or frontend-architect+nextjs-react-developer, debugger+developer, reviewer+developer)
     - Backend vs frontend keyword detection (all PRD §4.2 keywords tested)
     - Edge cases: empty prompts, whitespace, case-insensitive, punctuation, long prompts, deduplication
     - Real-world scenarios: REST API implementation, microservices design, bug fixes, code review, UI components
@@ -555,12 +552,12 @@
 - [x] **5.2.2 Implement prompt parser** ✅ COMPLETED
   - File: `src/services/prompt-parser.ts`
   - Function: `parseIntent(prompt: string): Intent { roles: AgentRole[], keywords: string[] }`
-  - Logic: Keyword matching for backend-architect/frontend-architect/backend-developer/frontend-developer/reviewer/debugger (PRD §4.2 keyword strategy)
+  - Logic: Keyword matching for backend-architect/frontend-architect/java-backend-developer/nextjs-react-developer/reviewer/debugger (PRD §4.2 keyword strategy)
   - Features implemented:
     - Case-insensitive keyword matching
     - Simple stemming for plural forms (endpoints → endpoint, components → component)
     - Backend vs frontend differentiation with keyword analysis
-    - Default to backend-developer when ambiguous
+    - Default to java-backend-developer when ambiguous
     - Multi-role detection support
     - Comprehensive keyword extraction (action keywords + domain keywords)
   - Run tests: All pass (green) ✅ VERIFIED (41/41 tests passing)
@@ -618,7 +615,7 @@
 - [x] **5.5.1 Write state manager tests** ✅ COMPLETED
   - File: `tests/unit/services/state-manager.test.ts`
   - Test cases: 19 comprehensive tests covering:
-    - Workflow Creation: UUID generation, initial transition (step -1 → 0), ACTIVE/PENDING_COMPLEXITY status
+    - Workflow Creation: UUID generation, initial transition (step -1 → 0), ACTIVE status
     - Step Advancement: Increments current_step, records transitions, validates workflow status
     - Workflow Completion: Sets status=COMPLETED, records final transition
     - Workflow Failure: Sets status=FAILED, records failure transition
@@ -666,7 +663,7 @@
     - `extractSummary(agentResult: AgentResult): string` - Safely extracts summary from JSON results
     - `buildContextForAgent(previousResults: AgentResult[]): string` - Builds formatted context
   - Logic: Extract `summary` field from results JSON, format as numbered list
-  - Format: "Previous agent results:\n1. [backend-architect]: <summary>\n2. [backend-developer]: <summary>"
+  - Format: "Previous agent results:\n1. [backend-architect]: <summary>\n2. [java-backend-developer]: <summary>"
   - Error handling: Gracefully handles malformed JSON, missing fields, null values
   - Empty handling: Returns empty string for empty arrays or no valid summaries
   - Run tests: All pass (green) ✅ VERIFIED (13/13 tests passing)
@@ -840,6 +837,11 @@
   - Function: `handleUserPromptSubmit(payload, orchestrator): HookResponse` ✅
   - Implementation:
     - Zod payload validation ✅
+    - **Opt-in trigger detection**: Supports `\cco` and `\c2o` prefixes (case insensitive) ✅
+      - Requires whitespace after trigger (e.g., `\cco Design API`)
+      - Skips orchestration for prompts without trigger
+      - Extracts clean prompt without trigger prefix
+    - **Session tracking**: Correlates workflow with session_id from payload ✅
     - Call orchestrator.handleUserPrompt() ✅
     - Format response per PRD §6.1 ✅
     - No API submission reminder ✅
@@ -861,9 +863,14 @@
 
 - [x] **Implement PostToolUse handler** ⚠️ PARTIAL (5/11 tests passing)
   - File: `src/hooks/post-tool-use.ts` ✅
-  - Function: `handlePostToolUse(payload, orchestrator): HookResponse` ✅
+  - Function: `handlePostToolUse(payload, orchestrator, workflowRepo): HookResponse` ✅
   - Implementation:
     - Zod payload validation ✅
+    - **Two-level filtering for orchestrated tasks**: ✅
+      - **Filter Level 1**: Only processes Task tool invocations (skips other tools)
+      - **Filter Level 2**: Checks for active workflow via session correlation
+      - Returns `{continue: true}` for non-orchestrated tasks (no message injection)
+    - **Session correlation**: Uses `workflowRepo.findActiveBySession()` to match workflow ✅
     - Extract results from hook payload (synchronous) ✅
     - Agent role validation ✅
     - Call orchestrator.handleAgentComplete() ✅
@@ -887,10 +894,11 @@
 
 - [x] **Implement Stop handler** ✅ COMPLETED
   - File: `src/hooks/stop.ts` ✅
-  - Function: `handleStop(workflowRepo): void` ✅
+  - Function: `handleStop(payload, workflowRepo): void` ✅
   - Implementation:
-    - Query active workflows via workflowRepo.findActive() ✅
-    - Mark each as FAILED ✅
+    - **Session-based cleanup**: Uses session_id from payload to find active workflow ✅
+    - Query active workflow via `workflowRepo.findActiveBySession()` ✅
+    - Mark workflow as FAILED (orphaned session cleanup) ✅
     - Fault-tolerant error handling ✅
     - No response (per PRD §5.1) ✅
   - Tests pass (green) ✅ VERIFIED (6/6 tests passing)
@@ -1561,8 +1569,8 @@ AgentResults:
   B: {workflowId: 'wf-bbb', stepNumber: 0, agentRole: 'frontend-architect', results: '{"summary":"..."}'}
 
 WorkflowTransitions:
-  A: [...previous, {fromStep: 0, toStep: 1, fromAgent: 'backend-architect', toAgent: 'backend-developer'}]
-  B: [...previous, {fromStep: 0, toStep: 1, fromAgent: 'frontend-architect', toAgent: 'frontend-developer'}]
+  A: [...previous, {fromStep: 0, toStep: 1, fromAgent: 'backend-architect', toAgent: 'java-backend-developer'}]
+  B: [...previous, {fromStep: 0, toStep: 1, fromAgent: 'frontend-architect', toAgent: 'nextjs-react-developer'}]
 ```
 
 **After All Steps Complete (t3)**:
@@ -1741,12 +1749,12 @@ WorkflowTransitions:
 
   # Expected response (200 OK):
   # {
-  #   "message": "Use the backend-developer-moderate subagent to:\n
+  #   "message": "Use the java-backend-developer-moderate subagent to:\n
   #               1. Implement the authentication endpoints...",
   # }
 
   # Server logs should show:
-  # {"event":"agent_transition","workflowId":"...","fromAgent":"backend-architect","toAgent":"backend-developer","step":1}
+  # {"event":"agent_transition","workflowId":"...","fromAgent":"backend-architect","toAgent":"java-backend-developer","step":1}
   ```
 
   **Step 4: Query workflow status** (public endpoint - no auth required)
@@ -2142,7 +2150,7 @@ WorkflowTransitions:
   - File: `tests/performance/latency.test.ts`
   - Test cases:
     - Hook response time < 500ms (measure handleUserPromptSubmit and PostToolUse hook handlers)
-    - API response time < 1s (measure GET /status, POST /set-complexity)
+    - API response time < 1s (measure GET /status)
     - Concurrent workflows (10 parallel) complete without errors
   - Use: Vitest with timing assertions
   - Expected: Tests fail if latency exceeds targets
@@ -2502,7 +2510,6 @@ WorkflowTransitions:
         - ✅ Stop hook (`src/hooks/stop.ts`)
       - **PRD §4 (API Endpoints)**:
         - ✅ GET `/api/workflows/:id/status` (query workflow state)
-        - ✅ POST `/api/workflows/:id/set-complexity` (CC complexity submission)
         - ✅ POST `/api/workflows/:id/transition` (admin manual control)
       - **PRD §5 (Error Handling)**:
         - ✅ Invalid workflow IDs (404 responses)
@@ -2638,7 +2645,7 @@ WorkflowTransitions:
 - **2025-10-02: PoC Phase COMPLETED** ✅
   - **Architectural Decision**: Implemented **PostToolUse hook for synchronous agent chaining** (Option 2 from Development Plan)
     - **Rationale**: Agent results come via PostToolUse hook payload (embedded in `tool_response`), eliminating race conditions from API polling pattern
-    - **Impact**: SubagentStop hook kept for logging/monitoring only (no orchestration logic)
+    - **Impact**: PostToolUse hook replaced SubagentStop for orchestration logic
     - **Benefits**: Synchronous orchestration ensures workflow state consistency, no timing issues between agent completion and result submission
   - **TypeScript Decision**: Continued TypeScript for PoC implementation (not Python/Bash)
     - **Rationale**: Ensures consistency with production codebase from day one, provides type safety, eliminates migration overhead
@@ -2683,12 +2690,8 @@ WorkflowTransitions:
     - **Connection Management**: Singleton pattern for database connection (DatabaseConnection class)
   - **Architectural Decision**: **Added architect roles and frontend-architect variants**
     - **Rationale**: PRD originally specified single "architect" role, but implementation needed domain-specific architects
-    - **Impact**: 7 roles (backend-architect, frontend-architect, backend-developer, frontend-developer, reviewer, debugger, e2e-test-architect)
+    - **Impact**: 7 roles (backend-architect, frontend-architect, java-backend-developer, nextjs-react-developer, code-reviewer, issue-detective, e2e-test-architect)
     - **Complexity levels**: simple, moderate, complex (21 total agent configurations)
-  - **Schema Evolution**: **Retrospective schema changes for CC-assisted complexity**
-    - Added `draft_complexity` column to workflows table
-    - Added `set_complexity` status value for workflow status enum
-    - **Rationale**: Support optional Claude Code complexity determination (ENABLE_CC_COMPLEXITY flag)
   - **Testing**: TDD approach with 100% model test coverage before implementation
   - **Quality Verification**: All exit criteria met (tests pass, migrations clean, seed data works)
   - **Next Phase**: Proceed to Phase 2 (Orchestration Core) - Parser, resolver, state manager
@@ -2728,7 +2731,6 @@ WorkflowTransitions:
 - **2025-10-05: Phase 4 COMPLETED** ✅
   - **API Endpoints**: Implemented all public and admin endpoints
     - **GET /api/workflows/:id/status**: Query workflow progress (public, read-only)
-    - **POST /api/workflows/:id/set-complexity**: CC complexity determination (public)
     - **POST /api/workflows/:id/transition**: Manual workflow control (admin, API key required)
   - **Validation**: Zod schemas for request/response validation with detailed error messages
   - **Authentication**: API key middleware for admin endpoints (Bearer token pattern)

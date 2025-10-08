@@ -48,7 +48,6 @@ const createMockWorkflow = (overrides?: Partial<Workflow>): Workflow => ({
   userPrompt: 'Test prompt',
   chainName: 'backend-development',
   complexity: 'moderate',
-  draftComplexity: null,
   currentStep: 0,
   status: 'ACTIVE',
   sessionId: null,
@@ -123,25 +122,6 @@ describe('State Manager - Workflow Creation', () => {
     });
   });
 
-  it('should create workflow with PENDING_COMPLEXITY status when complexity is draft', async () => {
-    const mockWorkflow = createMockWorkflow({
-      status: 'PENDING_COMPLEXITY',
-      draftComplexity: 'moderate',
-      complexity: 'moderate',
-    });
-    vi.mocked(workflowRepo.createWorkflow).mockResolvedValue(mockWorkflow);
-
-    const result = await stateManager.createWorkflow({
-      userPrompt: 'Implement REST API',
-      chainName: ChainName.BACKEND_DEVELOPMENT,
-      complexity: 'moderate' as Complexity,
-      draftComplexity: 'moderate' as Complexity,
-      status: 'PENDING_COMPLEXITY' as WorkflowStatus,
-    });
-
-    expect(result.status).toBe('PENDING_COMPLEXITY');
-    expect(result.draftComplexity).toBe('moderate');
-  });
 });
 
 // ============================================================================

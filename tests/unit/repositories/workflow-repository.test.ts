@@ -38,7 +38,6 @@ describe('WorkflowRepository', () => {
       userPrompt: 'Test prompt',
       chainName: 'backend-development',
       complexity: 'moderate',
-      draftComplexity: null,
       currentStep: 0,
       status: 'ACTIVE',
       sessionId: null,
