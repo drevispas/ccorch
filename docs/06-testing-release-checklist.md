@@ -203,7 +203,6 @@ This checklist ensures CCOrch releases meet quality, security, and performance s
     - Stop hook
   - [ ] PRD §4: API Endpoints
     - GET /api/workflows/:id/status
-    - POST /api/workflows/:id/set-complexity
     - POST /api/workflows/:id/results
     - POST /api/workflows/:id/transition (admin)
   - [ ] PRD §5: Error Handling

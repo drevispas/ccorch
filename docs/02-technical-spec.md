@@ -413,7 +413,7 @@ enum ChainName {
 
 **Authentication**:
 - Hook endpoints: Shared secret via `X-Hook-Secret` header (prevents unauthorized workflow creation)
-- Public API endpoints: No authentication (GET /status, POST /set-complexity)
+- Public API endpoints: No authentication (GET /status)
 - Admin API endpoints: API key required (POST /transition)
 - **Note**: Agent results submitted via PostToolUse hook payload, not separate API endpoint
 
@@ -881,7 +881,6 @@ orchestrator-v3/
 │   │
 │   ├── api/
 │   │   ├── routes/
-│   │   │   ├── complexity.ts       # POST /workflows/:id/set-complexity
 │   │   │   ├── workflows.ts        # GET /workflows/:id/status
 │   │   │   └── transitions.ts      # POST /workflows/:id/transition (admin only)
 │   │   ├── middleware/
@@ -1348,7 +1347,7 @@ export async function saveAgentResult(data: AgentResultData): Promise<void> {
 |-----------|--------|-------------|
 | **Hook Response** | <500ms | UserPromptSubmit or PostToolUse hook → response |
 | **Agent Transition** | <1s | PostToolUse hook → next agent prompt injection |
-| **API Endpoints** | <200ms | GET /status, POST /set-complexity → 200 OK |
+| **API Endpoints** | <200ms | GET /status → 200 OK |
 | **DB Write** | <100ms | Single transaction with 3 writes (workflow + result + transition) |
 
 **Note**: Agent results submitted via PostToolUse hook payload, not separate API endpoint.

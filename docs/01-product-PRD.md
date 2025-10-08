@@ -488,7 +488,7 @@ Use the code-reviewer-moderate subagent to review authentication API implementat
 
 ## 9. Future Considerations
 
-- **Two-phase complexity determination**: Claude Code assisted refinement via `POST /api/workflows/{id}/set-complexity` API (currently not implemented - orchestrator determines complexity directly)
+- **Orchestrator-based complexity determination**: CCOrch analyzes user prompt using keyword-based heuristics to determine complexity level (simple/moderate/complex)
 - Custom chain definitions
 - Dynamic complexity adjustment
 - Parallel agent execution
