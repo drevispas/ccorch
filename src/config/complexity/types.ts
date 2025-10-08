@@ -61,7 +61,7 @@ export interface ComplexityFactor {
   evaluate: FactorEvaluator;
 
   /** Optional metadata for custom factors */
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**

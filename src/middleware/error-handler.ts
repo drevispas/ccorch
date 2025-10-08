@@ -24,10 +24,11 @@ import { ZodError } from 'zod';
  * @param next - Express next function
  */
 export function errorHandler(
-  err: Error | ZodError | any,
+  err: Error | ZodError | unknown,
   req: Request,
   res: Response,
-  next: NextFunction
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _next: NextFunction
 ): void {
   // Handle Zod validation errors
   if (err instanceof ZodError) {

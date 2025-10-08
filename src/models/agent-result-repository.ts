@@ -36,9 +36,9 @@ export class AgentResultRepository implements IAgentResultRepository {
           createdAt: now,
         },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Prisma unique constraint violation error code
-      if (error.code === 'P2002') {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
         throw new Error(
           'Unique constraint failed on the fields: (`workflow_id`,`step_number`)'
         );

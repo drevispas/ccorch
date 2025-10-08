@@ -77,7 +77,7 @@ export async function startServer(): Promise<Express> {
   app.use(express.json());
 
   // Error handling for invalid JSON
-  app.use((err: any, req: any, res: any, next: any) => {
+  app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (err instanceof SyntaxError && 'body' in err) {
       return res.status(400).json({ error: 'Invalid JSON' });
     }

@@ -47,7 +47,7 @@ export class WorkflowRepository implements IWorkflowRepository {
     id: string,
     options?: WorkflowFindByIdOptions
   ): Promise<WorkflowWithRelations | null> {
-    const includeClause: any = {};
+    const includeClause: { agentResults?: boolean; transitions?: boolean } = {};
 
     if (options?.includeAgentResults) {
       includeClause.agentResults = true;
@@ -105,7 +105,7 @@ export class WorkflowRepository implements IWorkflowRepository {
     status: WorkflowStatus,
     currentStep?: number
   ): Promise<Workflow> {
-    const updateData: any = {
+    const updateData: { status: WorkflowStatus; updatedAt: bigint; currentStep?: number } = {
       status,
       updatedAt: BigInt(Date.now()),
     };
@@ -143,7 +143,8 @@ export class WorkflowRepository implements IWorkflowRepository {
         where: { id },
       });
       return true;
-    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_error) {
       // Prisma throws error if record doesn't exist
       return false;
     }

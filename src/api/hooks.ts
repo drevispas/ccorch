@@ -12,6 +12,11 @@ import { handleStop } from '../hooks/stop';
 import type { Orchestrator } from '../services/orchestrator';
 import type { IWorkflowRepository } from '../types/repositories';
 
+// Extend Request type for workflow tracking
+interface RequestWithWorkflow extends Request {
+  workflowId?: string;
+}
+
 /**
  * Create hook router with dependency injection
  */
@@ -31,7 +36,7 @@ export function createHookRouter(
 
       // Attach workflowId to request for distributed tracing in logs
       if (result.workflowId) {
-        (req as any).workflowId = result.workflowId;
+        (req as RequestWithWorkflow).workflowId = result.workflowId;
       }
 
       // Return only the hook response (not the workflowId)

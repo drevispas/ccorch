@@ -30,7 +30,8 @@ export function extractSummary(agentResult: AgentResult): string {
     }
 
     return '';
-  } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (_error) {
     // Malformed JSON - return empty string
     return '';
   }

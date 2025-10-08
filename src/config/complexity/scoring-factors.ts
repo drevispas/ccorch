@@ -13,9 +13,8 @@
 import type {
   ComplexityFactor,
   FactorEvaluator,
-  FactorScore,
-  KeywordRegistry,
   KeywordDefinition,
+  NumericPattern,
 } from './types';
 
 // ============================================================================
@@ -76,7 +75,7 @@ function calculateKeywordScore(
 function extractNumericHints(
   prompt: string,
   factor: 'scope' | 'dependencies' | 'risk',
-  patterns: any[]
+  patterns: NumericPattern[]
 ): { value: number; evidence: string } | null {
   for (const pattern of patterns) {
     if (pattern.factor !== factor) continue;

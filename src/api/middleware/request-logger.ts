@@ -8,6 +8,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../../utils/logger';
 
+// Extend Request type for workflow tracking
+interface RequestWithWorkflow extends Request {
+  workflowId?: string;
+}
+
 /**
  * Middleware that logs incoming requests and outgoing responses
  * Includes request method, path, request ID, status code, and duration
@@ -38,7 +43,7 @@ export const requestLoggerMiddleware = (
     const duration = Date.now() - startTime;
 
     // Include workflowId if available (set by hook handlers for tracing)
-    const logData: Record<string, any> = {
+    const logData: Record<string, string | number | undefined> = {
       requestId: req.id,
       method: req.method,
       path: req.path,
@@ -47,8 +52,9 @@ export const requestLoggerMiddleware = (
     };
 
     // Add workflowId if present (distributed tracing)
-    if ((req as any).workflowId) {
-      logData.workflowId = (req as any).workflowId;
+    const reqWithWorkflow = req as RequestWithWorkflow;
+    if (reqWithWorkflow.workflowId) {
+      logData.workflowId = reqWithWorkflow.workflowId;
     }
 
     logger.info(logData, 'Request completed');

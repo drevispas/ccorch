@@ -7,7 +7,6 @@
  * PRD Reference: §5.2 Step 4 - Workflow State Management
  */
 
-import { randomUUID } from 'crypto';
 import type { Workflow } from '@prisma/client';
 import type {
   IWorkflowRepository,

@@ -13,8 +13,16 @@ import type { Orchestrator } from '../services/orchestrator.js';
 import type { IWorkflowRepository } from '../types/repositories.js';
 import { StatusQuerySchema, TransitionRequestSchema } from './validation.js';
 import { ChainName, type AgentRole } from '../types/workflow.js';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, type Workflow } from '@prisma/client';
 import { requireApiKey } from '../middleware/api-key-auth.js';
+
+// Type for completed agent data
+interface CompletedAgent {
+  role: string;
+  step: number;
+  status: string;
+  completed_at: number;
+}
 
 /**
  * Chain sequences for calculating total_steps
@@ -49,8 +57,8 @@ const CHAIN_SEQUENCES: Record<ChainName, AgentRole[]> = {
  * Generate summary text for workflow status
  */
 function generateSummary(
-  workflow: any,
-  completedAgents: any[],
+  workflow: Workflow,
+  completedAgents: CompletedAgent[],
   totalSteps: number
 ): string {
   if (workflow.status === 'COMPLETED') {
